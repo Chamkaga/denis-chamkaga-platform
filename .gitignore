@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+.next/
+
+# Environment (secrets)
+.env
+*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# npm
+.npm/
+.eslintcache
+
+# Test
+coverage/
+
+# Uploads (user content)
+uploads/
+
+# Prisma
+backend/prisma/migrations/*.sql.bak
+
+# Logs
+*.log
+npm-debug.log*
+
+# Docker volumes
+postgres_data/
+.env

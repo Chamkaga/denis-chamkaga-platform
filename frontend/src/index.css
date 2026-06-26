@@ -1,0 +1,187 @@
+@import "tailwindcss";
+
+@variant light (&:where(.light, .light *));
+
+@theme {
+  --color-primary-bg: #070708;
+  --color-primary-text: #f8fafc;
+  --color-accent-violet: #8b5cf6;
+  --color-accent-violet-hover: #7c3aed;
+  
+  --color-light-bg: #f8fafc;
+  --color-light-text: #0f172a;
+  --color-light-accent: #6d28d9;
+  
+  --font-display: "Outfit", "Inter", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+}
+
+/* Scrollbar customization */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0f0f12;
+}
+.light ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}
+.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+.light ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    font-family: var(--font-body);
+  }
+  
+  body {
+    @apply transition-colors duration-300 antialiased;
+    font-family: var(--font-body);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    @apply tracking-tight;
+  }
+  
+  /* Apply dark mode class styles */
+  .dark {
+    background-color: var(--color-primary-bg);
+    color: var(--color-primary-text);
+  }
+  
+  .light {
+    background-color: var(--color-light-bg);
+    color: var(--color-light-text);
+  }
+}
+
+/* Glassmorphism utility classes */
+.glass-panel {
+  @apply backdrop-blur-md border;
+  background-color: rgba(15, 15, 20, 0.7);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.light .glass-panel {
+  background-color: rgba(255, 255, 255, 0.85);
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+.glass-navbar {
+  @apply backdrop-blur-lg border-b;
+  background-color: rgba(7, 7, 8, 0.8);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.light .glass-navbar {
+  background-color: rgba(248, 250, 252, 0.85);
+  border-color: rgba(15, 23, 42, 0.06);
+}
+
+/* Accessibility Focus Indicator */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  @apply outline-none ring-2 ring-accent-violet ring-offset-2;
+}
+
+.dark a:focus-visible,
+.dark button:focus-visible,
+.dark input:focus-visible,
+.dark textarea:focus-visible,
+.dark select:focus-visible {
+  --tw-ring-offset-color: #070708;
+}
+
+.light a:focus-visible,
+.light button:focus-visible,
+.light input:focus-visible,
+.light textarea:focus-visible,
+.light select:focus-visible {
+  --tw-ring-offset-color: #f8fafc;
+}
+
+/* Base Theme Switch Transitions */
+body, header, footer, main, section, nav, .card, .glass-panel, .glass-navbar, button, input, select, textarea {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 250ms;
+}
+
+/* ── Motion Utilities ──────────────────────────────────────────── */
+
+/* Skeleton shimmer placeholder */
+@keyframes skeleton-shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.animate-skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(39,39,42,0.6) 25%,
+    rgba(63,63,70,0.6) 50%,
+    rgba(39,39,42,0.6) 75%
+  );
+  background-size: 800px 100%;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+}
+
+.light .animate-skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(226,232,240,0.7) 25%,
+    rgba(203,213,225,0.7) 50%,
+    rgba(226,232,240,0.7) 75%
+  );
+  background-size: 800px 100%;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+}
+
+/* Slow ping for online indicator */
+@keyframes ping-slow {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%       { transform: scale(1.5); opacity: 0; }
+}
+
+.animate-ping-slow {
+  animation: ping-slow 2s ease-in-out infinite;
+}
+
+/* Typing indicator bounce */
+@keyframes typing-dot {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
+  40%           { transform: translateY(-6px); opacity: 1; }
+}
+
+.animate-typing-dot {
+  animation: typing-dot 1.4s ease-in-out infinite;
+}
+
+.animate-typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.animate-typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-skeleton,
+  .animate-ping-slow,
+  .animate-typing-dot {
+    animation: none;
+  }
+}

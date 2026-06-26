@@ -1,0 +1,600 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum ProjectStatus {
+  completed
+  in_progress
+  planned
+}
+
+enum BlogPostStatus {
+  draft
+  published
+  archived
+  scheduled
+}
+
+enum LeadSource {
+  ai_chat
+  contact_form
+  booking
+  business_checker
+  referral
+  other
+}
+
+enum LeadStatus {
+  new
+  contacted
+  qualified
+  converted
+  lost
+}
+
+enum LeadTemperature {
+  cold
+  warm
+  hot
+}
+
+enum AppointmentStatus {
+  pending
+  confirmed
+  completed
+  cancelled
+}
+
+enum ChatSessionStatus {
+  active
+  closed
+  handed_off
+}
+
+enum MessageRole {
+  user
+  assistant
+  system
+}
+
+enum InvestorInterestType {
+  investor
+  partner
+  sponsor
+  supporter
+}
+
+enum InvestorRequestStatus {
+  new
+  reviewed
+  contacted
+  active
+  declined
+}
+
+enum WorkflowStatus {
+  draft
+  pending_review
+  published
+  archived
+  scheduled
+  completed
+  cancelled
+  in_progress
+  rejected
+}
+
+// ─── Users & Auth ─────────────────────────────────────────────────────────────
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  username          String    @unique
+  passwordHash      String
+  firstName         String
+  lastName          String
+  roleId            String
+  avatarUrl         String?
+  isActive          Boolean   @default(true)
+  mustChangePassword Boolean  @default(false)
+  lastLoginAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  role          Role           @relation(fields: [roleId], references: [id])
+  blogPosts     BlogPost[]
+  projects      Project[]
+  leads         Lead[]         @relation("AssignedLeads")
+  auditLogs     AuditLog[]
+  notifications Notification[]
+
+  @@index([email])
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+
+  users       User[]
+  permissions Permission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id        String   @id @default(cuid())
+  roleId    String
+  resource  String
+  action    String
+  createdAt DateTime @default(now())
+
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, resource, action])
+  @@map("permissions")
+}
+
+// ─── Projects ────────────────────────────────────────────────────────────────
+
+model Project {
+  id           String        @id @default(cuid())
+  title        String
+  slug         String        @unique
+  description  String
+  content      String
+  thumbnailUrl String?
+  images       Json?
+  techStack    Json
+  category     String
+  status       ProjectStatus
+  liveUrl      String?
+  githubUrl    String?
+  startDate    DateTime?
+  endDate      DateTime?
+  isFeatured   Boolean       @default(false)
+  displayOrder Int           @default(0)
+  createdById  String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  deletedAt    DateTime?
+
+  createdBy User @relation(fields: [createdById], references: [id])
+
+  @@index([slug])
+  @@index([status])
+  @@index([isFeatured])
+  @@map("projects")
+}
+
+// ─── Gallery ─────────────────────────────────────────────────────────────────
+
+model Gallery {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  imageUrl     String
+  thumbnailUrl String?
+  category     String
+  tags         Json?
+  displayOrder Int      @default(0)
+  isVisible    Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([category])
+  @@map("gallery")
+}
+
+// ─── Services ────────────────────────────────────────────────────────────────
+
+model Service {
+  id           String   @id @default(cuid())
+  title        String
+  slug         String   @unique
+  description  String
+  content      String
+  icon         String?
+  imageUrl     String?
+  features     Json?
+  technologies Json?
+  pricingInfo  String?
+  isActive     Boolean  @default(true)
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([slug])
+  @@index([isActive])
+  @@map("services")
+}
+
+// ─── Experience ───────────────────────────────────────────────────────────────
+
+model Experience {
+  id             String    @id @default(cuid())
+  company        String
+  role           String
+  description    String
+  achievements   Json?
+  companyLogoUrl String?
+  location       String?
+  startDate      DateTime
+  endDate        DateTime?
+  isCurrent      Boolean   @default(false)
+  displayOrder   Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@map("experiences")
+}
+
+// ─── Education ───────────────────────────────────────────────────────────────
+
+model Education {
+  id                 String    @id @default(cuid())
+  institution        String
+  degree             String
+  fieldOfStudy       String
+  description        String?
+  institutionLogoUrl String?
+  startDate          DateTime
+  endDate            DateTime?
+  grade              String?
+  displayOrder       Int       @default(0)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@map("education")
+}
+
+// ─── Certificates ─────────────────────────────────────────────────────────────
+
+model Certificate {
+  id            String   @id @default(cuid())
+  title         String
+  issuer        String
+  description   String?
+  imageUrl      String?
+  credentialUrl String?
+  credentialId  String?
+  issueDate     DateTime
+  expiryDate    DateTime?
+  displayOrder  Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("certificates")
+}
+
+// ─── Testimonials ─────────────────────────────────────────────────────────────
+
+model Testimonial {
+  id             String   @id @default(cuid())
+  clientName     String
+  clientTitle    String?
+  clientCompany  String?
+  clientPhotoUrl String?
+  content        String
+  rating         Int
+  isFeatured     Boolean  @default(false)
+  isVisible      Boolean  @default(true)
+  displayOrder   Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("testimonials")
+}
+
+// ─── Blog ─────────────────────────────────────────────────────────────────────
+
+model BlogPost {
+  id              String        @id @default(cuid())
+  title           String
+  slug            String        @unique
+  excerpt         String
+  content         String
+  coverImageUrl   String?
+  categoryId      String
+  authorId        String
+  status          BlogPostStatus
+  publishedAt     DateTime?
+  scheduledAt     DateTime?
+  readingTime     Int?
+  viewCount       Int           @default(0)
+  isFeatured      Boolean       @default(false)
+  metaTitle       String?
+  metaDescription String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  deletedAt       DateTime?
+
+  category Category       @relation(fields: [categoryId], references: [id])
+  author   User           @relation(fields: [authorId], references: [id])
+  tags     BlogPostTag[]
+
+  @@index([slug])
+  @@index([status, publishedAt])
+  @@index([isFeatured])
+  @@map("blog_posts")
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+
+  blogPosts BlogPost[]
+
+  @@index([slug])
+  @@map("categories")
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  createdAt DateTime @default(now())
+
+  blogPosts BlogPostTag[]
+
+  @@index([slug])
+  @@map("tags")
+}
+
+model BlogPostTag {
+  blogPostId String
+  tagId      String
+
+  blogPost BlogPost @relation(fields: [blogPostId], references: [id], onDelete: Cascade)
+  tag      Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([blogPostId, tagId])
+  @@map("blog_post_tags")
+}
+
+// ─── Leads & CRM ─────────────────────────────────────────────────────────────
+
+model Lead {
+  id                 String          @id @default(cuid())
+  name               String
+  email              String?
+  phone              String?
+  company            String?
+  source             LeadSource
+  status             LeadStatus      @default(new)
+  score              Int             @default(0)
+  temperature        LeadTemperature @default(cold)
+  requirements       String?
+  budgetMentioned    Boolean         @default(false)
+  timelineMentioned  Boolean         @default(false)
+  notes              String?
+  assignedToId       String?
+  convertedAt        DateTime?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  assignedTo    User?          @relation("AssignedLeads", fields: [assignedToId], references: [id])
+  messages      Message[]
+  appointments  Appointment[]
+  chatSessions  ChatSession[]
+
+  @@index([status, temperature])
+  @@index([createdAt])
+  @@map("leads")
+}
+
+model Message {
+  id        String    @id @default(cuid())
+  leadId    String?
+  name      String
+  email     String
+  phone     String?
+  subject   String?
+  content   String
+  isRead    Boolean   @default(false)
+  repliedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  lead Lead? @relation(fields: [leadId], references: [id])
+
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("messages")
+}
+
+model Appointment {
+  id            String            @id @default(cuid())
+  leadId        String?
+  name          String
+  email         String
+  phone         String?
+  purpose       String
+  preferredDate DateTime
+  preferredTime String
+  status        AppointmentStatus @default(pending)
+  notes         String?
+  confirmedAt   DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  lead Lead? @relation(fields: [leadId], references: [id])
+
+  @@index([status])
+  @@index([preferredDate])
+  @@map("appointments")
+}
+
+// ─── AI Conversations ─────────────────────────────────────────────────────────
+
+model ChatSession {
+  id           String            @id @default(cuid())
+  visitorId    String?
+  leadId       String?
+  status       ChatSessionStatus @default(active)
+  startedAt    DateTime          @default(now())
+  endedAt      DateTime?
+  messageCount Int               @default(0)
+  leadScore    Int               @default(0)
+  metadata     Json?
+
+  lead          Lead?             @relation(fields: [leadId], references: [id])
+  conversations AiConversation[]
+
+  @@index([status])
+  @@index([visitorId])
+  @@map("chat_sessions")
+}
+
+model AiConversation {
+  id         String      @id @default(cuid())
+  sessionId  String
+  role       MessageRole
+  content    String
+  intent     String?
+  confidence Float?
+  metadata   Json?
+  createdAt  DateTime    @default(now())
+
+  session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@map("ai_conversations")
+}
+
+// ─── Investor Requests ────────────────────────────────────────────────────────
+
+model InvestorRequest {
+  id           String                @id @default(cuid())
+  name         String
+  email        String
+  phone        String?
+  company      String?
+  interestType InvestorInterestType
+  message      String
+  status       InvestorRequestStatus @default(new)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  @@map("investor_requests")
+}
+
+// ─── Site Settings ────────────────────────────────────────────────────────────
+
+model SiteSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  type        String
+  category    String
+  description String?
+  updatedAt   DateTime @updatedAt
+
+  @@index([key])
+  @@index([category])
+  @@map("site_settings")
+}
+
+// ─── Visitors & Analytics ─────────────────────────────────────────────────────
+
+model Visitor {
+  id          String   @id @default(cuid())
+  sessionId   String
+  ipAddress   String?
+  userAgent   String?
+  referrer    String?
+  country     String?
+  city        String?
+  firstVisit  DateTime @default(now())
+  lastVisit   DateTime @default(now())
+  visitCount  Int      @default(1)
+  pagesViewed Json?
+
+  analytics Analytics[]
+
+  @@index([sessionId])
+  @@map("visitors")
+}
+
+model Analytics {
+  id         String   @id @default(cuid())
+  eventType  String
+  eventData  Json?
+  pagePath   String?
+  visitorId  String?
+  sessionId  String?
+  createdAt  DateTime @default(now())
+
+  visitor Visitor? @relation(fields: [visitorId], references: [id])
+
+  @@index([eventType, createdAt])
+  @@index([pagePath])
+  @@map("analytics")
+}
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  actionUrl String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+// ─── Audit Logs ───────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String
+  action     String
+  resource   String
+  resourceId String?
+  oldValues  Json?
+  newValues  Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([resource, resourceId])
+  @@map("audit_logs")
+}
+
+// ─── Languages ────────────────────────────────────────────────────────────────
+
+model Language {
+  id         String   @id @default(cuid())
+  code       String   @unique
+  name       String
+  nativeName String
+  isDefault  Boolean  @default(false)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  @@map("languages")
+}

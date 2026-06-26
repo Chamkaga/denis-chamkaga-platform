@@ -1,0 +1,61 @@
+{
+  "nav": {
+    "home": "Mwanzo",
+    "about": "Kuhusu",
+    "services": "Huduma",
+    "projects": "Miradi",
+    "gallery": "Matunzio",
+    "certificates": "Vyeti",
+    "blog": "Blogu",
+    "denisAssistant": "Msaidizi wa Denis",
+    "futureVision": "Malengo ya Mbeleni",
+    "contact": "Mawasiliano",
+    "experience": "Uzoefu",
+    "getInTouch": "Wasiliana Nasi",
+    "adminConsole": "Maudhui ya Admin",
+    "logout": "Ondoka"
+  },
+  "hero": {
+    "subtitle": "Ushauri wa Biashara na Suluhisho za Teknolojia",
+    "titlePrefix": "Habari, Mimi ni",
+    "name": "Denis Chamkaga",
+    "description": "Mtaalamu wa Teknolojia ya Habari za Biashara, Msanidi Programu na Mshauri wa Suluhisho za Biashara. Namsaidia mjasiriamali na biashara kukua kupitia mifumo ya kisasa, mafunzo na suluhisho za kidijitali.",
+    "ctaPrimary": "Tufanye Kazi Pamoja",
+    "ctaSecondary": "Msaidizi wa Denis",
+    "expYears": "Uzoefu wa Miaka 5+",
+    "projectsCompleted": "Miradi 20+ Imekamilika",
+    "happyClients": "Wateja 50+ Wenye Furaha",
+    "systemsTrained": "Mifumo 100+ Iliyofundishwa",
+    "talkAssistant": "Ongea na Msaidizi wa Denis",
+    "meetAssistant": "Kutana na Msaidizi wa Denis",
+    "welcomeAssistant": "Hatua ya Kwanza Kabla ya Kufanya Kazi na Denis"
+  },
+  "businessModel": {
+    "softwareDev": "Uundaji wa Programu",
+    "softwareDevDesc": "Mifumo ya Web, Simu na Kompyuta",
+    "businessSystems": "Mifumo ya Biashara",
+    "businessSystemsDesc": "Suluhisho maalum kwa biashara yako",
+    "training": "Mafunzo na Usaidizi",
+    "trainingDesc": "Kufundisha, Kuelekeza na Kusaidia Wanaotumia",
+    "consulting": "Ushauri wa IT",
+    "consultingDesc": "Ushauri na Suluhisho za Teknolojia",
+    "title": "Jinsi Ninavyosaidia Wateja"
+  },
+  "footer": {
+    "tagline": "MALENGO YANGU: KUTATUA CHANGAMOTO ZA BIASHARA KUPITIA TEKNOLOJIA, KULETA TIJA, NA KUJENGA TERRASAFI T LTD KUWA KAMPUNI KUBWA.",
+    "rights": "Haki zote zimehifadhiwa.",
+    "phone": "+255 620 145 678",
+    "email": "denischamkaga@gmail.com",
+    "location": "Dar es Salaam, Tanzania",
+    "website": "www.denis-chamkaga.com"
+  },
+  "common": {
+    "consultation": "Weka Kuhifadhi Ushauri",
+    "contactDenis": "Mawasiliano na Denis",
+    "suggestedServices": "Huduma Zinazopendekezwa",
+    "viewProject": "Angalia Mradi",
+    "back": "Nyuma",
+    "loading": "Inapakia...",
+    "error": "Hitilafu imetokea"
+  }
+}

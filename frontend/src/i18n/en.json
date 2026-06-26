@@ -1,0 +1,61 @@
+{
+  "nav": {
+    "home": "Home",
+    "about": "About",
+    "services": "Services",
+    "projects": "Projects",
+    "gallery": "Gallery",
+    "certificates": "Certificates",
+    "blog": "Blog",
+    "denisAssistant": "Denis Assistant",
+    "futureVision": "Future Vision",
+    "contact": "Contact",
+    "experience": "Timeline",
+    "getInTouch": "Get In Touch",
+    "adminConsole": "Admin Console",
+    "logout": "Log Out"
+  },
+  "hero": {
+    "subtitle": "Business & Technology Solutions",
+    "titlePrefix": "Hi, I'm",
+    "name": "Denis Chamkaga",
+    "description": "Business Information Technology Professional, Software Developer & Business Solutions Consultant. I help businesses grow through technology, custom systems, training, and digital solutions.",
+    "ctaPrimary": "Let's Work Together",
+    "ctaSecondary": "Meet Denis Assistant",
+    "expYears": "5+ Years Experience",
+    "projectsCompleted": "20+ Projects Completed",
+    "happyClients": "50+ Happy Clients",
+    "systemsTrained": "100+ Systems Trained",
+    "talkAssistant": "Talk with Denis Assistant",
+    "meetAssistant": "Meet Denis Assistant",
+    "welcomeAssistant": "Your First Step Before Working With Denis"
+  },
+  "businessModel": {
+    "softwareDev": "Software Development",
+    "softwareDevDesc": "Web, Mobile & Desktop Apps",
+    "businessSystems": "Business Systems",
+    "businessSystemsDesc": "Custom solutions for your business",
+    "training": "Training & Support",
+    "trainingDesc": "Teach, Guide & Support Users",
+    "consulting": "Consulting",
+    "consultingDesc": "IT Solutions & Business Advice",
+    "title": "How I Help Clients"
+  },
+  "footer": {
+    "tagline": "MY GOAL: TO SOLVE BUSINESS PROBLEMS USING TECHNOLOGY, CREATE IMPACT, AND BUILD TERRASAFI T LTD INTO A GREAT COMPANY.",
+    "rights": "All rights reserved.",
+    "phone": "+255 620 145 678",
+    "email": "denischamkaga@gmail.com",
+    "location": "Dar es Salaam, Tanzania",
+    "website": "www.denis-chamkaga.com"
+  },
+  "common": {
+    "consultation": "Book Consultation",
+    "contactDenis": "Contact Denis",
+    "suggestedServices": "Suggested Services",
+    "viewProject": "View Project",
+    "back": "Back",
+    "loading": "Loading...",
+    "error": "Something went wrong"
+  }
+}
