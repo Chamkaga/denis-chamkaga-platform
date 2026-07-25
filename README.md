@@ -1,7 +1,7 @@
 # Denis Business Platform (Enterprise Edition)
 
-[![Release](https://img.shields.io/badge/release-v1.0.0--candidate-violet.svg?style=for-the-badge)](https://github.com/Chamkaga/denis-business-platform/releases)
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg?style=for-the-badge)](https://github.com/Chamkaga/denis-business-platform)
+[![Release](https://img.shields.io/badge/release-v1.0.0--candidate-violet.svg?style=for-the-badge)](https://github.com/Chamkaga/denis-chamkaga-platform/releases)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg?style=for-the-badge)](https://github.com/Chamkaga/denis-chamkaga-platform)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6.svg?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19.0-61DAFB.svg?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
@@ -78,8 +78,8 @@ This repository follows a strict **Documentation-As-Code** policy. The `/docs` d
 ### Installation
 ```bash
 # Clone the repository
-git clone https://github.com/Chamkaga/denis-business-platform.git
-cd denis-business-platform
+git clone https://github.com/Chamkaga/denis-chamkaga-platform.git
+cd denis-chamkaga-platform
 
 # Install root & workspace dependencies
 npm install
