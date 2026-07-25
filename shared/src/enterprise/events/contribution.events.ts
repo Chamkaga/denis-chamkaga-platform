@@ -1,4 +1,5 @@
-import { DomainEvent } from './DomainEvent';
+import { DomainEvent } from './DomainEvent.js';
+
 
 export interface ContributionInitiatedPayload {
   contributionId: string;

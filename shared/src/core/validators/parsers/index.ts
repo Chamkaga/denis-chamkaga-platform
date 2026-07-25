@@ -1,4 +1,4 @@
-import { backendEnvSchema, frontendEnvSchema } from '../schemas';
+import { backendEnvSchema, frontendEnvSchema } from '../schemas/index.js';
 
 export function validateBackendEnv(env: Record<string, unknown>) {
   const result = backendEnvSchema.safeParse(env);

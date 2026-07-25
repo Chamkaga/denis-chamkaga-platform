@@ -1,4 +1,5 @@
-import { ErrorCode } from './errors';
+import { ErrorCode } from './errors.js';
+
 
 export interface ProblemDetails {
   type: string;

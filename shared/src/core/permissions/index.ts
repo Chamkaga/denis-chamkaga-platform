@@ -1,4 +1,5 @@
-import { Role } from '../enums/Role.enum';
+import { Role } from '../enums/Role.enum.js';
+
 
 export type Permission =
   | "Dashboard.READ"

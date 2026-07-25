@@ -1,4 +1,5 @@
-import { ApiResponse, ProblemDetails } from '../../types/api';
+import { ApiResponse, ProblemDetails } from '../../types/api.js';
+
 
 export function isProblemDetails(obj: any): obj is ProblemDetails {
   return (
