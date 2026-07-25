@@ -41,6 +41,7 @@ const uploadLimiter = rateLimit({
 
 // Public AI chat endpoints
 router.post('/chat', chatLimiter, aiController.chat);
+router.post('/chat/stream', chatLimiter, aiController.chat);
 router.get('/health', aiController.health);
 router.post('/webrtc/session', aiController.webrtcSession);
 router.get('/webrtc/session', aiController.webrtcSessionStatus);
