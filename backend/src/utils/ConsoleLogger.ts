@@ -14,6 +14,7 @@ export class ConsoleLogger implements ILogger {
   }
 
   debug(message: string, context?: LoggerContext, ...meta: any[]): void {
+    if (process.env.NODE_ENV === 'production') return;
     console.debug(`[DEBUG] ${message}`, context || '', ...meta);
   }
 
