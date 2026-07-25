@@ -214,17 +214,42 @@ export const aiOrchestrator = {
       }
     } catch (err) {
       logger.error('[AI Orchestrator] Provider execution failed, rendering Knowledge Engine fallback:', err);
-      const knowledgeDocs = context.knowledge || (context as any).knowledgeItems || [];
-      if (knowledgeDocs.length > 0) {
-        const docsText = knowledgeDocs.slice(0, 2).map((d: any) => `**${d.title}**\n${d.content}`).join('\n\n');
-        responseText = currentLanguage === 'sw'
-          ? `Hapa kuna taarifa kutoka Hifadhi ya Maarifa ya Denis Chamkaga:\n\n${docsText}\n\nJe, una swali la ziada au ungependa kupanga ushauri wa biashara na Denis Chamkaga?`
-          : `Here is relevant information from the Denis Chamkaga Knowledge Base:\n\n${docsText}\n\nWould you like more details or to schedule a business consultation with Denis Chamkaga?`;
+      
+      const isAskingForDenis = ['denis', 'ongea', 'piga', 'simu', 'speak', 'talk', 'call', 'meet', 'wasiliana'].some(term => sanitizedText.toLowerCase().includes(term));
+      const activePresence = (context.presenceState || 'Offline').trim().toLowerCase();
+
+      if (isAskingForDenis) {
+        if (activePresence === 'online') {
+          responseText = currentLanguage === 'sw'
+            ? "Denis yupo online kwa sasa na unaweza kuanzisha simu ya sauti (voice call) moja kwa moja kupitia kitufe cha kupiga juu ya chat widget hii. Je, ungependa kupiga simu sasa?"
+            : "Denis is currently online and available to talk. You can place a direct voice call using the call button at the top of this chat widget. Would you like to call now?";
+        } else if (activePresence === 'busy') {
+          responseText = currentLanguage === 'sw'
+            ? "Denis yuko busy kwa sasa akifanyia kazi mifumo ya wateja wetu. Mimi Mary nipo hapa kukusaidia kupata nukuu ya bei au unaweza kuniachia ujumbe naye ataufanyia kazi baadaye."
+            : "Denis is currently busy working on client projects. I am fully briefed to assist you with system info or take a message for him to review later.";
+        } else if (activePresence === 'meeting') {
+          responseText = currentLanguage === 'sw'
+            ? "Denis yuko kwenye mkutano (meeting) kwa sasa. Tafadhali acha ujumbe wako hapa au unaweza kuchagua muda wa mkutano kupitia kitufe cha 'Panga Mkutano'."
+            : "Denis is currently in a strategy meeting with a client. Please leave a message or book a time slot directly using the scheduling tool.";
+        } else {
+          responseText = currentLanguage === 'sw'
+            ? "Denis hayupo mkondoni (offline) kwa sasa. Unaweza kuniachia ujumbe pamoja na namba yako ya simu na barua pepe ili awasiliane nawe atakaporudi."
+            : "Denis is currently offline. Please leave a message along with your name, phone, and email, and he will get back to you shortly.";
+        }
       } else {
-        responseText = currentLanguage === 'sw'
-          ? "Karibu! 👋 Jina langu ni **Mary**, Msaidizi wa Biashara wa Denis Chamkaga. Nipo hapa kukusaidia kufahamu huduma zetu, kujibu maswali yako, au kukuunganisha moja kwa moja na Denis. Je, nawezaje kukusaidia leo?"
-          : "Welcome! 👋 My name is **Mary**, Denis' Business Assistant. I am here to help you learn about our services, answer your questions, provide quotations, or connect you directly with Denis. How can I help you today?";
+        const knowledgeDocs = context.knowledge || (context as any).knowledgeItems || [];
+        if (knowledgeDocs.length > 0) {
+          const docsText = knowledgeDocs.slice(0, 2).map((d: any) => `**${d.title}**\n${d.content}`).join('\n\n');
+          responseText = currentLanguage === 'sw'
+            ? `Hapa kuna taarifa kutoka Hifadhi ya Maarifa ya Denis Chamkaga:\n\n${docsText}\n\nJe, una swali la ziada au ungependa kupanga ushauri wa biashara na Denis Chamkaga?`
+            : `Here is relevant information from the Denis Chamkaga Knowledge Base:\n\n${docsText}\n\nWould you like more details or to schedule a business consultation with Denis Chamkaga?`;
+        } else {
+          responseText = currentLanguage === 'sw'
+            ? "Karibu! 👋 Jina langu ni **Mary**, Msaidizi wa Biashara wa Denis Chamkaga. Nipo hapa kukusaidia kufahamu huduma zetu, kujibu maswali yako, au kukuunganisha moja kwa moja na Denis. Je, nawezaje kukusaidia leo?"
+            : "Welcome! 👋 My name is **Mary**, Denis' Business Assistant. I am here to help you learn about our services, answer your questions, provide quotations, or connect you directly with Denis. How can I help you today?";
+        }
       }
+
       if (hasStream && onToken) {
         onToken(responseText);
       }

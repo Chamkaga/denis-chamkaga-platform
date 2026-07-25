@@ -24,6 +24,7 @@ export interface AIContext {
   userRole?: 'visitor' | 'admin' | 'super_admin' | 'client';
   adminPlatformContext?: AdminPlatformContext; // Only present for admin role
   contextSummary?: string;
+  presenceState?: string;
 }
 
 export const aiContextManager = {
@@ -47,6 +48,12 @@ export const aiContextManager = {
     });
     const sessionMeta = (sessionRecord?.metadata as Record<string, any>) || {};
     const contextSummary = sessionMeta.contextSummary || undefined;
+
+    // Fetch Live Admin Availability Presence State from DB
+    const presenceRecord = await prisma.siteSetting.findUnique({
+      where: { key: 'presence_state' }
+    });
+    const presenceState = presenceRecord?.value || 'Offline';
 
     // 1. Gather Feature Flags from config/environment
     const featureFlags = {
@@ -137,7 +144,8 @@ export const aiContextManager = {
       featureFlags,
       userRole,
       adminPlatformContext,
-      contextSummary
+      contextSummary,
+      presenceState
     };
   }
 };

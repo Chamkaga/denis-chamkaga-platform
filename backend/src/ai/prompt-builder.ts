@@ -191,6 +191,9 @@ export const aiPromptBuilder = {
       ? AdminContextFormatter.buildSystemPrompt(context)
       : PersonaManager.getSystemBase(lang);
 
+    const presenceState = context.presenceState || 'Offline';
+    const presenceBlock = isAdmin ? '' : `\n\n[ADMIN AVAILABILITY STATUS & LIVE ROUTING RULES]\n- Denis Chamkaga's Current Live Status: "${presenceState}" (Options: Online, Busy, Meeting, Offline)\n- CRITICAL INSTRUCTION: When the visitor asks to speak, call, or meet with Denis, evaluate his live status:\n  * If Status is "Online": Tell the visitor Denis is currently Online and available to connect or take a call right now.\n  * If Status is "Busy": Tell the visitor Denis is currently Busy working on client projects. Explain that Mary is fully briefed to answer questions, collect project details, or take a message for Denis.\n  * If Status is "Meeting": Tell the visitor Denis is currently in a strategy Meeting with a client. Offer to book a consultation or record their inquiry for Denis to review.\n  * If Status is "Offline": Tell the visitor Denis is currently Offline. Assure them Mary can help answer questions, provide quotes, or take their contact details so Denis can reach out as soon as he returns.`;
+
     const rules = `\n\n[OPERATIONAL RULES]\n${context.businessRules.map((r, i) => `${i + 1}. ${r}`).join('\n')}`;
     const memory = isAdmin ? '' : `\n\n${MemoryFormatter.formatFacts(context.facts, context.lead)}`;
     const denisKnowledge = isAdmin ? '' : `\n\n${DenisKnowledgeFormatter.formatProfile(lang)}`;
@@ -207,7 +210,7 @@ export const aiPromptBuilder = {
 
     const systemContent = isAdmin
       ? `${baseSystem}\n\nEnsure your response is structured, professional, and under 300 words.`
-      : `${baseSystem}${rules}${contextSummaryBlock}${memory}${denisKnowledge}${knowledge}${cardsInstruction}\n\nEnsure responses are empathetic, consultative, structured, and kept under 180 words.`;
+      : `${baseSystem}${presenceBlock}${rules}${contextSummaryBlock}${memory}${denisKnowledge}${knowledge}${cardsInstruction}\n\nEnsure responses are empathetic, consultative, structured, and kept under 180 words.`;
 
     const userAndAssistantHistory = context.history.filter(m => m.role !== 'system');
 
