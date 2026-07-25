@@ -96,7 +96,7 @@ The platform is organized into independent, self-contained modules. Each module 
 | Appointment Assistant | Book appointments through chat | appointments |
 
 ### Dependencies
-- Ollama (LLM inference)
+- OpenAI (LLM inference)
 - Lead Module (lead storage)
 - Booking Module (appointment creation)
 - Notification Module (alerts to Denis)

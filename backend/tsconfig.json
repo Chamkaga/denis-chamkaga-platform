@@ -15,9 +15,10 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "resolveJsonModule": true,
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"],
+      "@dc/shared": ["../shared/dist/index"],
+      "@dc/shared/*": ["../shared/dist/*"]
     }
   },
   "include": ["src/**/*", "prisma/**/*"],

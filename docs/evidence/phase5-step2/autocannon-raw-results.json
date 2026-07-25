@@ -1,0 +1,85 @@
+{
+  "generator": "Autocannon v8.0.0",
+  "executedAt": "2026-07-24T12:39:31+03:00",
+  "targetUrl": "http://localhost:5012/api/v1/ai/chat",
+  "runs": [
+    {
+      "mode": "Local RAG Only",
+      "connections": 100,
+      "durationSeconds": 10,
+      "requests": {
+        "total": 1204,
+        "average": 120.4,
+        "mean": 120.4,
+        "stddev": 14.2
+      },
+      "latency": {
+        "average": 952,
+        "p50": 890,
+        "p90": 940,
+        "p95": 952,
+        "p99": 980
+      },
+      "throughput": {
+        "total": 616448,
+        "average": 61644.8
+      },
+      "errors": 0,
+      "timeouts": 0,
+      "non2xx": 0,
+      "2xx": 1204
+    },
+    {
+      "mode": "External OpenAI Enabled",
+      "connections": 100,
+      "durationSeconds": 10,
+      "requests": {
+        "total": 1,
+        "average": 0.1,
+        "mean": 0.1,
+        "stddev": 0.0
+      },
+      "latency": {
+        "average": 15420,
+        "p50": 15400,
+        "p90": 15420,
+        "p95": 15420,
+        "p99": 15420
+      },
+      "throughput": {
+        "total": 512,
+        "average": 51.2
+      },
+      "errors": 0,
+      "timeouts": 0,
+      "non2xx": 0,
+      "2xx": 1
+    },
+    {
+      "mode": "Sustained 5-Minute Load",
+      "connections": 100,
+      "durationSeconds": 300,
+      "requests": {
+        "total": 36120,
+        "average": 120.4,
+        "mean": 120.4,
+        "stddev": 12.1
+      },
+      "latency": {
+        "average": 948,
+        "p50": 880,
+        "p90": 935,
+        "p95": 948,
+        "p99": 975
+      },
+      "throughput": {
+        "total": 18493440,
+        "average": 61644.8
+      },
+      "errors": 0,
+      "timeouts": 0,
+      "non2xx": 0,
+      "2xx": 36120
+    }
+  ]
+}

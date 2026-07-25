@@ -11,9 +11,24 @@
     "futureVision": "Malengo ya Mbeleni",
     "contact": "Mawasiliano",
     "experience": "Uzoefu",
-    "getInTouch": "Wasiliana Nasi",
+    "creator": "Mbunifu",
+    "partner": "Shirikiana Nami",
+    "getInTouch": "Tujenge Pamoja",
     "adminConsole": "Maudhui ya Admin",
-    "logout": "Ondoka"
+    "logout": "Ondoka",
+    "dashboard": "Dawati Kuu",
+    "business": "Biashara na CRM",
+    "marketing": "Masoko na Ukuaji",
+    "content": "Maudhui na Portfolio",
+    "media": "Maktaba ya Media",
+    "aiAssistant": "Uendeshaji wa AI Copilot",
+    "knowledgeBase": "Mfumo wa Maarifa CMS",
+    "communication": "Kituo cha Mawasiliano",
+    "analytics": "Ripoti na Takwimu",
+    "system": "Mipangilio ya Mfumo",
+    "security": "Watumiaji na Ulinzi",
+    "innovation": "Ubunifu Admin",
+    "partnerships": "Ushirikiano Admin"
   },
   "hero": {
     "subtitle": "Ushauri wa Biashara na Suluhisho za Teknolojia",
@@ -39,7 +54,8 @@
     "trainingDesc": "Kufundisha, Kuelekeza na Kusaidia Wanaotumia",
     "consulting": "Ushauri wa IT",
     "consultingDesc": "Ushauri na Suluhisho za Teknolojia",
-    "title": "Jinsi Ninavyosaidia Wateja"
+    "title": "Jinsi Ninavyosaidia Wateja",
+    "description": "Nasaidia makampuni ya kisasa kuacha kutumia zana za kimsingi tu (mitandao ya kijamii pekee sio mfumo wa biashara) na kujenga programu thabiti za wavuti, mifumo ya kiotomatiki, mifumo ya fedha, na CRM ili kukuza shughuli zao."
   },
   "footer": {
     "tagline": "MALENGO YANGU: KUTATUA CHANGAMOTO ZA BIASHARA KUPITIA TEKNOLOJIA, KULETA TIJA, NA KUJENGA TERRASAFI T LTD KUWA KAMPUNI KUBWA.",
@@ -47,7 +63,11 @@
     "phone": "+255 620 145 678",
     "email": "denischamkaga@gmail.com",
     "location": "Dar es Salaam, Tanzania",
-    "website": "www.denis-chamkaga.com"
+    "website": "www.denis-chamkaga.com",
+    "description": "Denis Chamkaga ni mhitimu wa Teknolojia ya Habari za Biashara, Msanidi wa Programu za Wavuti na mwanafunzi wa maisha yote anayeishi Tanzania. Anafurahia kujenga suluhisho za programu zinazosaidia biashara kurahisisha uendeshaji wao wa kila siku, kuongeza ufanisi na kukubali mabadiliko ya kidijitali.",
+    "quickLinks": "Viungo vya Haraka",
+    "contactInfo": "Maelezo ya Mawasiliano",
+    "followMe": "Nifuatilie"
   },
   "common": {
     "consultation": "Weka Kuhifadhi Ushauri",
@@ -56,6 +76,66 @@
     "viewProject": "Angalia Mradi",
     "back": "Nyuma",
     "loading": "Inapakia...",
-    "error": "Hitilafu imetokea"
+    "error": "Hitilafu imetokea",
+    "returnHome": "Rudi Nyumbani",
+    "tryAgain": "Jaribu Tena",
+    "backToBlog": "Rudi kwenye Blogu",
+    "backToList": "Rudi kwenye Orodha",
+    "readMore": "Soma Zaidi",
+    "share": "Shiriki",
+    "copyLink": "Nakili Kiungo",
+    "copied": "Imenakiliwa!",
+    "relatedPosts": "Makala Zinazohusiana",
+    "prevArticle": "Makala Iliyotangulia",
+    "nextArticle": "Makala Inayofuata"
+  },
+  "blog": {
+    "badge": "Maarifa ya Biashara na Teknolojia",
+    "title": "Maarifa na Makala",
+    "description": "Makala rahisi ambapo ninashiriki mawazo, mafunzo na uzoefu kuhusu teknolojia ya biashara, uundaji wa programu na mabadiliko ya kidijitali kwa biashara ndogo na zinazokua.",
+    "readMore": "Soma Zaidi",
+    "noPosts": "Bado hakuna makala. Rudi baadaye.",
+    "breadcrumbHome": "Mwanzo",
+    "breadcrumbBlog": "Blogu",
+    "shareTitle": "Shiriki makala hii",
+    "relatedPosts": "Makala Zinazohusiana",
+    "prevPost": "Iliyotangulia",
+    "nextPost": "Inayofuata"
+  },
+  "support": {
+    "title": "Saidia Kazi Yangu",
+    "subtitle": "Saidia Kujenga Suluhisho Bora za Open Source",
+    "description": "Ikiwa mifumo yangu ya open-source, schema za database, na mafunzo ya mifumo ya IT yanakusaidia, fikiria kusaidia utafiti wangu na uchapishaji unaoendelea.",
+    "nameLabel": "Jina Lako (Hiari)",
+    "namePlaceholder": "mf. Amina Hassan",
+    "emailLabel": "Anwani ya Barua Pepe",
+    "emailPlaceholder": "barua@pepe.com",
+    "amountLabel": "Chagua Kiasi",
+    "customAmount": "Kiasi Maalum",
+    "customPlaceholder": "Ingiza kiasi...",
+    "currency": "Sarafu",
+    "submitBtn": "Saidia kupitia DPO Pay",
+    "processing": "Inashughulikia...",
+    "thankYou": "Asante kwa kusaidia utafiti wa msanidi wa mifumo wa Tanzania!",
+    "disabled": "Ukurasa wa Usaidizi Umezimwa",
+    "disabledDesc": "Msimamizi wa jukwaa amesimamisha kwa muda ukurasa wa malipo ya umma.",
+    "errorInvalidAmount": "Tafadhali chagua au taja kiasi halali cha mchango.",
+    "errorEmailRequired": "Anwani ya barua pepe ya mtoa mchango inahitajika.",
+    "errorCheckout": "Kipindi cha malipo cha mtoa huduma kimeshindwa."
+  },
+  "about": {
+    "title": "Kuhusu Denis Chamkaga",
+    "sectionBadge": "Historia ya Kitaalamu",
+    "pageHeading": "Mbunifu wa Mifumo na Mshauri wa IT wa Biashara",
+    "tabAbout": "Muhtasari wa Kitaalamu",
+    "tabJourney": "Safari ya Kazi",
+    "tabSkills": "Ujuzi wa Kiufundi",
+    "tabEducation": "Elimu",
+    "ctaWork": "Tufanye Kazi Pamoja",
+    "ctaAssistant": "Kutana na Msaidizi wa Denis",
+    "skillsTitle": "Uwezo wa Kiufundi",
+    "journeyTitle": "Hatua za Kazi",
+    "educationTitle": "Elimu Rasmi",
+    "downloadCV": "Pakua CV"
   }
 }

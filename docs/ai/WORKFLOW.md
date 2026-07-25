@@ -32,8 +32,8 @@ Every incoming HTTP request to `/api/v1/ai/chat` traverses the following structu
    - Combines system-prompt, memory summaries, loaded knowledge, and history.
       │
       ▼
-6. Ollama Completion Run (ollama.service.ts)
-   - Local Llama 3 execution.
+6. OpenAI Completion Run (openai.service.ts)
+   - Local gpt-4o-mini 3 execution.
       │
       ▼
 7. Response Validation (response-validator.ts)

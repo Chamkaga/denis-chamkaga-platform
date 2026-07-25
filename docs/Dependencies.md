@@ -95,7 +95,7 @@
 | Docker | 27.x | Containerization |
 | Docker Compose | 2.x | Multi-service orchestration |
 | NGINX | 1.27.x | Reverse proxy |
-| Ollama | Latest | Local LLM runtime |
+| OpenAI | Latest | OpenAI API |
 | Git | 2.x | Version control |
 
 ---

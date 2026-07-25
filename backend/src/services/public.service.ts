@@ -158,6 +158,13 @@ export const publicService = {
     });
   },
 
+  // ── FAQs ──────────────────────────────────────────────────────────────────
+  async getFaqs() {
+    return prisma.faq.findMany({
+      orderBy: { displayOrder: 'asc' },
+    });
+  },
+
   // ── Site Settings (public subset) ─────────────────────────────────────────
   async getPublicSettings() {
     const keys = [
@@ -165,6 +172,10 @@ export const publicService = {
       'contact_email', 'contact_phone', 'contact_location',
       'social_linkedin', 'social_github', 'social_twitter', 'social_whatsapp',
       'years_experience', 'projects_completed', 'clients_served',
+      'ai_quick_actions', 'booking_url',
+      'support_enabled', 'support_title', 'support_description', 
+      'support_amounts', 'support_custom_enabled', 'support_currency', 
+      'support_thank_you'
     ];
     const settings = await prisma.siteSetting.findMany({ where: { key: { in: keys } } });
     return Object.fromEntries(settings.map(s => [s.key, s.value]));

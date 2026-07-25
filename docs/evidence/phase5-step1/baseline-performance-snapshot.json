@@ -1,0 +1,17 @@
+{
+  "snapshotName": "Phase 5 Pre-Load Test System Performance Baseline",
+  "timestamp": "2026-07-24T11:58:47+03:00",
+  "environment": "Development / Staging Base",
+  "metrics": {
+    "cpuUsagePercent": 1.4,
+    "memoryUsageMB": 82.5,
+    "averageResponseTimeMs": 78,
+    "p95ResponseTimeMs": 120,
+    "p99ResponseTimeMs": 180,
+    "activePostgresDbConnections": 4,
+    "activeSessions": 1,
+    "throughputReqPerSec": 45,
+    "errorRatePercent": 0.0,
+    "timeoutRatePercent": 0.0
+  }
+}

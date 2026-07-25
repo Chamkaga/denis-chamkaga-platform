@@ -9,6 +9,7 @@ import { useUIStore } from '../../../store/useUIStore';
 import { Logo } from '../../atoms/Logo';
 import { Button } from '../../atoms/Button';
 import { ROUTES } from '../../../config/routes';
+import { MAIN_NAVIGATION } from '../../../config/navigation';
 
 export const Navbar: React.FC = () => {
   const { t } = useTranslation();
@@ -30,18 +31,10 @@ export const Navbar: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const navLinks = [
-    { name: t('nav.home'), path: ROUTES.HOME },
-    { name: t('nav.about'), path: ROUTES.ABOUT },
-    { name: t('nav.services'), path: ROUTES.SERVICES },
-    { name: t('nav.projects'), path: ROUTES.PROJECTS },
-    { name: t('nav.gallery'), path: ROUTES.GALLERY },
-    { name: t('nav.certificates'), path: ROUTES.CERTIFICATES },
-    { name: t('nav.blog'), path: ROUTES.BLOG },
-    { name: t('nav.denisAssistant'), path: ROUTES.DENIS_ASSISTANT },
-    { name: t('nav.futureVision'), path: ROUTES.FUTURE_VISION },
-    { name: t('nav.contact'), path: ROUTES.CONTACT },
-  ];
+  const navLinks = MAIN_NAVIGATION.map((link) => ({
+    name: t(link.translationKey),
+    path: link.path,
+  }));
 
   const handleNavClick = (path: string) => {
     toggleMobileMenu(false);

@@ -1,36 +1,35 @@
-import React from 'react';
-import { useLocation } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import React, { useEffect } from 'react';
+import { useLocation, Outlet } from 'react-router-dom';
 import { Navbar } from '../../organisms/Navbar';
 import { Footer } from '../../organisms/Footer';
 import { ChatWidget } from '../../organisms/ChatWidget';
-import { pageVariants } from '../../../lib/motion';
+import { BackToTop } from '../../atoms/BackToTop/BackToTop';
+import { useHashScroll } from '../../../hooks/useHashScroll';
+import { GlobalErrorBoundary } from '../../organisms/GlobalErrorBoundary';
 
-interface PublicLayoutProps {
-  children: React.ReactNode;
-}
-
-export const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
+export const PublicLayout: React.FC = () => {
   const location = useLocation();
+  useHashScroll(); // Automatically scroll to hash anchors dynamically
+
+  // Scroll to top on every route change immediately
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [location.pathname]);
 
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
       <main className="flex-grow pt-20 overflow-x-hidden">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={location.pathname}
-            variants={pageVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-          >
-            {children}
-          </motion.div>
-        </AnimatePresence>
+        <GlobalErrorBoundary key={location.pathname}>
+          <Outlet />
+        </GlobalErrorBoundary>
       </main>
       <Footer />
       <ChatWidget />
+      <BackToTop />
     </div>
   );
 };
+
+export default PublicLayout;
+

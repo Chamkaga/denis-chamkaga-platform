@@ -1,0 +1,60 @@
+name: Phase 5 Enterprise Hardening CI Pipeline
+
+on:
+  push:
+    branches: [ main, master, dev ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  phase5-hardening-verification:
+    name: Run Phase 5 Enterprise Hardening Verification Suite
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: denis_platform
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Shared Package Build
+        run: npm run build --workspace=shared
+
+      - name: Database Migration & Seed
+        env:
+          DATABASE_URL: "postgresql://postgres:password@localhost:5432/denis_platform?schema=public"
+        run: |
+          cd backend
+          npx prisma migrate dev --name init
+          npx tsx prisma/seed.ts
+
+      - name: Run Phase 5 Permanent Test Suite
+        env:
+          DATABASE_URL: "postgresql://postgres:password@localhost:5432/denis_platform?schema=public"
+          JWT_SECRET: "ci-secret-at-least-32-characters-long"
+          JWT_REFRESH_SECRET: "ci-refresh-secret-at-least-32-characters-long"
+        run: |
+          cd backend
+          npm run test:phase5:all

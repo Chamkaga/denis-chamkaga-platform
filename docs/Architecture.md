@@ -29,7 +29,7 @@ This platform follows a **Layered Architecture** pattern combined with **Feature
 │                        AI LAYER                                 │
 │         Conversation Engine · Intent Classification             │
 │       Lead Qualification · Recommendation · Handoff             │
-│          Ollama · Future: OpenAI / Gemini / Claude              │
+│          OpenAI · Future: OpenAI / Gemini / Claude              │
 ├─────────────────────────────────────────────────────────────────┤
 │                    PERSISTENCE LAYER                            │
 │              PostgreSQL · Prisma ORM · Migrations               │
@@ -92,8 +92,8 @@ This platform follows a **Layered Architecture** pattern combined with **Feature
 
 | Technology | Purpose |
 |------------|---------|
-| Ollama | Local LLM runtime |
-| Llama 3.x | Primary local model |
+| OpenAI | OpenAI API |
+| gpt-4o-mini 3.x | Primary local model |
 | OpenAI-compatible API | Future cloud AI adapter |
 | Custom Engine | Conversation, intent, lead scoring |
 
@@ -152,7 +152,7 @@ Every layer implements error boundaries. The frontend shows user-friendly error 
 ### Backend ↔ AI
 
 - Protocol: Internal service calls (same process) for core AI
-- Protocol: HTTP to Ollama API for LLM inference
+- Protocol: HTTP to OpenAI API for LLM inference
 - Future: HTTP to OpenAI-compatible endpoints
 
 ---
@@ -209,7 +209,7 @@ Client stores tokens → Sends access token in Authorization header
                                       ↓
                               [PostgreSQL]
                                       ↓
-                              [Ollama (Local)]
+                              [OpenAI (Local)]
 ```
 
 ### Future Architecture (Scaled)
@@ -273,4 +273,12 @@ Settings Module ──→ Theme, Language, Site Config
 5. Manages appointments and leads
 6. Updates site settings and theme
 7. All actions logged in audit trail
+
+---
+
+## 9. Additional Architecture Specifications
+
+*   [Support Contribution Architecture](file:///d:/Projects/denis-chamkaga-platform/docs/architecture/SupportContributionArchitecture.md) - Production Design Specification for the "Support the Vision" ecosystem funnel integration.
+*   [Direct Pay Online (DPO) Integration](file:///d:/Projects/denis-chamkaga-platform/docs/integrations/DPOIntegration.md) - Implementation specifications for the hosted payment gateway service.
+*   [Gate 0 Approval Constitution](file:///d:/Projects/denis-chamkaga-platform/docs/Gate0Approval.md) - Formal constitutional approval sign-off for the Enterprise Baseline.
 ```

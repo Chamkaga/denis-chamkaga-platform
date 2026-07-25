@@ -5,10 +5,13 @@ node_modules/
 dist/
 build/
 .next/
+backend/dist/
 
 # Environment (secrets)
 .env
-*.local
+*.env
+*.env.local
+*.env.*.local
 
 # IDE
 .vscode/
@@ -24,19 +27,20 @@ Thumbs.db
 .npm/
 .eslintcache
 
-# Test
+# Test & Coverage
 coverage/
 
-# Uploads (user content)
+# Uploads & Backups (user content / dumps)
 uploads/
+backend/uploads/
+backend/backups/
 
-# Prisma
+# Prisma & Logs
 backend/prisma/migrations/*.sql.bak
-
-# Logs
 *.log
 npm-debug.log*
 
-# Docker volumes
+# Docker volumes & Temporary PPTX/Binaries
 postgres_data/
-.env
+*.pptx
+

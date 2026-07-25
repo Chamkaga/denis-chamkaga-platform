@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 @variant light (&:where(.light, .light *));
+@variant dark (&:where(.dark, .dark *));
 
 @theme {
   --color-primary-bg: #070708;

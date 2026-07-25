@@ -50,7 +50,7 @@ export const PageTitle: React.FC<PageTitleProps> = ({ title, description }) => {
     }
 
     return () => {
-      document.title = `${SITE_NAME} | Business Technology Consultant`;
+      document.title = `${SITE_NAME} | Web Software Developer`;
     };
   }, [title, description]);
 

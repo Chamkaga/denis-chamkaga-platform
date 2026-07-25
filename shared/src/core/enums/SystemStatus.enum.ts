@@ -1,0 +1,6 @@
+export enum SystemStatus {
+  OPERATIONAL = "OPERATIONAL",
+  DEGRADED = "DEGRADED",
+  MAINTENANCE = "MAINTENANCE",
+  OFFLINE = "OFFLINE"
+}

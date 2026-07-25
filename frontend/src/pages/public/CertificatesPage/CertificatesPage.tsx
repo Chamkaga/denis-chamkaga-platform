@@ -1,51 +1,110 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Award, Calendar, ExternalLink, CheckCircle } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { publicApi } from '../../../services/api';
 import { IMAGES } from '../../../constants/images';
 import { PageTitle } from '../../../components/atoms/PageTitle/PageTitle';
 import { AnimatedImage } from '../../../components/atoms/AnimatedImage/AnimatedImage';
 import { MotionCard } from '../../../components/atoms/MotionCard/MotionCard';
 import { heroStaggerContainer, fadeUpVariants } from '../../../lib/motion';
+import { useLanguageStore } from '../../../store/useLanguageStore';
 
 export const CertificatesPage: React.FC = () => {
-  const credentials = [
-    {
-      title: 'Diploma in Business Information Technology',
-      institution: 'University of Dar es Salaam Computing Centre (UDCC)',
-      year: '2025',
-      image: IMAGES.certificates.udccDiploma,
-      desc: 'Comprehensive study including Database Management, Systems Analysis, Accounting, Finance, and Web Programming.',
-      issuer: 'UDSM',
-      issuerUrl: 'https://www.ucc.co.tz',
-      skills: ['Relational Database design', 'Systems Analysis workflows', 'Information Systems management']
-    },
-    {
-      title: 'Customer Experience Operations & Standards',
-      institution: 'PCCI Group Training Division',
-      year: '2019',
-      image: IMAGES.certificates.customerServiceCert,
-      desc: 'Customer Relationship Management systems, SLA rules compliance, ticket lifecycle operations, and communication standards.',
-      issuer: 'PCCI Group',
-      issuerUrl: 'https://pcci-group.com',
-      skills: ['SLA escalation rules', 'CRM ticketing systems', 'Conflict resolution']
-    },
-    {
-      title: 'Security Operations & Incident Audit',
-      institution: 'Securex Training Academy',
-      year: '2015',
-      image: IMAGES.certificates.securityCert,
-      desc: 'Risk calculations, physical patrol audit guidelines, security procedures, and emergency operations management.',
-      issuer: 'Securex Ltd',
-      issuerUrl: 'https://securexafrica.com',
-      skills: ['Incident log audit', 'Procedural discipline', 'Risk assessment rules']
-    }
-  ];
+  const { language } = useLanguageStore();
+  const isSwahili = language === 'sw';
+
+  const { data: dbCertificates } = useQuery({
+    queryKey: ['public-certificates'],
+    queryFn: () => publicApi.getCertificates(),
+  });
+
+  const credentials = isSwahili
+    ? [
+        {
+          title: 'Diploma ya Teknolojia ya Habari za Kibiashara (BIT)',
+          institution: 'University of Dar es Salaam Computing Centre (UDCC)',
+          year: '2025',
+          image: IMAGES.certificates.udccDiploma,
+          desc: 'Masomo kamili yaliyohusisha Usimamizi wa Database, Uchambuzi wa Mifumo, Uhasibu, Fedha, na Programu za Wavuti.',
+          issuer: 'UDSM',
+          issuerUrl: 'https://www.ucc.co.tz',
+          skills: ['Ubunifu wa Database Relational', 'Uchambuzi wa Mifumo (SOP)', 'Usimamizi wa Mifumo ya Habari']
+        },
+        {
+          title: 'Uendeshaji na Viwango vya Huduma kwa Wateja',
+          institution: 'PCCI Group Training Division',
+          year: '2019',
+          image: IMAGES.certificates.customerServiceCert,
+          desc: 'Mifumo ya Usimamizi wa Uhusiano wa Wateja (CRM), uzingatiaji wa sheria za SLA, mzunguko wa maisha ya tiketi na mawasiliano.',
+          issuer: 'PCCI Group',
+          issuerUrl: 'https://pcci-group.com',
+          skills: ['Sheria za ngazi za SLA', 'Mifumo ya tiketi ya CRM', 'Utatuzi wa migogoro']
+        },
+        {
+          title: 'Uendeshaji wa Usalama na Ukaguzi wa Matukio',
+          institution: 'Securex Training Academy',
+          year: '2015',
+          image: IMAGES.certificates.securityCert,
+          desc: 'Uhesabuji wa hatari, miongozo ya ukaguzi wa doria, taratibu za usalama, na usimamizi wa dharura.',
+          issuer: 'Securex Ltd',
+          issuerUrl: 'https://securexafrica.com',
+          skills: ['Ukaguzi wa magogo ya matukio', 'Nidhamu ya kiutaratibu', 'Tathmini ya hatari']
+        }
+      ]
+    : [
+        {
+          title: 'Diploma in Business Information Technology',
+          institution: 'University of Dar es Salaam Computing Centre (UDCC)',
+          year: '2025',
+          image: IMAGES.certificates.udccDiploma,
+          desc: 'Comprehensive study including Database Management, Systems Analysis, Accounting, Finance, and Web Programming.',
+          issuer: 'UDSM',
+          issuerUrl: 'https://www.ucc.co.tz',
+          skills: ['Relational Database design', 'Systems Analysis workflows', 'Information Systems management']
+        },
+        {
+          title: 'Customer Experience Operations & Standards',
+          institution: 'PCCI Group Training Division',
+          year: '2019',
+          image: IMAGES.certificates.customerServiceCert,
+          desc: 'Customer Relationship Management systems, SLA rules compliance, ticket lifecycle operations, and communication standards.',
+          issuer: 'PCCI Group',
+          issuerUrl: 'https://pcci-group.com',
+          skills: ['SLA escalation rules', 'CRM ticketing systems', 'Conflict resolution']
+        },
+        {
+          title: 'Security Operations & Incident Audit',
+          institution: 'Securex Training Academy',
+          year: '2015',
+          image: IMAGES.certificates.securityCert,
+          desc: 'Risk calculations, physical patrol audit guidelines, security procedures, and emergency operations management.',
+          issuer: 'Securex Ltd',
+          issuerUrl: 'https://securexafrica.com',
+          skills: ['Incident log audit', 'Procedural discipline', 'Risk assessment rules']
+        }
+      ];
+
+  const displayCertificates = (dbCertificates && dbCertificates.length > 0)
+    ? dbCertificates.map((c: any) => {
+        return {
+          title: c.title,
+          institution: c.issuer,
+          year: new Date(c.issueDate).getFullYear().toString(),
+          image: c.imageUrl || IMAGES.certificates.udccDiploma,
+          desc: c.description || '',
+          issuer: c.issuer,
+          issuerUrl: c.credentialUrl || 'https://www.ucc.co.tz',
+          skills: isSwahili ? ['Usimamizi wa Database', 'Ukaguzi wa SLA', 'Ubunifu wa Mifumo'] : ['Database Management', 'SLA Auditing', 'Systems design']
+        };
+      })
+    : credentials;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12 text-left">
       <PageTitle
-        title="Certificates & Qualifications | Denis Chamkaga"
-        description="Verify the professional credentials, business IT diplomas, customer service operations training, and security audit certifications held by Denis Chamkaga."
+        title={isSwahili ? "Vyeti & Sifa | Denis Chamkaga" : "Certificates & Qualifications | Denis Chamkaga"}
+        description={isSwahili ? "Thibitisha vyeti vya kitaaluma vya biashara vya Denis Chamkaga." : "Verify the professional credentials, business IT diplomas, customer service operations training, and security audit certifications held by Denis Chamkaga."}
       />
       
       {/* Header */}
@@ -60,27 +119,29 @@ export const CertificatesPage: React.FC = () => {
           custom={0}
           className="inline-block text-xs font-semibold text-accent-violet uppercase tracking-wider font-display"
         >
-          My Credentials
+          {isSwahili ? "Sifa Zangu" : "My Credentials"}
         </motion.span>
         <motion.h1 
           variants={fadeUpVariants}
           custom={0.1}
           className="text-4xl font-extrabold dark:text-white light:text-slate-800 tracking-tight font-display"
         >
-          Certificates & Qualifications
+          {isSwahili ? "Vyeti na Sifa za Kitaaluma" : "Certificates & Qualifications"}
         </motion.h1>
         <motion.p 
           variants={fadeUpVariants}
           custom={0.2}
           className="text-lg dark:text-zinc-400 light:text-slate-600 leading-relaxed font-body"
         >
-          Academic diplomas and professional certificates that validate my skill sets in business information systems and operations.
+          {isSwahili
+            ? "Diploma za kitaaluma na vyeti vya kitaalamu vinavyothibitisha ujuzi wangu katika mifumo ya habari za biashara na kiutendaji."
+            : "Academic diplomas and professional certificates that validate my skill sets in business information systems and operations."}
         </motion.p>
       </motion.div>
 
       {/* Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {credentials.map((cert, i) => (
+        {displayCertificates.map((cert: any, i: number) => (
           <MotionCard
             key={i}
             delay={i * 0.08}
@@ -120,7 +181,7 @@ export const CertificatesPage: React.FC = () => {
                       className="text-accent-violet hover:underline text-[9px] lowercase flex items-center gap-0.5 inline-flex"
                       aria-label={`Visit ${cert.institution} website`}
                     >
-                      (Visit Site <ExternalLink size={8} />)
+                      ({isSwahili ? "Tembelea Tovuti" : "Visit Site"} <ExternalLink size={8} />)
                     </a>
                   )}
                 </h4>
@@ -132,10 +193,10 @@ export const CertificatesPage: React.FC = () => {
               {/* Skills checklist */}
               <div className="pt-4 border-t dark:border-zinc-850 light:border-slate-100 space-y-2">
                 <span className="text-[10px] font-bold dark:text-zinc-400 light:text-slate-600 uppercase tracking-widest block font-display">
-                  Skills Confirmed:
+                  {isSwahili ? "Ujuzi uliothibitishwa:" : "Skills Confirmed:"}
                 </span>
                 <ul className="space-y-1 text-xs">
-                  {cert.skills.map((skill) => (
+                  {cert.skills.map((skill: string) => (
                     <li key={skill} className="flex items-start gap-1.5 dark:text-zinc-400 light:text-slate-600 font-body">
                       <CheckCircle size={12} className="text-accent-violet shrink-0 mt-0.5" />
                       <span>{skill}</span>

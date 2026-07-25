@@ -38,7 +38,7 @@
 | T4 | CI/CD pipeline | GitHub Actions for automated deployment |
 | T5 | Containerized deployment | Docker + Docker Compose |
 | T6 | Database-first design | Prisma schema as source of truth |
-| T7 | Modular AI system | Pluggable AI providers (Ollama, OpenAI, etc.) |
+| T7 | Modular AI system | Pluggable AI providers (OpenAI, OpenAI, etc.) |
 | T8 | Performance optimization | Lighthouse 90+ score |
 | T9 | Security hardening | OWASP top-10 mitigations |
 | T10 | Comprehensive documentation | Every module documented |

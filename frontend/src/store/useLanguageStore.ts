@@ -9,8 +9,12 @@ interface LanguageState {
   initializeLanguage: () => void;
 }
 
+// Helper — normalize any i18next language code to our two supported ones
+const normalize = (lng: string): Language => (lng === 'sw' ? 'sw' : 'en');
+
 export const useLanguageStore = create<LanguageState>((set) => ({
-  language: 'en', // default
+  // Seed from i18n immediately so lazy-loaded pages get the right value
+  language: normalize(i18n.language || 'en'),
 
   setLanguage: (lang: Language) => {
     i18n.changeLanguage(lang);
@@ -19,15 +23,18 @@ export const useLanguageStore = create<LanguageState>((set) => ({
   },
 
   initializeLanguage: () => {
-    const cachedLang = localStorage.getItem('language-preference') as Language | null;
-    if (cachedLang) {
-      i18n.changeLanguage(cachedLang);
-      set({ language: cachedLang });
-    } else {
-      const browserLang = navigator.language.split('-')[0];
-      const defaultLang: Language = browserLang === 'sw' ? 'sw' : 'en';
-      i18n.changeLanguage(defaultLang);
-      set({ language: defaultLang });
-    }
-  }
+    const saved = localStorage.getItem('language-preference') as Language | null;
+    const target: Language = saved
+      ? saved
+      : navigator.language.split('-')[0] === 'sw' ? 'sw' : 'en';
+
+    i18n.changeLanguage(target);
+    set({ language: target });
+
+    // Mirror every future i18next language change back into the Zustand store
+    // so that pages using `useLanguageStore` re-render correctly on client navigation
+    i18n.on('languageChanged', (lng: string) => {
+      set({ language: normalize(lng) });
+    });
+  },
 }));

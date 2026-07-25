@@ -1,0 +1,8 @@
+export enum LeadStatus {
+  NEW = "NEW",
+  QUALIFIED = "QUALIFIED",
+  CONTACTED = "CONTACTED",
+  UNQUALIFIED = "UNQUALIFIED",
+  CONVERTED = "CONVERTED",
+  LOST = "LOST"
+}

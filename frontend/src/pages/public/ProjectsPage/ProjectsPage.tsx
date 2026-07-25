@@ -1,112 +1,160 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ExternalLink, Folder } from 'lucide-react';
+import { ExternalLink, Folder, CheckCircle } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/cn';
 import { IMAGES } from '../../../constants/images';
 import { SOCIALS } from '../../../constants/socials';
 import { AnimatedImage } from '../../../components/atoms/AnimatedImage/AnimatedImage';
 import { PageTitle } from '../../../components/atoms/PageTitle/PageTitle';
+import { Button } from '../../../components/atoms/Button';
+import { ROUTES } from '../../../config/routes';
 import { heroStaggerContainer, fadeUpVariants } from '../../../lib/motion';
+import { useLanguageStore } from '../../../store/useLanguageStore';
 
 export const ProjectsPage: React.FC = () => {
-  const [filter, setFilter] = useState<'all' | 'completed' | 'ongoing' | 'academic' | 'commercial'>('all');
+  const [filter, setFilter] = useState<'all' | 'academic' | 'personal' | 'client' | 'ongoing'>('all');
+  const navigate = useNavigate();
+  // useTranslation ensures i18n is reactive on client-side navigation
+  const { i18n } = useTranslation();
+  const { language } = useLanguageStore();
+  const isSwahili = language === 'sw' || i18n.language === 'sw';
 
-  const projects = [
+  const fallbackProjects = [
     {
-      title: 'School Management System',
+      title: isSwahili ? 'Mfumo wa Usimamizi wa Shule' : 'School Management System',
       category: 'academic',
-      status: 'Completed',
+      status: isSwahili ? 'Imekamilika' : 'Completed',
       image: IMAGES.projects.schoolManagement,
-      desc: 'A complete system for managing student tracking, teachers, class schedules, fees, exams, and reports.',
-      tech: ['PHP', 'MySQL', 'Bootstrap', 'JavaScript'],
-      problem: 'Manual bookkeeping and spreadsheets caused massive bottlenecks and errors during exam reporting and fee payment verification.',
-      challenge: 'Structuring database constraints so that scheduling overlaps were verified server-side without degrading API execution speeds.',
-      solution: 'Built a multi-role relational system that automated report generation and provided instant financial transaction verification logs.',
-      timeline: '2023 (3 Months)',
+      desc: isSwahili 
+        ? 'Mfumo wa wavuti wa kusimamia wanafunzi, walimu, madarasa, mitihani na ada za shule.'
+        : 'A web-based system for managing students, teachers, classes, examinations and school fees.',
+      tech: ['PHP', 'MySQL', 'Bootstrap', 'HTML/CSS'],
+      problem: isSwahili 
+        ? 'Shule nyingi bado zinategemea kumbukumbu za mikono, na kufanya iwe vigumu kusimamia wanafunzi, mitihani na ada kwa ufanisi.'
+        : 'Many schools still rely on manual record keeping, making it difficult to manage students, examinations and fee records efficiently.',
+      challenge: isSwahili ? 'Yale Niliyojifunza' : 'What I Learned',
+      solution: isSwahili
+        ? 'Mradi huu ulinisaidia kuelewa majukumu ya watumiaji (user roles), kanzidata za uhusiano, utengenezaji wa ripoti na kubuni mifumo inayopanga shughuli za shule kwa ufanisi.'
+        : 'This project helped me understand user roles, relational databases, report generation and designing systems that organize school operations efficiently.',
+      timeline: isSwahili ? 'Miezi 2' : '2 Months',
       repoUrl: 'https://github.com/Chamkaga',
       demoUrl: '/contact'
     },
     {
-      title: 'Library Management System',
+      title: isSwahili ? 'Mfumo wa Usimamizi wa Maktaba' : 'Library Management System',
       category: 'academic',
-      status: 'Completed',
+      status: isSwahili ? 'Imekamilika' : 'Completed',
       image: IMAGES.projects.libraryManagement,
-      desc: 'System for managing book inventories, member issued cards, return deadlines, automatic fines calculation, and reporting.',
+      desc: isSwahili
+        ? 'Mfumo wa kuorodhesha vitabu, kusajili wanachama, na kufuatilia kuazima.'
+        : 'A system for book indexing, member registration, and borrow tracking.',
       tech: ['PHP', 'MySQL', 'JavaScript', 'CSS'],
-      problem: 'Unverified book issues and manual return calculations led to inventory loss and lost time tracking defaults.',
-      challenge: 'Writing transaction-safe reserve query procedures to prevent two students booking the same copy simultaneously.',
-      solution: 'Created an alerts-based reservation system that computed late fines automatically on book checks.',
-      timeline: '2023 (2 Months)',
+      problem: isSwahili
+        ? 'Kile Nilichojenga: Usimamizi wa vitabu, usajili wa wanachama, kufuatilia kuazima na kurudisha, kukokotoa faini, na ripoti.'
+        : 'What I Built: Book management, member registration, borrow & return tracking, fine calculation, and reports.',
+      challenge: isSwahili ? 'Yale Niliyojifunza' : 'What I Learned',
+      solution: isSwahili
+        ? 'Uhusiano wa database, shughuli za CRUD, mantiki ya biashara (business logic), na uundaji wa programu kwa PHP.'
+        : 'Database relationships, CRUD operations, business logic, and PHP development.',
+      timeline: isSwahili ? 'Miezi 2' : '2 Months',
       repoUrl: 'https://github.com/Chamkaga',
       demoUrl: '/contact'
     },
     {
-      title: 'Hostel Management System',
+      title: isSwahili ? 'Mfumo wa Usimamizi wa Hosteli' : 'Hostel Management System',
       category: 'academic',
-      status: 'Completed',
+      status: isSwahili ? 'Imekamilika' : 'Completed',
       image: IMAGES.projects.hostelManagement,
-      desc: 'Manage hostels, student room allocations, payments, maintenance logs, and visitor registrations.',
+      desc: isSwahili
+        ? 'Mfumo wa kusimamia ugawaji wa vyumba, ufuatiliaji wa nafasi, na usajili wa wanafunzi wanaoingia.'
+        : 'A system to manage room allocations, occupancy tracking, and student check-ins.',
       tech: ['PHP', 'MySQL', 'CSS'],
-      problem: 'Overbooking of hostel rooms and zero tracking of active maintenance work or visitor entries.',
-      challenge: 'Rendering room coordinates dynamically to represent occupancy and cleanliness updates simultaneously.',
-      solution: 'Developed a calendar-based allocation grid showing occupied and cleaning status dynamically.',
-      timeline: '2024 (2 Months)',
+      problem: isSwahili
+        ? 'Kile Nilichojenga: Usimamizi wa vyumba, ugawaji wa vyumba, kufuatilia nafasi zilizopo, na sajili za wanafunzi wanaoingia.'
+        : 'What I Built: Room management, room allocation, occupancy tracking, check-in log registers.',
+      challenge: isSwahili ? 'Yale Niliyojifunza' : 'What I Learned',
+      solution: isSwahili
+        ? 'Mradi huu ulinisaidia kuelewa ugawaji wa vyumba, kufuatilia nafasi zilizochukuliwa na kupanga taarifa za hosteli katika mfumo uliopangwa.'
+        : 'The project helped me understand room allocation, occupancy tracking and organizing hostel information in a structured system.',
+      timeline: isSwahili ? 'Miezi 2' : '2 Months',
       repoUrl: 'https://github.com/Chamkaga',
       demoUrl: '/contact'
     },
     {
-      title: 'Inventory Management System',
-      category: 'commercial',
-      status: 'Completed',
+      title: isSwahili ? 'Mfumo wa Usimamizi wa Stoo' : 'Inventory Management System',
+      category: 'client',
+      status: isSwahili ? 'Imekamilika' : 'Completed',
       image: IMAGES.projects.inventoryManagement,
-      desc: 'Track retail products, stock levels, suppliers, sales reports, and barcode generations.',
+      desc: isSwahili
+        ? 'Dashibodi ya biashara kufuatilia bidhaa, viwango vya stoki, wauzaji na ripoti za mauzo.'
+        : 'A retail dashboard to track products, monitor stock levels, manage suppliers, and generate sales reports.',
       tech: ['PHP', 'MySQL', 'Bootstrap', 'Chart.js'],
-      problem: 'Frequent stock-outs and lack of sales trends data prevented simple forecast analysis.',
-      challenge: 'Handling real-time stock deductions on rapid cash sales while preserving inventory log audits.',
-      solution: 'Created a stock threshold alert dashboard with monthly sales summary charts.',
-      timeline: '2024 (3 Months)',
+      problem: isSwahili
+        ? 'Biashara nyingi ndogo zinatatizika kufuatilia bidhaa zao kwa usahihi, jambo linalopelekea tofauti za stoki na kupotea kwa mauzo.'
+        : 'Many small businesses struggle to track their inventory accurately, leading to stock discrepancies and lost sales.',
+      challenge: isSwahili ? 'Yale Niliyojifunza' : 'What I Learned',
+      solution: isSwahili
+        ? 'Kusanifu dashibodi za stoo zinazofaa kwenye simu, kukokotoa viwango vya chini vya bidhaa ili kuweka tahadhari, na kupanga majedwali salama.'
+        : 'Designing responsive inventory dashboards, calculating stock thresholds for alerts, and structuring secure tables.',
+      timeline: isSwahili ? 'Miezi 3' : '3 Months',
       repoUrl: 'https://github.com/Chamkaga',
       demoUrl: '/contact'
     },
     {
-      title: 'Personal Portfolio & Business Platform',
-      category: 'ongoing',
-      status: 'Ongoing',
+      title: isSwahili ? 'Tovuti ya Wasifu na Jukwaa la Biashara' : 'Personal Portfolio & Business Platform',
+      category: 'personal',
+      status: isSwahili ? 'Inaendelea' : 'Ongoing',
       image: IMAGES.projects.portfolio,
-      desc: 'The current business platform, CRM dashboard, and local Ollama Llama 3 AI chatbot integration.',
-      tech: ['React', 'TypeScript', 'Vite', 'Tailwind CSS', 'Node.js', 'Express', 'PostgreSQL', 'Prisma', 'Ollama'],
-      problem: 'Denis needed a unified digital office to qualify leads, present credentials, and act as a base for future company vision.',
-      challenge: 'Enforcing strict system prompts to prevent Denis Assistant behaving as a general chatbot while preserving local inference speed.',
-      solution: 'Developing an npm-workspaced monorepo featuring Atomic Components, Zustand, and a local AI coordinator.',
-      timeline: '2025 (Active)',
+      desc: isSwahili
+        ? 'Tovuti hii inaonyesha ujuzi wangu, miradi na huduma huku ikifanya iwe rahisi kwa wateja wanaotarajiwa kujifunza kuhusu kazi yangu na kuwasiliana nami.'
+        : 'This portfolio showcases my skills, projects and services while making it easy for potential clients to learn about my work and contact me.',
+      tech: ['React', 'TypeScript', 'Node.js', 'Express', 'MySQL', 'OpenAI'],
+      problem: isSwahili
+        ? 'Kuanzisha uwepo wa kitaalamu mtandaoni unaowakilisha elimu yangu ya kweli na uzoefu wa kazi.'
+        : 'Establishing a professional online presence that represents my genuine educational background and operational expertise.',
+      challenge: isSwahili ? 'Vipengele Vilivyopo' : 'Features',
+      solution: isSwahili
+        ? 'Muundo unaofaa simu, Msaidizi wa AI, Sehemu ya Miradi, Fomu ya Mawasiliano, na Kurasa za Huduma.'
+        : 'Responsive Design, AI Assistant, Project Showcase, Contact Form, Service Pages.',
+      timeline: isSwahili ? 'Amilifu' : 'Active',
       repoUrl: 'https://github.com/Chamkaga/denis-chamkaga-platform',
       demoUrl: '/'
     },
     {
-      title: 'Terrasafi Platform',
-      category: 'commercial',
-      status: 'ongoing',
+      title: isSwahili ? 'Jukwaa la Terrasafi' : 'Terrasafi Platform',
+      category: 'ongoing',
+      status: isSwahili ? 'Mradi wa Baadaye' : 'Future Project',
       image: IMAGES.projects.terrasafi,
-      desc: 'A future scalable system to empower African SMEs with clean, robust digital operations software.',
-      tech: ['Next.js', 'TypeScript', 'PostgreSQL', 'Docker', 'NGINX'],
-      problem: 'Most local small business owners struggle with complex systems and lack specialized tech consultations.',
-      challenge: 'Designing modular database configurations to serve isolated multitenant client pools securely.',
-      solution: 'Developing a SaaS modular suite mapping billing, database tracking, and IT support strategy.',
-      timeline: '2025+ (Future Vision)',
+      desc: isSwahili
+        ? 'Terrasafi ni maono yangu ya muda mrefu ya kujenga suluhisho za programu za vitendo zinazosaidia biashara ndogo na za kati kurahisisha shughuli zao kupitia teknolojia.'
+        : 'Terrasafi is my long-term vision to build practical software solutions that help small and medium-sized businesses simplify daily operations through modern technology.',
+      tech: ['React', 'Node.js', 'PostgreSQL', 'Docker', 'NGINX'],
+      problem: isSwahili
+        ? 'Biashara nyingi ndogo nchini Tanzania zinatatizika na mifumo migumu na kukosa ushauri maalum wa kiufundi.'
+        : 'Most local small business owners struggle with complex systems and lack specialized tech consultations.',
+      challenge: isSwahili ? 'Maono ya Baadaye' : 'Future Goal',
+      solution: isSwahili
+        ? 'Kuwapatia wajasiriamali wa ndani zana za kulinda kumbukumbu zao, kuzuia uvujaji wa utendaji, na kuhama kutoka kwenye makaratasi.'
+        : 'Providing local entrepreneurs with tools to secure records, stop operational leaks, and transition from manual paper systems.',
+      timeline: isSwahili ? 'Maono ya Baadaye' : 'Future Vision',
       repoUrl: 'https://github.com/Chamkaga',
       demoUrl: 'https://terrasafi.com'
     }
   ];
 
-  const filteredProjects = projects.filter(
-    (p) => filter === 'all' || p.category === filter || (filter === 'completed' && p.status.toLowerCase() === 'completed') || (filter === 'ongoing' && p.status.toLowerCase() === 'ongoing')
+  const displayProjects = fallbackProjects;
+
+  const filteredProjects = displayProjects.filter(
+    (p: any) => filter === 'all' || p.category === filter
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12 text-left font-body">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-16 text-left font-body">
       <PageTitle
-        title="Projects & Works | Denis Chamkaga Portfolio"
-        description="Browse academic and commercial software projects built by Denis Chamkaga, featuring relational database configurations, customer CRM pipelines, and clean architectures."
+        title={isSwahili ? "Miradi Yangu | Denis Chamkaga" : "Projects & Works | Denis Chamkaga Portfolio"}
+        description={isSwahili ? "Kagua miradi ya programu iliyojengwa na Denis Chamkaga." : "Browse academic, personal, and client software projects built by Denis Chamkaga."}
       />
       
       {/* Header */}
@@ -121,27 +169,29 @@ export const ProjectsPage: React.FC = () => {
           custom={0}
           className="inline-block text-xs font-semibold text-accent-violet uppercase tracking-wider font-display"
         >
-          My Showcase
+          {isSwahili ? "Kazi Zangu" : "My Showcase"}
         </motion.span>
         <motion.h1 
           variants={fadeUpVariants}
           custom={0.1}
           className="text-4xl font-extrabold dark:text-white light:text-slate-800 tracking-tight font-display"
         >
-          Completed & Ongoing Projects
+          {isSwahili ? "Miradi ya Kweli, Kujifunza na Maendeleo ya Baadaye" : "Real Projects, Learning Projects & Ongoing Development"}
         </motion.h1>
         <motion.p 
           variants={fadeUpVariants}
           custom={0.2}
           className="text-lg dark:text-zinc-400 light:text-slate-600 leading-relaxed font-body"
         >
-          A complete portfolio of commercial systems, academic assignments, and ongoing platforms built using PHP, JavaScript, and TypeScript.
+          {isSwahili 
+            ? "Kila mradi unawakilisha hatua katika ukuaji wangu kama msanidi programu. Baadhi zilijengwa kwa masomo, zingine kwa mahitaji ya kweli ya biashara, na zingine zinaendelea kutengenezwa."
+            : "Every project represents a step in my growth as a software developer. Some were built for academic learning, others for real-world business needs, and some are currently under active development."}
         </motion.p>
       </motion.div>
 
       {/* Filter Tabs */}
       <div className="flex flex-wrap gap-2 pb-4 border-b dark:border-zinc-800/80 light:border-slate-200">
-        {(['all', 'completed', 'ongoing', 'academic', 'commercial'] as const).map((tab) => (
+        {(['all', 'academic', 'personal', 'client', 'ongoing'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setFilter(tab)}
@@ -163,7 +213,7 @@ export const ProjectsPage: React.FC = () => {
         className="grid grid-cols-1 lg:grid-cols-2 gap-8"
       >
         <AnimatePresence mode="popLayout">
-          {filteredProjects.map((p) => (
+          {filteredProjects.map((p: any) => (
             <motion.div
               layout
               key={p.title}
@@ -190,7 +240,7 @@ export const ProjectsPage: React.FC = () => {
                 <div className="absolute top-4 right-4 z-20">
                   <span className={cn(
                     "text-[9px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider border",
-                    p.status.toLowerCase() === 'completed'
+                    p.status.toLowerCase().includes('completed') || p.status.toLowerCase().includes('imekamilika')
                       ? "bg-green-500/10 text-green-500 border-green-500/20"
                       : "bg-amber-500/10 text-amber-500 border-amber-500/20"
                   )}>
@@ -219,11 +269,7 @@ export const ProjectsPage: React.FC = () => {
                         <span className="dark:text-zinc-500 light:text-slate-500">{p.problem}</span>
                       </div>
                       <div>
-                        <span className="font-semibold dark:text-zinc-300 light:text-slate-800">Challenge:</span>{' '}
-                        <span className="dark:text-zinc-500 light:text-slate-500">{p.challenge}</span>
-                      </div>
-                      <div>
-                        <span className="font-semibold dark:text-zinc-300 light:text-slate-800">Solution:</span>{' '}
+                        <span className="font-semibold dark:text-zinc-300 light:text-slate-800">{p.challenge}:</span>{' '}
                         <span className="dark:text-zinc-500 light:text-slate-500">{p.solution}</span>
                       </div>
                     </div>
@@ -235,7 +281,7 @@ export const ProjectsPage: React.FC = () => {
                   
                   {/* Tech Tags */}
                   <div className="flex flex-wrap gap-1.5">
-                    {p.tech.map((t) => (
+                    {p.tech.map((t: string) => (
                       <span key={t} className="text-[10px] font-semibold font-body py-0.5 px-2 rounded-lg dark:bg-zinc-800 dark:text-zinc-300 light:bg-slate-100 light:text-slate-600">
                         {t}
                       </span>
@@ -244,28 +290,42 @@ export const ProjectsPage: React.FC = () => {
 
                   {/* Links */}
                   <div className="flex items-center justify-between text-xs dark:text-zinc-500 light:text-slate-400 font-body pt-1">
-                    <span>Timeline: {p.timeline}</span>
+                    <span>{isSwahili ? "Muda wa Kazi" : "Timeline"}: {p.timeline}</span>
                     <div className="flex gap-4">
-                      <a 
-                        href={p.repoUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 hover:text-accent-violet focus:outline-none focus:ring-1 focus:ring-accent-violet rounded px-1 transition-colors font-semibold"
-                      >
-                        <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                          <path d={SOCIALS.gitHub.svgPath} />
-                        </svg>
-                        <span>Repository</span>
-                      </a>
-                      <a 
-                        href={p.demoUrl}
-                        target={p.demoUrl.startsWith('/') ? '_self' : '_blank'}
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 hover:text-accent-violet focus:outline-none focus:ring-1 focus:ring-accent-violet rounded px-1 transition-colors font-semibold"
-                      >
-                        <ExternalLink size={14} className="shrink-0" />
-                        <span>Live Demo</span>
-                      </a>
+                      {p.repoUrl && (
+                        <a 
+                          href={p.repoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 hover:text-accent-violet focus:outline-none focus:ring-1 focus:ring-accent-violet rounded px-1 transition-colors font-semibold"
+                        >
+                          <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d={SOCIALS.gitHub.svgPath} />
+                          </svg>
+                          <span>GitHub</span>
+                        </a>
+                      )}
+                      {p.demoUrl && (
+                        p.demoUrl.startsWith('/') ? (
+                          <Link 
+                            to={p.demoUrl}
+                            className="flex items-center gap-1 hover:text-accent-violet focus:outline-none focus:ring-1 focus:ring-accent-violet rounded px-1 transition-colors font-semibold"
+                          >
+                            <ExternalLink size={14} className="shrink-0" />
+                            <span>{isSwahili ? "Onyesho la Mfumo" : "Live Demo"}</span>
+                          </Link>
+                        ) : (
+                          <a 
+                            href={p.demoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 hover:text-accent-violet focus:outline-none focus:ring-1 focus:ring-accent-violet rounded px-1 transition-colors font-semibold"
+                          >
+                            <ExternalLink size={14} className="shrink-0" />
+                            <span>{isSwahili ? "Onyesho la Mfumo" : "Live Demo"}</span>
+                          </a>
+                        )
+                      )}
                     </div>
                   </div>
 
@@ -277,6 +337,48 @@ export const ProjectsPage: React.FC = () => {
           ))}
         </AnimatePresence>
       </motion.div>
+
+      {/* "What I Can Build For You" Section */}
+      <section className="p-8 sm:p-12 rounded-3xl border dark:border-zinc-800/80 light:border-slate-200 dark:bg-zinc-950/40 light:bg-slate-50 flex flex-col items-center text-center space-y-6 relative overflow-hidden">
+        <div className="absolute top-0 right-1/4 w-80 h-80 bg-accent-violet/5 rounded-full blur-[80px] -z-10" />
+        <Folder size={32} className="text-accent-violet" />
+        
+        <div className="space-y-2 max-w-lg">
+          <h2 className="text-xl sm:text-2xl font-extrabold dark:text-white font-display">
+            {isSwahili ? "Nini Ninaweza Kukujengea" : "What I Can Build For You"}
+          </h2>
+          <p className="text-xs sm:text-sm text-zinc-500 leading-relaxed font-body">
+            {isSwahili 
+              ? "Nina utaalamu wa kuunda suluhisho za vitendo na tovuti za kisasa ambazo zinarahisisha uendeshaji wa shughuli zako za kila siku."
+              : "I specialize in building practical software systems and modern websites that simplify your daily operational workflows."}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-2xl w-full text-left font-body text-xs sm:text-sm dark:text-zinc-300 light:text-slate-700">
+          {[
+            isSwahili ? "Mifumo ya Shule (School Management)" : "School Management Systems",
+            isSwahili ? "Mifumo ya Stoo (Inventory Systems)" : "Inventory Systems",
+            isSwahili ? "Mifumo ya Mauzo (POS Systems)" : "POS Systems",
+            isSwahili ? "Mifumo ya Usimamizi (Business Management)" : "Business Management Systems",
+            isSwahili ? "Tovuti za Biashara (Company Websites)" : "Company Websites",
+            isSwahili ? "Programu Maalum za Wavuti (Web Apps)" : "Custom Web Applications"
+          ].map((item, idx) => (
+            <div key={idx} className="flex items-center gap-2 p-3 rounded-xl border dark:border-zinc-800/60 light:border-slate-200/80 dark:bg-zinc-900/20 light:bg-white shadow-sm">
+              <CheckCircle size={16} className="text-accent-violet shrink-0" />
+              <span>{item}</span>
+            </div>
+          ))}
+        </div>
+
+        <Button 
+          variant="primary" 
+          size="md" 
+          onClick={() => navigate(ROUTES.CONTACT)} 
+          className="mt-4 cursor-pointer shadow-md shadow-accent-violet/10 font-bold"
+        >
+          {isSwahili ? "Tujenge Mradi Wako" : "Let's Build Your Project"}
+        </Button>
+      </section>
     </div>
   );
 };

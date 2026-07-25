@@ -11,9 +11,24 @@
     "futureVision": "Future Vision",
     "contact": "Contact",
     "experience": "Timeline",
-    "getInTouch": "Get In Touch",
+    "creator": "Creator",
+    "partner": "Partner With Me",
+    "getInTouch": "Let's Build Together",
     "adminConsole": "Admin Console",
-    "logout": "Log Out"
+    "logout": "Log Out",
+    "dashboard": "Dashboard",
+    "business": "Business & CRM",
+    "marketing": "Marketing & Growth",
+    "content": "Portfolio & Content CMS",
+    "media": "Media Library (DAM)",
+    "aiAssistant": "AI Copilot Operations",
+    "knowledgeBase": "Knowledge Platform CMS",
+    "communication": "Communication Center",
+    "analytics": "Analytics & Reports",
+    "system": "System Settings",
+    "security": "Users & Security",
+    "innovation": "Innovation Hub Admin",
+    "partnerships": "Partnerships Admin"
   },
   "hero": {
     "subtitle": "Business & Technology Solutions",
@@ -39,7 +54,8 @@
     "trainingDesc": "Teach, Guide & Support Users",
     "consulting": "Consulting",
     "consultingDesc": "IT Solutions & Business Advice",
-    "title": "How I Help Clients"
+    "title": "How I Help Clients",
+    "description": "I help modern companies transition away from basic tools (social media alone is not a business system) and build robust web software, automations, finance systems, and CRM workflows to scale operations."
   },
   "footer": {
     "tagline": "MY GOAL: TO SOLVE BUSINESS PROBLEMS USING TECHNOLOGY, CREATE IMPACT, AND BUILD TERRASAFI T LTD INTO A GREAT COMPANY.",
@@ -47,7 +63,11 @@
     "phone": "+255 620 145 678",
     "email": "denischamkaga@gmail.com",
     "location": "Dar es Salaam, Tanzania",
-    "website": "www.denis-chamkaga.com"
+    "website": "www.denis-chamkaga.com",
+    "description": "Denis Chamkaga is a Business Information Technology graduate, Web Software Developer and lifelong learner based in Tanzania. He enjoys building practical software solutions that help businesses simplify their daily operations, improve efficiency and embrace digital transformation.",
+    "quickLinks": "Quick Links",
+    "contactInfo": "Contact Information",
+    "followMe": "Follow Me"
   },
   "common": {
     "consultation": "Book Consultation",
@@ -56,6 +76,66 @@
     "viewProject": "View Project",
     "back": "Back",
     "loading": "Loading...",
-    "error": "Something went wrong"
+    "error": "Something went wrong",
+    "returnHome": "Return Home",
+    "tryAgain": "Try Again",
+    "backToBlog": "Back to Blog",
+    "backToList": "Back to List",
+    "readMore": "Read More",
+    "share": "Share",
+    "copyLink": "Copy Link",
+    "copied": "Copied!",
+    "relatedPosts": "Related Articles",
+    "prevArticle": "Previous Article",
+    "nextArticle": "Next Article"
+  },
+  "blog": {
+    "badge": "Business & Technology Insights",
+    "title": "Insights & Articles",
+    "description": "Practical articles where I share ideas, lessons and experiences about business technology, software development and digital transformation for small and growing businesses.",
+    "readMore": "Read More",
+    "noPosts": "No articles yet. Check back soon.",
+    "breadcrumbHome": "Home",
+    "breadcrumbBlog": "Blog",
+    "shareTitle": "Share this article",
+    "relatedPosts": "Related Articles",
+    "prevPost": "Previous",
+    "nextPost": "Next"
+  },
+  "support": {
+    "title": "Support My Work",
+    "subtitle": "Help Build Better Open Source Solutions",
+    "description": "If you find my open-source frameworks, database schemas, and IT systems tutorials helpful, consider supporting my ongoing research and publishing.",
+    "nameLabel": "Your Name (Optional)",
+    "namePlaceholder": "e.g. Amina Hassan",
+    "emailLabel": "Email Address",
+    "emailPlaceholder": "your@email.com",
+    "amountLabel": "Select Amount",
+    "customAmount": "Custom Amount",
+    "customPlaceholder": "Enter amount...",
+    "currency": "Currency",
+    "submitBtn": "Support via DPO Pay",
+    "processing": "Processing...",
+    "thankYou": "Thank you for supporting Tanzanian systems developer research!",
+    "disabled": "Support Page Disabled",
+    "disabledDesc": "The platform administrator has temporarily suspended the public donations gateway page.",
+    "errorInvalidAmount": "Please select or specify a valid donation amount.",
+    "errorEmailRequired": "Donor email address is required.",
+    "errorCheckout": "Payment provider checkout session failed."
+  },
+  "about": {
+    "title": "About Denis Chamkaga",
+    "sectionBadge": "Professional Background",
+    "pageHeading": "Systems Architect & Business IT Consultant",
+    "tabAbout": "Professional Summary",
+    "tabJourney": "Career Journey",
+    "tabSkills": "Technical Skills",
+    "tabEducation": "Education",
+    "ctaWork": "Let's Work Together",
+    "ctaAssistant": "Meet Denis Assistant",
+    "skillsTitle": "Technical Competencies",
+    "journeyTitle": "Career Milestones",
+    "educationTitle": "Formal Education",
+    "downloadCV": "Download CV"
   }
 }

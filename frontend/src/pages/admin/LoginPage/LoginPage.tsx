@@ -1,10 +1,12 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
-import { Shield, Key, Mail, Lock } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Key, Mail, Lock } from 'lucide-react';
 import { Button } from '../../../components/atoms/Button';
 import { useAuthStore } from '../../../store/useAuthStore';
 import { ROUTES } from '../../../config/routes';
+import { Logo } from '../../../components/atoms/Logo';
+import { api } from '../../../services/api';
 
 interface LoginInput {
   email: string;
@@ -14,16 +16,24 @@ interface LoginInput {
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const login = useAuthStore((state) => state.login);
+  const [loginError, setLoginError] = React.useState<string | null>(null);
+  const [loading, setLoading] = React.useState(false);
   const { register, handleSubmit, formState: { errors } } = useForm<LoginInput>();
 
-  const onSubmit = (data: LoginInput) => {
-    // In future: call authService.login(data)
-    login({
-      id: 'admin-1',
-      email: data.email,
-      role: 'admin'
-    });
-    navigate(ROUTES.ADMIN_DASHBOARD);
+  const onSubmit = async (data: LoginInput) => {
+    setLoading(true);
+    setLoginError(null);
+    try {
+      const res = await api.post('/auth/login', data);
+      const { user, accessToken, refreshToken } = res.data.data;
+      login(user, accessToken, refreshToken);
+      navigate(ROUTES.ADMIN_DASHBOARD);
+    } catch (err: any) {
+      const msg = err.response?.data?.error?.message || 'Authentication failed. Please verify credentials.';
+      setLoginError(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -32,8 +42,8 @@ export const LoginPage: React.FC = () => {
         
         {/* Header */}
         <div className="space-y-2 text-center">
-          <div className="p-3 w-fit rounded-full bg-accent-violet/10 text-accent-violet mx-auto mb-2">
-            <Shield size={24} />
+          <div className="flex justify-center mb-4">
+            <Logo size="lg" hideText={true} />
           </div>
           <h2 className="text-2xl font-bold dark:text-white light:text-slate-800 tracking-tight font-display">
             Admin Console Login
@@ -86,16 +96,32 @@ export const LoginPage: React.FC = () => {
             {errors.password && <span className="text-xs text-red-500">{errors.password.message}</span>}
           </div>
 
+          {loginError && (
+            <div className="p-3.5 rounded-lg bg-red-500/10 text-red-500 border border-red-500/20 text-xs font-semibold">
+              {loginError}
+            </div>
+          )}
+
           <Button
             variant="primary"
             type="submit"
             fullWidth
+            disabled={loading}
             leftIcon={<Key size={16} />}
           >
-            Authenticate
+            {loading ? 'Authenticating...' : 'Authenticate'}
           </Button>
 
         </form>
+
+        <div className="text-center pt-4 border-t dark:border-zinc-800/80 light:border-slate-200">
+          <Link
+            to={ROUTES.HOME}
+            className="text-xs font-semibold text-zinc-500 hover:text-accent-violet transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            Back to Home
+          </Link>
+        </div>
 
       </div>
     </div>

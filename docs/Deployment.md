@@ -23,7 +23,7 @@
 │                  │  │      PostgreSQL :5432        │ │ │
 │                  │  └─────────────────────────────┘ │ │
 │                  │  ┌─────────────────────────────┐ │ │
-│                  │  │      Ollama :11434           │ │ │
+│                  │  │      OpenAI            │ │ │
 │                  │  └─────────────────────────────┘ │ │
 │                  └──────────────────────────────────┘ │
 └───────────────────────────────────────────────────────┘
@@ -40,7 +40,6 @@
 | frontend | Custom (Node + Vite build) | 3000 | Serve static React build |
 | backend | Custom (Node + Express) | 5000 | API server |
 | postgres | postgres:16-alpine | 5432 | Database |
-| ollama | ollama/ollama | 11434 | Local LLM runtime |
 | nginx | nginx:alpine | 80, 443 | Reverse proxy + SSL |
 
 ### Dockerfiles
@@ -100,7 +99,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       FRONTEND_URL: ${FRONTEND_URL}
-      OLLAMA_URL: http://ollama:11434
+      OPENAI_API_KEY: http://openai
     ports:
       - "5000:5000"
 
@@ -108,13 +107,6 @@ services:
     build: ./frontend
     ports:
       - "3000:3000"
-
-  ollama:
-    image: ollama/ollama
-    volumes:
-      - ollama_data:/root/.ollama
-    ports:
-      - "11434:11434"
 
   nginx:
     image: nginx:alpine
@@ -130,7 +122,6 @@ services:
 
 volumes:
   postgres_data:
-  ollama_data:
 ```
 
 ---
@@ -277,8 +268,8 @@ JWT_REFRESH_EXPIRY=7d
 FRONTEND_URL=https://denischamkaga.com
 
 # AI
-OLLAMA_URL=http://localhost:11434
-OLLAMA_MODEL=llama3.2
+OPENAI_API_KEY=OpenAI API
+OPENAI_MODEL=gpt-4o-mini
 
 # Email (SMTP)
 SMTP_HOST=smtp.gmail.com

@@ -22,10 +22,10 @@
 
 | Property | Value |
 |----------|-------|
-| Risk | Ollama/LLM not available or too slow on deployment server |
+| Risk | OpenAI/LLM not available or too slow on deployment server |
 | Impact | AI Assistant non-functional — core feature broken |
 | Likelihood | Medium-High |
-| Mitigation | Implement fallback chain: Ollama → Cloud API → Static responses |
+| Mitigation | Implement fallback chain: OpenAI → Cloud API → Static responses |
 | Contingency | Pre-built response templates for common intents |
 
 ### 🟠 R2: Database Migration Failures
@@ -144,7 +144,7 @@
 
 | Property | Value |
 |----------|-------|
-| Risk | Ollama + PostgreSQL + Express exceeds server RAM/CPU |
+| Risk | OpenAI + PostgreSQL + Express exceeds server RAM/CPU |
 | Impact | Slow responses or crashes |
 | Likelihood | Medium |
 | Mitigation | Size server appropriately (min 4GB RAM), monitor resources |

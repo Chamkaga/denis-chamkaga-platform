@@ -31,6 +31,8 @@ export const errorHandler = (
     stack: err.stack,
   });
 
+  const instance = req.originalUrl || req.path;
+
   // Zod validation errors
   if (err instanceof ZodError) {
     const response: ApiResponse = {
@@ -40,25 +42,59 @@ export const errorHandler = (
         message: 'Request validation failed',
         details: { issues: err.issues },
       },
+      problem: {
+        type: 'https://api.denischamkaga.com/errors/VALIDATION_ERROR',
+        title: 'Validation Error',
+        status: 422,
+        detail: 'Request validation failed',
+        instance,
+      },
     };
     res.status(422).json(response);
     return;
   }
 
-  // Custom application errors
-  if (err instanceof AppError) {
+  // Custom application errors (AppError)
+  if (err instanceof AppError || err.name === 'AppError' || (err as any).statusCode) {
+    const statusCode = (err as any).statusCode || 500;
+    const code = (err as any).code || 'APPLICATION_ERROR';
     const response: ApiResponse = {
       success: false,
       error: {
-        code: err.code,
+        code,
         message: err.message,
-        details: err.details,
+        details: (err as any).details,
+      },
+      problem: {
+        type: `https://api.denischamkaga.com/errors/${code}`,
+        title: code,
+        status: statusCode,
+        detail: err.message,
+        instance,
       },
     };
-    res.status(err.statusCode).json(response);
+    res.status(statusCode).json(response);
     return;
   }
+  // JWT token errors
+  if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError' || err.name === 'NotBeforeError') {
+    const isExpired = err.name === 'TokenExpiredError';
+    const code = isExpired ? 'TOKEN_EXPIRED' : 'INVALID_TOKEN';
+    const message = isExpired ? 'Access token has expired' : 'Invalid access token signature or payload';
 
+    res.status(401).json({
+      success: false,
+      error: { code, message },
+      problem: {
+        type: `https://api.denischamkaga.com/errors/${code}`,
+        title: code,
+        status: 401,
+        detail: message,
+        instance,
+      },
+    } satisfies ApiResponse);
+    return;
+  }
   // Prisma unique constraint violations
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
     if (err.code === 'P2002') {
@@ -69,6 +105,13 @@ export const errorHandler = (
           message: 'A record with this value already exists',
           details: { field: err.meta?.target },
         },
+        problem: {
+          type: 'https://api.denischamkaga.com/errors/DUPLICATE_ENTRY',
+          title: 'Duplicate Entry',
+          status: 409,
+          detail: 'A record with this value already exists',
+          instance,
+        },
       } satisfies ApiResponse);
       return;
     }
@@ -76,20 +119,36 @@ export const errorHandler = (
       res.status(404).json({
         success: false,
         error: { code: 'NOT_FOUND', message: 'Record not found' },
+        problem: {
+          type: 'https://api.denischamkaga.com/errors/NOT_FOUND',
+          title: 'Not Found',
+          status: 404,
+          detail: 'Record not found',
+          instance,
+        },
       } satisfies ApiResponse);
       return;
     }
   }
 
   // Default 500
+  const message =
+    process.env.NODE_ENV === 'production'
+      ? 'An unexpected error occurred'
+      : err.message;
+
   const response: ApiResponse = {
     success: false,
     error: {
       code: 'INTERNAL_ERROR',
-      message:
-        process.env.NODE_ENV === 'production'
-          ? 'An unexpected error occurred'
-          : err.message,
+      message,
+    },
+    problem: {
+      type: 'https://api.denischamkaga.com/errors/INTERNAL_ERROR',
+      title: 'Internal Server Error',
+      status: 500,
+      detail: message,
+      instance,
     },
   };
   res.status(500).json(response);

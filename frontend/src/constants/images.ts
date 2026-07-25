@@ -16,11 +16,11 @@ export const IMAGES = {
   about: {
     portrait: '/images/about/denis_bio.webp',
     workspace: '/images/about/workspace.webp',
-    programming: '/images/about/programming.webp',
-    consulting: '/images/about/consulting.webp',
+    programming: '/images/about/programming.png',
+    consulting: '/images/about/consulting.png',
     university: '/images/about/university.webp',
     technology: '/images/about/technology.webp',
-    dailyWork: '/images/about/daily_work.webp',
+    dailyWork: '/images/about/daily_work.png',
   },
 
   // 3. Timeline Section
@@ -32,25 +32,31 @@ export const IMAGES = {
     projects: '/images/timeline/projects_development.webp',
     futureVision: '/images/timeline/future_goal.webp',
     award: '/images/timeline/performance_award.webp',
+    // 3D Illustrations (premium isometric, SaaS quality)
+    security3d: '/images/timeline/security_3d.png',
+    customerService3d: '/images/timeline/customer_service_3d.png',
+    udcc3d: '/images/timeline/udcc_3d.png',
+    udsmFuture3d: '/images/timeline/udsm_future_3d.png',
+    terrasafi3d: '/images/timeline/terrasafi_3d.png',
   },
 
   // 4. Services Section
   services: {
-    consultation: '/images/services/business_consultation.webp',
-    webDev: '/images/services/web_development.webp',
-    databaseDesign: '/images/services/database_design.webp',
-    automation: '/images/services/business_automation.webp',
-    customerSupport: '/images/services/customer_support_strategy.webp',
-    training: '/images/services/training_capacity.webp',
+    consultation: '/images/services/business_consultation.png',
+    webDev: '/images/services/web_development.png',
+    databaseDesign: '/images/services/database_design.png',
+    automation: '/images/services/business_automation.png',
+    customerSupport: '/images/services/customer_support_strategy.png',
+    training: '/images/services/training_capacity.png',
   },
 
   // 5. Projects Section
   projects: {
     schoolManagement: '/images/projects/school_management.webp',
-    libraryManagement: '/images/projects/library_management.webp',
+    libraryManagement: '/images/projects/library_management.png',
     hostelManagement: '/images/projects/hostel_management.webp',
-    inventoryManagement: '/images/projects/inventory_management.webp',
-    portfolio: '/images/projects/personal_portfolio.webp',
+    inventoryManagement: '/images/projects/inventory_management.png',
+    portfolio: '/images/projects/personal_portfolio.png',
     terrasafi: '/images/projects/terrasafi_platform.webp',
   },
 

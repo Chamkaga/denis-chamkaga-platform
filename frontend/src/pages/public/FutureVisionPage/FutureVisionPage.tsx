@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import {
   Rocket,
   Globe,
@@ -25,6 +26,7 @@ import { AnimatedImage } from '../../../components/atoms/AnimatedImage/AnimatedI
 import { MotionCard } from '../../../components/atoms/MotionCard/MotionCard';
 import { PageTitle } from '../../../components/atoms/PageTitle/PageTitle';
 import { useScrollReveal } from '../../../hooks/useScrollReveal';
+import { useUIStore } from '../../../store/useUIStore';
 import { 
   heroStaggerContainer, 
   fadeUpVariants, 
@@ -33,7 +35,7 @@ import {
   slideRightVariants 
 } from '../../../lib/motion';
 
-const RoadmapSection: React.FC<{ items: any[]; statusStyle: any; statusLabel: any }> = ({ items, statusStyle, statusLabel }) => {
+const RoadmapSection: React.FC<{ items: any[]; statusStyle: any; statusLabel: any; isSwahili: boolean }> = ({ items, statusStyle, statusLabel, isSwahili }) => {
   const { ref: containerRef, isInView } = useScrollReveal({ threshold: 0.05 });
 
   return (
@@ -79,11 +81,11 @@ const RoadmapSection: React.FC<{ items: any[]; statusStyle: any; statusLabel: an
                 <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${statusStyle[item.status]}`}>
                   {statusLabel[item.status]}
                 </span>
-                <span className="ml-auto text-[11px] font-bold dark:text-zinc-500 light:text-slate-400 uppercase tracking-widest">{item.phase}</span>
+                <span className="ml-auto text-[11px] font-bold dark:text-zinc-500 light:text-slate-400 uppercase tracking-widest">{isSwahili ? item.phaseSw : item.phase}</span>
               </div>
               <h3 className="font-bold text-lg dark:text-white light:text-slate-800 leading-tight">{item.title}</h3>
               <p className="text-sm dark:text-zinc-500 light:text-slate-500 leading-relaxed font-body">{item.desc}</p>
-              <ul className="space-y-1.5 pt-1">
+              <ul className="space-y-1.5 pt-1 text-left">
                 {item.milestones.map((m: string, j: number) => (
                   <li key={j} className="flex items-start gap-2 text-xs dark:text-zinc-400 light:text-slate-600">
                     <CheckCircle size={12} className={`shrink-0 mt-0.5 ${item.status === 'active' ? 'text-green-500' : 'text-accent-violet'}`} />
@@ -101,53 +103,71 @@ const RoadmapSection: React.FC<{ items: any[]; statusStyle: any; statusLabel: an
 
 export const FutureVisionPage: React.FC = () => {
   const navigate = useNavigate();
+  const { i18n } = useTranslation();
+  const isSwahili = i18n.language === 'sw';
 
   const concepts = [
     {
-      title: 'Innovation Lab',
-      desc: 'Prototyping sustainable tech frameworks, RAG databases, and SME analytics models.',
+      title: isSwahili ? 'Maabara ya Ubunifu' : 'Innovation Lab',
+      desc: isSwahili 
+        ? 'Kufanya majaribio ya mifumo salama ya kiteknolojia, hifadhidata za RAG, na mifumo ya uchambuzi wa SME.' 
+        : 'Prototyping sustainable tech frameworks, RAG databases, and SME analytics models.',
       image: IMAGES.future.innovationLab,
       icon: <Cpu size={18} className="text-accent-violet" />
     },
     {
-      title: 'Future Office',
-      desc: 'A collaborative systems analysis center mapping relational databases and CRM support metrics.',
+      title: isSwahili ? 'Ofisi ya Baadaye' : 'Future Office',
+      desc: isSwahili 
+        ? 'Kituo cha ushirikiano cha uchambuzi vya mifumo ya ramani za hifadhidata na vipimo vya msaada wa CRM.' 
+        : 'A collaborative systems analysis center mapping relational databases and CRM support metrics.',
       image: IMAGES.future.futureOffice,
       icon: <Building2 size={18} className="text-accent-violet" />
     },
     {
-      title: 'Software Company',
-      desc: 'The corporate framework for Terrasafi T Ltd scaling operational automation across East Africa.',
+      title: isSwahili ? 'Kampuni ya Programu' : 'Software Company',
+      desc: isSwahili 
+        ? 'Mfumo wa kampuni wa Terrasafi T Ltd kukuza otomatiki ya uendeshaji kote Afrika Mashariki.' 
+        : 'The corporate framework for Terrasafi T Ltd scaling operational automation across East Africa.',
       image: IMAGES.future.softwareCompany,
       icon: <Layers size={18} className="text-accent-violet" />
     },
     {
-      title: 'Technology Team',
-      desc: 'Fostering local Tanzanian talent in software engineering and database auditing.',
+      title: isSwahili ? 'Timu ya Teknolojia' : 'Technology Team',
+      desc: isSwahili 
+        ? 'Kukuza vipaji vya ndani ya Tanzania katika uhandisi wa programu na ukaguzi wa hifadhidata.' 
+        : 'Fostering local Tanzanian talent in software engineering and database auditing.',
       image: IMAGES.future.technologyTeam,
       icon: <Users size={18} className="text-accent-violet" />
     },
     {
-      title: 'Training Center',
-      desc: 'Direct customer support training academy for SLA ticket workflows and operational procedures.',
+      title: isSwahili ? 'Kituo cha Mafunzo' : 'Training Center',
+      desc: isSwahili 
+        ? 'Chuo cha mafunzo ya usaidizi kwa wateja kwa mtiririko wa tiketi za SLA na taratibu za uendeshaji.' 
+        : 'Direct customer support training academy for SLA ticket workflows and operational procedures.',
       image: IMAGES.future.trainingCenter,
       icon: <Star size={18} className="text-accent-violet" />
     },
     {
-      title: 'Business Incubation',
-      desc: 'Providing early-stage business plan advisory and IT infrastructure setups for entrepreneurs.',
+      title: isSwahili ? 'Uatamiaji wa Biashara' : 'Business Incubation',
+      desc: isSwahili 
+        ? 'Kutoa ushauri wa mpango wa biashara wa hatua za kwanza na usanidi wa miundombinu ya IT kwa wajasiriamali.' 
+        : 'Providing early-stage business plan advisory and IT infrastructure setups for entrepreneurs.',
       image: IMAGES.future.incubation,
       icon: <Globe size={18} className="text-accent-violet" />
     },
     {
-      title: 'Digital Transformation',
-      desc: 'Eliminating manual ledger inefficiencies by building paperless relational databases and unified company dashboards.',
+      title: isSwahili ? 'Mageuzi ya Kidijitali' : 'Digital Transformation',
+      desc: isSwahili 
+        ? 'Kuondoa ufanisi mdogo wa daftari za mikono kwa kujenga hifadhidata zisizo na karatasi na dashibodi zilizounganishwa.' 
+        : 'Eliminating manual ledger inefficiencies by building paperless relational databases and unified company dashboards.',
       image: IMAGES.future.transformation,
       icon: <Database size={18} className="text-accent-violet" />
     },
     {
-      title: 'Startup Growth',
-      desc: 'Enabling sustainable operational scaling models for East African entrepreneurs with robust software suites.',
+      title: isSwahili ? 'Ukuaji wa Startup' : 'Startup Growth',
+      desc: isSwahili 
+        ? 'Kuwezesha mifano endelevu ya ukuaji wa uendeshaji kwa wajasiriamali wa Afrika Mashariki wenye programu thabiti.' 
+        : 'Enabling sustainable operational scaling models for East African entrepreneurs with robust software suites.',
       image: IMAGES.future.startup,
       icon: <BarChart size={18} className="text-accent-violet" />
     }
@@ -157,57 +177,85 @@ export const FutureVisionPage: React.FC = () => {
     {
       year: '2025',
       phase: 'Phase I',
-      title: 'Platform Launch & Sandbox Operations',
-      desc: 'Deploy Denis Chamkaga Brand Platform. Validate CRM lead pipeline modules in live operational settings.',
+      phaseSw: 'Awamu ya I',
+      title: isSwahili ? 'Uzinduzi wa Jukwaa na Utendaji wa Sandbox' : 'Platform Launch & Sandbox Operations',
+      desc: isSwahili 
+        ? 'Kuweka Jukwaa la Chapa ya Denis Chamkaga. Kuthibitisha moduli za ujumuishaji wa CRM katika mazingira halisi ya uendeshaji.' 
+        : 'Deploy Denis Chamkaga Brand Platform. Validate CRM lead pipeline modules in live operational settings.',
       status: 'active',
-      milestones: ['Public website launched', 'Denis Assistant interface live', 'Consulting intake pipeline active']
+      milestones: isSwahili 
+        ? ['Tovuti ya umma imezinduliwa', 'Msaidizi wa Denis yuko hewani', 'Njia ya kukubali ushauri ipo hai'] 
+        : ['Public website launched', 'Denis Assistant interface live', 'Consulting intake pipeline active']
     },
     {
       year: '2025 – 2026',
       phase: 'Phase II',
-      title: 'Terrasafi Consulting Operations',
-      desc: 'Launch specialized IT systems audit consultancies. Begin development on localized Swahili billing models.',
+      phaseSw: 'Awamu ya II',
+      title: isSwahili ? 'Utendaji wa Ushauri wa Terrasafi' : 'Terrasafi Consulting Operations',
+      desc: isSwahili 
+        ? 'Kuzindua huduma maalumu za ukaguzi wa mifumo ya IT. Kuanza uundaji wa mifumo ya bili iliyojanibishwa kwa Kiswahili.' 
+        : 'Launch specialized IT systems audit consultancies. Begin development on localized Swahili billing models.',
       status: 'planned',
-      milestones: ['First paying consulting client onboarded', 'Swahili POS billing module MVP', 'PostgreSQL schema library released']
+      milestones: isSwahili 
+        ? ['Mteja wa kwanza wa ushauri wa kulipia amekubaliwa', 'Moduli ya bili ya Swahili POS MVP ipo', 'Maktaba ya schema ya PostgreSQL imetolewa'] 
+        : ['First paying consulting client onboarded', 'Swahili POS billing module MVP', 'PostgreSQL schema library released']
     },
     {
       year: '2026 – 2027',
       phase: 'Phase III',
-      title: 'WhatsApp API & Workflow Integrations',
-      desc: 'Integrate live databases with automated ticket escalation and notification channels.',
+      phaseSw: 'Awamu ya III',
+      title: isSwahili ? 'WhatsApp API na Ujumuishaji wa Kazi' : 'WhatsApp API & Workflow Integrations',
+      desc: isSwahili 
+        ? 'Kuunganisha hifadhidata za moja kwa moja na uelekezaji wa tiketi za kiotomatiki na njia za arifa.' 
+        : 'Integrate live databases with automated ticket escalation and notification channels.',
       status: 'planned',
-      milestones: ['WhatsApp API webhook triggers deployed', 'Automated SLA escalation service live', 'Inventory threshold notification system']
+      milestones: isSwahili 
+        ? ['Vichochezi vya webhook vya WhatsApp API vimepelekwa', 'Huduma ya kiotomatiki ya SLA ipo hai', 'Mfumo wa arifa wa bidhaa kupungua'] 
+        : ['WhatsApp API webhook triggers deployed', 'Automated SLA escalation service live', 'Inventory threshold notification system']
     },
     {
       year: '2027+',
       phase: 'Phase IV',
-      title: 'Multitenant SaaS Scaling',
-      desc: 'Launch modular POS, inventory, and SLA customer portals for small businesses across East Africa.',
+      phaseSw: 'Awamu ya IV',
+      title: isSwahili ? 'SaaS Multitenant na Ukuaji' : 'Multitenant SaaS Scaling',
+      desc: isSwahili 
+        ? 'Kuzindua moduli za POS, hesabu ya bidhaa, na kurasa za wateja za SLA kwa biashara ndogo kote Afrika Mashariki.' 
+        : 'Launch modular POS, inventory, and SLA customer portals for small businesses across East Africa.',
       status: 'vision',
-      milestones: ['Terrasafi SaaS dashboard launched', 'East Africa SME marketplace portal', '10+ enterprise contracts active']
+      milestones: isSwahili 
+        ? ['Dashibodi ya Terrasafi SaaS imezinduliwa', 'Jukwaa la soko la SME la Afrika Mashariki', 'Mikataba 10+ ya kampuni kubwa ipo hai'] 
+        : ['Terrasafi SaaS dashboard launched', 'East Africa SME marketplace portal', '10+ enterprise contracts active']
     }
   ];
 
   const terrasafiFeatures = [
     {
       icon: <Zap size={20} className="text-accent-violet" />,
-      title: 'Operational Automation',
-      desc: 'Automating stock, billing, and ticket routing for SMEs'
+      title: isSwahili ? 'Uendeshaji wa Kiotomatiki' : 'Operational Automation',
+      desc: isSwahili 
+        ? 'Kuendesha stoki, bili, na uelekezaji wa tiketi kwa SMEs kiotomatiki' 
+        : 'Automating stock, billing, and ticket routing for SMEs'
     },
     {
       icon: <Database size={20} className="text-accent-violet" />,
-      title: 'Database Engineering',
-      desc: 'PostgreSQL schemas, constraints, and audit-ready designs'
+      title: isSwahili ? 'Uhandisi wa Hifadhidata' : 'Database Engineering',
+      desc: isSwahili 
+        ? 'Schema za PostgreSQL, vizuizi, na miundo iliyo tayari kwa ukaguzi' 
+        : 'PostgreSQL schemas, constraints, and audit-ready designs'
     },
     {
       icon: <MessageSquare size={20} className="text-accent-violet" />,
-      title: 'WhatsApp Integration',
-      desc: 'Direct API-driven customer notification pipelines'
+      title: isSwahili ? 'Ujumuishaji wa WhatsApp' : 'WhatsApp Integration',
+      desc: isSwahili 
+        ? 'Njia za arifa za wateja zinazoendeshwa na API ya moja kwa moja' 
+        : 'Direct API-driven customer notification pipelines'
     },
     {
       icon: <Rocket size={20} className="text-accent-violet" />,
-      title: 'Startup Advisory',
-      desc: 'IT roadmaps and business systems consulting from day one'
+      title: isSwahili ? 'Ushauri wa Startup' : 'Startup Advisory',
+      desc: isSwahili 
+        ? 'Ramani za barabara za IT na ushauri wa mifumo tangu siku ya kwanza' 
+        : 'IT roadmaps and business systems consulting from day one'
     }
   ];
 
@@ -218,16 +266,16 @@ export const FutureVisionPage: React.FC = () => {
   };
 
   const statusLabel: Record<string, string> = {
-    active: 'Active',
-    planned: 'Planned',
-    vision: 'Long-Term Vision'
+    active: isSwahili ? 'Amilifu' : 'Active',
+    planned: isSwahili ? 'Imepangwa' : 'Planned',
+    vision: isSwahili ? 'Maono ya Muda Mrefu' : 'Long-Term Vision'
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-24 text-left">
       <PageTitle
-        title="Future Vision | Terrasafi T Ltd Roadmap"
-        description="Explore the future vision of Terrasafi T Ltd and the long-term technical roadmap built by systems consultant Denis Chamkaga."
+        title={isSwahili ? "Maono ya Mbeleni | Terrasafi T Ltd" : "Future Vision | Terrasafi T Ltd Roadmap"}
+        description={isSwahili ? "Gundua maono ya baadaye ya Terrasafi T Ltd na ramani ya barabara ya kiteknolojia iliyoundwa na mshauri wa mifumo Denis Chamkaga." : "Explore the future vision of Terrasafi T Ltd and the long-term technical roadmap built by systems consultant Denis Chamkaga."}
       />
 
       {/* ── Section 1: Hero ──────────────────────────────────────────── */}
@@ -245,7 +293,7 @@ export const FutureVisionPage: React.FC = () => {
             custom={0}
             className="inline-block text-xs font-semibold text-accent-violet uppercase tracking-wider font-display"
           >
-            Long-Term Strategy
+            {isSwahili ? "Mkakati wa Muda Mrefu" : "Long-Term Strategy"}
           </motion.span>
           <motion.h1 
             variants={fadeUpVariants}
@@ -254,7 +302,7 @@ export const FutureVisionPage: React.FC = () => {
           >
             Terrasafi T Ltd —{' '}
             <span className="bg-gradient-to-r from-accent-violet to-purple-400 bg-clip-text text-transparent">
-              The Future Vision
+              {isSwahili ? "Maono ya Baadaye" : "The Future Vision"}
             </span>
           </motion.h1>
           <motion.p 
@@ -262,8 +310,8 @@ export const FutureVisionPage: React.FC = () => {
             custom={0.2}
             className="text-base sm:text-lg dark:text-zinc-400 light:text-slate-600 leading-relaxed font-body"
           >
-            <strong className="dark:text-white light:text-slate-800">"Terra"</strong> (Earth) +{' '}
-            <strong className="dark:text-white light:text-slate-800">"Safi"</strong> (Swahili for{' '}
+            <strong className="dark:text-white light:text-slate-800">"Terra"</strong> (Dunia) +{' '}
+            <strong className="dark:text-white light:text-slate-800">"Safi"</strong> ({isSwahili ? 'Kiswahili cha ' : 'Swahili for '}{' '}
             <em>Clean / Pure</em>). Terrasafi represents the future software company dedicated to
             building sustainable, robust, and clean digital systems for African SMEs.
           </motion.p>
@@ -272,9 +320,9 @@ export const FutureVisionPage: React.FC = () => {
             custom={0.3}
             className="text-sm dark:text-zinc-500 light:text-slate-500 leading-relaxed font-body"
           >
-            The Denis Chamkaga Brand Platform lays the technical and operational foundations for
-            this transition — acting as a sandbox for building secure DB schemas, workflow
-            automations, and AI coordinators that will eventually mature into full SaaS modules.
+            {isSwahili 
+              ? "Jukwaa la Chapa ya Denis Chamkaga linaweka misingi ya kiufundi na kiutendaji kwa mpito huu — likifanya kazi kama sandbox ya kujenga schema salama za DB, otomatiki za uendeshaji, na wasaidizi wa AI watakaokomaa kuwa moduli kamili za SaaS."
+              : "The Denis Chamkaga Brand Platform lays the technical and operational foundations for this transition — acting as a sandbox for building secure DB schemas, workflow automations, and AI coordinators that will eventually mature into full SaaS modules."}
           </motion.p>
           
           <motion.div 
@@ -289,7 +337,7 @@ export const FutureVisionPage: React.FC = () => {
               className="inline-flex items-center gap-2"
             >
               <MessageSquare size={16} />
-              Start a Consultation
+              {isSwahili ? "Anza Ushauri" : "Start a Consultation"}
             </Button>
             <Button
               variant="outline"
@@ -298,7 +346,7 @@ export const FutureVisionPage: React.FC = () => {
               className="inline-flex items-center gap-2"
             >
               <ArrowRight size={16} />
-              Denis's Journey
+              {isSwahili ? "Safari ya Denis" : "Denis's Journey"}
             </Button>
           </motion.div>
 
@@ -309,7 +357,7 @@ export const FutureVisionPage: React.FC = () => {
             className="pt-4 space-y-2"
           >
             <p className="text-xs dark:text-zinc-500 light:text-slate-400 uppercase tracking-wider font-semibold font-display">
-              Follow the Terrasafi Journey
+              {isSwahili ? "Fuatilia Safari ya Terrasafi" : "Follow the Terrasafi Journey"}
             </p>
             <div className="flex items-center gap-3">
               {Object.values(SOCIALS).map((soc) => (
@@ -343,13 +391,13 @@ export const FutureVisionPage: React.FC = () => {
                 T
               </div>
               <span className="absolute -top-2 -right-2 bg-green-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow">
-                LIVE
+                {isSwahili ? "hai" : "LIVE"}
               </span>
             </div>
             <div>
               <h3 className="font-extrabold text-xl dark:text-white light:text-slate-800 tracking-tight">TERRASAFI T LTD</h3>
               <span className="text-xs dark:text-zinc-500 light:text-slate-500 uppercase tracking-widest font-semibold block mt-1 font-display">
-                Sustainable Technology Suite · Tanzania
+                {isSwahili ? "Seti ya Teknolojia Endelevu · Tanzania" : "Sustainable Technology Suite · Tanzania"}
               </span>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -369,12 +417,16 @@ export const FutureVisionPage: React.FC = () => {
       {/* ── Section 2: Visual Concepts Grid ─────────────────────────── */}
       <section className="space-y-8">
         <div className="space-y-2">
-          <span className="text-xs font-semibold text-accent-violet uppercase tracking-wider font-display">Infrastructure Concepts</span>
+          <span className="text-xs font-semibold text-accent-violet uppercase tracking-wider font-display">
+            {isSwahili ? "Dhana za Miundombinu" : "Infrastructure Concepts"}
+          </span>
           <h2 className="text-3xl font-bold dark:text-white light:text-slate-800 font-display">
-            Visual Foundations of Terrasafi
+            {isSwahili ? "Misingi ya Visual ya Terrasafi" : "Visual Foundations of Terrasafi"}
           </h2>
           <p className="text-sm dark:text-zinc-500 light:text-slate-500 font-body max-w-2xl">
-            Mocked visuals illustrating the future corporate workspace, Innovation Lab, training center, and business incubation units.
+            {isSwahili 
+              ? "Vielelezo vya majaribio vinavyoonyesha ofisi ya baadaye ya ushirikiano, Maabara ya Ubunifu, kituo cha mafunzo, na vitengo vya uatamiaji wa biashara." 
+              : "Mocked visuals illustrating the future corporate workspace, Innovation Lab, training center, and business incubation units."}
           </p>
         </div>
 
@@ -409,16 +461,20 @@ export const FutureVisionPage: React.FC = () => {
       {/* ── Section 3: Roadmap ───────────────────────────────────────── */}
       <section className="space-y-8">
         <div className="space-y-2">
-          <span className="text-xs font-semibold text-accent-violet uppercase tracking-wider font-display">Timeline</span>
+          <span className="text-xs font-semibold text-accent-violet uppercase tracking-wider font-display">
+            {isSwahili ? "Njia ya Muda" : "Timeline"}
+          </span>
           <h2 className="text-3xl font-bold dark:text-white light:text-slate-800 font-display">
-            Terrasafi Journey Ahead
+            {isSwahili ? "Safari ya Terrasafi ya Mbeleni" : "Terrasafi Journey Ahead"}
           </h2>
           <p className="text-sm dark:text-zinc-500 light:text-slate-500 font-body max-w-2xl">
-            A phased strategy moving from a consulting brand to a full SaaS software company serving East Africa.
+            {isSwahili 
+              ? "Mkakati wa awamu ukihama kutoka chapa ya ushauri hadi kampuni kamili ya programu ya SaaS inayohudumia Afrika Mashariki." 
+              : "A phased strategy moving from a consulting brand to a full SaaS software company serving East Africa."}
           </p>
         </div>
 
-        <RoadmapSection items={roadmapItems} statusStyle={statusStyle} statusLabel={statusLabel} />
+        <RoadmapSection items={roadmapItems} statusStyle={statusStyle} statusLabel={statusLabel} isSwahili={isSwahili} />
 
       </section>
 
@@ -432,23 +488,26 @@ export const FutureVisionPage: React.FC = () => {
           {/* Ambient gradient glow */}
           <div className="absolute inset-0 bg-gradient-to-br from-accent-violet/5 via-transparent to-purple-500/5 pointer-events-none" />
 
-          <span className="text-xs font-semibold text-accent-violet uppercase tracking-wider font-display">Ready to Collaborate?</span>
+          <span className="text-xs font-semibold text-accent-violet uppercase tracking-wider font-display">
+            {isSwahili ? "Uko Tayari Ushirikiano?" : "Ready to Collaborate?"}
+          </span>
           <h2 className="text-3xl sm:text-4xl font-extrabold dark:text-white light:text-slate-800 tracking-tight font-display">
-            Be Part of the Terrasafi Story
+            {isSwahili ? "Kuwa Sehemu ya Hadithi ya Terrasafi" : "Be Part of the Terrasafi Story"}
           </h2>
           <p className="max-w-2xl mx-auto text-base dark:text-zinc-400 light:text-slate-600 leading-relaxed font-body">
-            Whether you are an SME looking to digitize your operations, a developer interested in collaboration,
-            or an investor exploring East African SaaS opportunities — Denis is ready to talk.
+            {isSwahili 
+              ? "Ikiwa wewe ni SME unayetaka kuweka shughuli zako kidijitali, msanidi programu unayevutiwa na ushirikiano, au mwekezaji anayechunguza fursa za SaaS za Afrika Mashariki — Denis yuko tayari kuzungumza." 
+              : "Whether you are an SME looking to digitize your operations, a developer interested in collaboration, or an investor exploring East African SaaS opportunities — Denis is ready to talk."}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4 relative z-10">
             <Button
               variant="primary"
               size="md"
-              onClick={() => navigate(ROUTES.DENIS_ASSISTANT)}
+              onClick={() => useUIStore.getState().toggleChat(true)}
               className="inline-flex items-center gap-2"
             >
               <MessageSquare size={18} />
-              Open Denis Assistant
+              {isSwahili ? "Fungua Msaidizi wa Denis" : "Open Denis Assistant"}
             </Button>
             <Button
               variant="outline"
@@ -456,14 +515,25 @@ export const FutureVisionPage: React.FC = () => {
               onClick={() => navigate(ROUTES.CONTACT)}
               className="inline-flex items-center gap-2"
             >
-              Send a Direct Message
+              {isSwahili ? "Tuma Ujumbe wa Moja kwa Moja" : "Send a Direct Message"}
+              <ArrowRight size={16} />
+            </Button>
+            <Button
+              variant="outline"
+              size="md"
+              onClick={() => navigate(ROUTES.INNOVATION)}
+              className="inline-flex items-center gap-2 border-accent-violet/60 text-accent-violet hover:bg-accent-violet/10"
+            >
+              {isSwahili ? "Kagua Maabara ya Majaribio" : "Explore Innovation Lab"}
               <ArrowRight size={16} />
             </Button>
           </div>
 
           {/* Social row */}
           <div className="flex items-center justify-center gap-3 pt-4 border-t dark:border-zinc-800/60 light:border-slate-200 mt-4 relative z-10">
-            <span className="text-xs dark:text-zinc-500 light:text-slate-400 uppercase tracking-wider font-semibold font-display">Follow Denis</span>
+            <span className="text-xs dark:text-zinc-500 light:text-slate-400 uppercase tracking-wider font-semibold font-display">
+              {isSwahili ? "Mshauri Denis" : "Follow Denis"}
+            </span>
             {Object.values(SOCIALS).map((soc) => (
               <a
                 key={soc.name}

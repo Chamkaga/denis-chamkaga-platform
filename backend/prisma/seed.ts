@@ -29,12 +29,32 @@ async function main() {
     update: {},
     create: { name: 'admin', description: 'Administrative access' },
   });
-  const editorRole = await prisma.role.upsert({
-    where: { name: 'editor' },
+  const developerRole = await prisma.role.upsert({
+    where: { name: 'developer' },
     update: {},
-    create: { name: 'editor', description: 'Content editing access' },
+    create: { name: 'developer', description: 'Developer and engineering access' },
   });
-  console.log(`  ✓ Roles: super_admin, admin, editor`);
+  const managerRole = await prisma.role.upsert({
+    where: { name: 'manager' },
+    update: {},
+    create: { name: 'manager', description: 'Business operations and management access' },
+  });
+  const financeRole = await prisma.role.upsert({
+    where: { name: 'finance' },
+    update: {},
+    create: { name: 'finance', description: 'Financial billing and invoice access' },
+  });
+  const supportRole = await prisma.role.upsert({
+    where: { name: 'support' },
+    update: {},
+    create: { name: 'support', description: 'Customer support and lead ticket access' },
+  });
+  const customerRole = await prisma.role.upsert({
+    where: { name: 'customer' },
+    update: {},
+    create: { name: 'customer', description: 'Public customer / client workspace access' },
+  });
+  console.log(`  ✓ Roles: super_admin, admin, developer, manager, finance, support, customer`);
 
   // ─── 2. Permissions ───────────────────────────────────────────────────────
   console.log('Creating permissions...');
@@ -70,27 +90,61 @@ async function main() {
     }
   }
 
-  // Editor gets read + create + update on content, read only on leads
-  const editorWriteResources = ['projects', 'services', 'blog_posts', 'gallery', 'certificates', 'experiences', 'education', 'testimonials'];
-  const editorReadResources = ['leads', 'messages', 'appointments', 'analytics'];
-  for (const resource of editorWriteResources) {
+  // Developer gets read + create + update + delete on tech resources
+  const devResources = ['projects', 'services', 'blog_posts', 'gallery', 'certificates', 'experiences', 'education', 'testimonials', 'settings'];
+  for (const resource of devResources) {
+    for (const action of allActions) {
+      await prisma.permission.upsert({
+        where: { roleId_resource_action: { roleId: developerRole.id, resource, action } },
+        update: {},
+        create: { roleId: developerRole.id, resource, action },
+      });
+    }
+  }
+
+  // Manager gets read + create + update on business resources
+  const managerResources = ['leads', 'messages', 'appointments', 'projects', 'services', 'analytics'];
+  for (const resource of managerResources) {
     for (const action of ['create', 'read', 'update']) {
       await prisma.permission.upsert({
-        where: { roleId_resource_action: { roleId: editorRole.id, resource, action } },
+        where: { roleId_resource_action: { roleId: managerRole.id, resource, action } },
         update: {},
-        create: { roleId: editorRole.id, resource, action },
+        create: { roleId: managerRole.id, resource, action },
       });
     }
   }
-  for (const resource of editorReadResources) {
-    for (const action of readOnlyActions) {
+
+  // Finance role gets read + create + update on finance and analytics
+  for (const resource of ['analytics', 'audit_logs', 'projects', 'services']) {
+    for (const action of ['create', 'read', 'update']) {
       await prisma.permission.upsert({
-        where: { roleId_resource_action: { roleId: editorRole.id, resource, action } },
+        where: { roleId_resource_action: { roleId: financeRole.id, resource, action } },
         update: {},
-        create: { roleId: editorRole.id, resource, action },
+        create: { roleId: financeRole.id, resource, action },
       });
     }
   }
+
+  // Support role gets read + create + update on support tickets/leads
+  for (const resource of ['leads', 'messages', 'appointments', 'notifications']) {
+    for (const action of ['create', 'read', 'update']) {
+      await prisma.permission.upsert({
+        where: { roleId_resource_action: { roleId: supportRole.id, resource, action } },
+        update: {},
+        create: { roleId: supportRole.id, resource, action },
+      });
+    }
+  }
+
+  // Customer role gets read access
+  for (const resource of ['projects', 'services', 'blog_posts', 'testimonials']) {
+    await prisma.permission.upsert({
+      where: { roleId_resource_action: { roleId: customerRole.id, resource, action: 'read' } },
+      update: {},
+      create: { roleId: customerRole.id, resource, action: 'read' },
+    });
+  }
+
   console.log(`  ✓ Permissions created for all roles`);
 
   // ─── 3. Admin User ────────────────────────────────────────────────────────
@@ -143,12 +197,13 @@ async function main() {
     { key: 'social_twitter', value: '', type: 'string', category: 'social', description: 'Twitter/X profile URL' },
     { key: 'social_whatsapp', value: '', type: 'string', category: 'social', description: 'WhatsApp contact link' },
     { key: 'ai_system_prompt', value: 'You are Denis\'s Business Technology Assistant. You help visitors learn about Denis Chamkaga\'s expertise in systems design, database consulting, CRM, business automation, and digital transformation. Only discuss topics related to Denis Chamkaga\'s professional work and services. Politely redirect off-topic questions.', type: 'string', category: 'ai', description: 'AI assistant system prompt' },
-    { key: 'ai_model', value: 'llama3.2', type: 'string', category: 'ai', description: 'Active AI model identifier' },
+    { key: 'ai_model', value: 'gpt-4o-mini', type: 'string', category: 'ai', description: 'Active AI model identifier' },
     { key: 'maintenance_mode', value: 'false', type: 'boolean', category: 'general', description: 'Enable maintenance mode' },
     { key: 'analytics_enabled', value: 'true', type: 'boolean', category: 'general', description: 'Enable analytics tracking' },
     { key: 'years_experience', value: '8', type: 'number', category: 'general', description: 'Years of experience shown on homepage' },
     { key: 'projects_completed', value: '50', type: 'number', category: 'general', description: 'Projects completed count' },
     { key: 'clients_served', value: '30', type: 'number', category: 'general', description: 'Clients served count' },
+    { key: 'presence_state', value: 'Online', type: 'string', category: 'general', description: 'Availability status for Denis Chamkaga' },
   ];
 
   for (const setting of settings) {
@@ -337,6 +392,97 @@ async function main() {
     });
     console.log(`  ✓ Sample education created`);
   }
+
+  // ─── 10. FAQs ─────────────────────────────────────────────────────────────
+  console.log('Creating FAQs...');
+  const faqCount = await prisma.faq.count();
+  if (faqCount === 0) {
+    await prisma.faq.createMany({
+      data: [
+        {
+          question: 'Why should I build a custom system instead of using social media?',
+          answer: 'While Facebook, Instagram, and WhatsApp are great marketing hooks, they do not automate your operations. Custom CRM databases, inventory portals, and automated finance tracking secure your business data, enforce SLAs, and free up employee time to focus on scaling.',
+          displayOrder: 1,
+        },
+        {
+          question: 'What is your background and expertise?',
+          answer: 'I hold a Diploma in Business Information Technology from the University of Dar es Salaam Computing Centre. In addition, I have 8+ years of operational excellence experience: 2 years in security supervision and risk audit at Securex Africa, and 6+ years in customer relations and SLA ticketing strategy at PCCI Group.',
+          displayOrder: 2,
+        },
+        {
+          question: 'Do you support Swahili and English projects?',
+          answer: 'Yes, I design bilingual software systems natively supporting Swahili and English to help local Tanzanian SMEs serve both regional and international customers.',
+          displayOrder: 3,
+        },
+        {
+          question: 'How does the consultation booking work?',
+          answer: 'You can submit your operational problems via the Contact form or request a meeting block. During the call, we define your business workflow, map data relationships, and draw up a clear system requirements document.',
+          displayOrder: 4,
+        },
+      ],
+    });
+    console.log(`  ✓ FAQs seeded`);
+  }
+
+  // ─── 11. Certificates ──────────────────────────────────────────────────────
+  console.log('Creating certificates...');
+  const certCount = await prisma.certificate.count();
+  if (certCount === 0) {
+    await prisma.certificate.createMany({
+      data: [
+        {
+          title: 'Advanced PostgreSQL Administrator',
+          issuer: 'Database Administration Centre',
+          description: 'Specialized certification covering advanced indexing, write-ahead logging (WAL), replication setups, and query planner auditing.',
+          credentialId: 'CERT-PG-88902',
+          issueDate: new Date('2021-03-15'),
+          displayOrder: 1,
+        },
+        {
+          title: 'Business Information Systems Architect',
+          issuer: 'UDSM Computing Centre',
+          description: 'Diploma-level training covering enterprise systems mapping, relational schema normalization (3NF/BCNF), and cash flow integrations.',
+          credentialId: 'CERT-UDCC-33291',
+          issueDate: new Date('2019-06-20'),
+          displayOrder: 2,
+        },
+      ],
+    });
+    console.log(`  ✓ Certificates seeded`);
+  }
+
+  // ─── 12. Tenant Config & Sequences ───────────────────────────────────────
+  console.log('Seeding Tenant Config and Document Sequences...');
+  await prisma.tenantConfig.upsert({
+    where: { id: 'default-tenant' },
+    update: {},
+    create: {
+      id: 'default-tenant',
+      name: 'Terrasafi T Ltd',
+      email: 'finance@terrasafi.co.tz',
+      phone: '+255 700 000 000',
+      address: 'Plot 45, Victoria, Dar es Salaam, Tanzania',
+      vatNumber: '100-200-300',
+      currency: 'USD',
+    },
+  });
+
+  const sequences = [
+    { type: 'invoice', prefix: 'INV', year: 2026 },
+    { type: 'quotation', prefix: 'QT', year: 2026 },
+    { type: 'receipt', prefix: 'REC', year: 2026 },
+    { type: 'contract', prefix: 'CON', year: 2026 },
+    { type: 'project', prefix: 'PRJ', year: 2026 },
+  ];
+
+  for (const seq of sequences) {
+    await prisma.documentSequence.upsert({
+      where: { type: seq.type },
+      update: {},
+      create: seq,
+    });
+  }
+  console.log('  ✓ Tenant config and sequences seeded');
 
   console.log('\n✅ Database seed completed successfully!\n');
   console.log('─────────────────────────────────────────');

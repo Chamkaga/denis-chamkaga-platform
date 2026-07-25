@@ -1,73 +1,87 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Phone, Mail, MapPin, Globe, ExternalLink } from 'lucide-react';
+import { Phone, Mail, MapPin, ExternalLink } from 'lucide-react';
 import { Logo } from '../../atoms/Logo';
 import { ROUTES } from '../../../config/routes';
 import { SOCIALS } from '../../../constants/socials';
+import { useLanguageStore } from '../../../store/useLanguageStore';
+import { useQuery } from '@tanstack/react-query';
+import { publicApi } from '../../../services/api';
+import { motion } from 'framer-motion';
+
+// We import MAIN_NAVIGATION correctly
+import { MAIN_NAVIGATION as SHARED_NAV } from '../../../config/navigation';
 
 export const Footer: React.FC = () => {
   const { t } = useTranslation();
+  const { language } = useLanguageStore();
   const currentYear = new Date().getFullYear();
+  const isSwahili = language === 'sw';
 
-  const footerLinks = [
-    { name: t('nav.home'), path: ROUTES.HOME },
+  const { data: siteSettings } = useQuery({
+    queryKey: ['public-settings'],
+    queryFn: () => publicApi.getSettings(),
+  });
+
+  const contactPhone = siteSettings?.contact_phone || '+255 620 145 678';
+  const contactEmail = siteSettings?.contact_email || 'denischamkaga@gmail.com';
+  const contactLocation = siteSettings?.contact_location || 'Dar es Salaam, Tanzania';
+  const whatsappUrl = siteSettings?.social_whatsapp
+    ? (siteSettings.social_whatsapp.startsWith('http') ? siteSettings.social_whatsapp : `https://wa.me/${siteSettings.social_whatsapp.replace(/[^0-9]/g, '')}`)
+    : SOCIALS.whatsApp.url;
+
+  // 1. Company Links (About, Services, Projects, Future Vision, Partner With Me)
+  const companyLinks = [
     { name: t('nav.about'), path: ROUTES.ABOUT },
     { name: t('nav.services'), path: ROUTES.SERVICES },
     { name: t('nav.projects'), path: ROUTES.PROJECTS },
-    { name: t('nav.experience'), path: ROUTES.EXPERIENCE },
-    { name: t('nav.blog'), path: ROUTES.BLOG },
-    { name: t('nav.contact'), path: ROUTES.CONTACT },
+    { name: t('nav.futureVision'), path: ROUTES.FUTURE_VISION },
+    { name: t('nav.partner'), path: ROUTES.PARTNER },
   ];
+
+  // 2. Quick Navigation Links (Exact mirror of Header)
+  const quickLinks = SHARED_NAV.map((link) => ({
+    name: t(link.translationKey),
+    path: link.path,
+  }));
+
+  // 3. Scalable Resources Links Array (No placeholder links to avoid technical debt)
+  const resourcesLinks = [
+    { name: isSwahili ? 'Saidia Maono' : 'Support the Vision', path: ROUTES.SUPPORT },
+    { name: isSwahili ? 'Safari Yangu' : 'My Journey', path: '/about#timeline' },
+    { name: isSwahili ? 'Maabara ya Majaribio' : 'Innovation Lab', path: '/creator#innovation-lab' },
+  ];
+
+  // Filter out WhatsApp for the generic Follow Me list (already covered in Contact details)
+  const socialMedias = Object.values(SOCIALS).filter((soc) => soc.name !== 'WhatsApp');
 
   return (
     <footer className="border-t dark:border-zinc-800/80 light:border-slate-200 dark:bg-[#070708] light:bg-slate-50 transition-colors duration-300 font-body">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         
-        {/* Top Section Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+        {/* Top 5-Column Grid System */}
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-8 lg:gap-12 items-start">
           
-          {/* Column 1: Logo & Short Professional Intro (5 cols) */}
-          <div className="lg:col-span-5 space-y-6 text-left">
+          {/* Column 1: Brand & Logo */}
+          <div className="space-y-6 text-left">
             <Logo size="md" />
-            <p className="text-sm dark:text-zinc-400 light:text-slate-600 leading-relaxed max-w-md">
-              Denis Chamkaga is a Business Information Technology Professional, Web Software Developer, and Systems Consultant based in Tanzania. He bridges the gap between company workflows, database normalization, and automated CRM/POS systems.
+            <p className="text-xs sm:text-sm dark:text-zinc-400 light:text-slate-600 leading-relaxed">
+              {t('footer.description')}
             </p>
-            
-            {/* Social Icons row with proper accessibility tags */}
-            <div className="flex flex-wrap gap-4 pt-2">
-              {Object.values(SOCIALS).map((soc) => (
-                <a
-                  key={soc.name}
-                  href={soc.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`p-2.5 rounded-xl border dark:border-zinc-800/80 light:border-slate-200 dark:bg-zinc-900/20 light:bg-white text-zinc-400 transition-all duration-300 ${soc.colorClass} focus:outline-none focus:ring-2 focus:ring-accent-violet`}
-                  aria-label={`Visit Denis Chamkaga official ${soc.name} profile`}
-                >
-                  <svg 
-                    className="w-5 h-5 fill-current" 
-                    viewBox={soc.viewBox || '0 0 24 24'} 
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path d={soc.svgPath} />
-                  </svg>
-                </a>
-              ))}
-            </div>
           </div>
 
-          {/* Column 2: Quick Links (3 cols) */}
-          <div className="lg:col-span-3 space-y-6 text-left">
-            <h3 className="text-sm font-semibold tracking-wider uppercase dark:text-zinc-300 light:text-slate-700">
-              Quick Navigation
+          {/* Column 2: Company */}
+          <div className="space-y-5 text-left">
+            <h3 className="text-xs font-bold tracking-widest uppercase dark:text-zinc-300 light:text-slate-700 font-display">
+              {isSwahili ? 'Kampuni' : 'Company'}
             </h3>
-            <ul className="grid grid-cols-1 gap-3">
-              {footerLinks.map((link) => (
+            <ul className="space-y-2.5">
+              {companyLinks.map((link) => (
                 <li key={link.path}>
                   <Link
                     to={link.path}
-                    className="text-sm dark:text-zinc-400 light:text-slate-500 transition-colors hover:text-accent-violet light:hover:text-light-accent focus:outline-none focus:ring-1 focus:ring-accent-violet rounded px-1"
+                    className="text-xs sm:text-sm dark:text-zinc-400 light:text-slate-500 hover:text-accent-violet transition-colors focus:outline-none focus:ring-1 focus:ring-accent-violet rounded px-1"
                   >
                     {link.name}
                   </Link>
@@ -76,67 +90,132 @@ export const Footer: React.FC = () => {
             </ul>
           </div>
 
-          {/* Column 3: Contact & Digital Office Details (4 cols) */}
-          <div className="lg:col-span-4 space-y-6 text-left">
-            <h3 className="text-sm font-semibold tracking-wider uppercase dark:text-zinc-300 light:text-slate-700">
-              Digital Office & Contact
+          {/* Column 3: Quick Navigation */}
+          <div className="space-y-5 text-left">
+            <h3 className="text-xs font-bold tracking-widest uppercase dark:text-zinc-300 light:text-slate-700 font-display">
+              {isSwahili ? 'Urambazaji wa Haraka' : 'Quick Navigation'}
             </h3>
-            <ul className="space-y-4 text-sm dark:text-zinc-400 light:text-slate-600">
-              <li className="flex items-center gap-3">
-                <Phone size={16} className="text-accent-violet shrink-0" />
-                <a 
-                  href={SOCIALS.whatsApp.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:underline flex items-center gap-1 focus:outline-none focus:ring-1 focus:ring-accent-violet rounded"
-                >
-                  <span>{t('footer.phone')} (WhatsApp Primary)</span>
-                  <ExternalLink size={10} className="inline shrink-0" />
-                </a>
-              </li>
-              <li className="flex items-center gap-3">
-                <Mail size={16} className="text-accent-violet shrink-0" />
-                <a 
-                  href={`mailto:${t('footer.email')}`}
-                  className="hover:underline focus:outline-none focus:ring-1 focus:ring-accent-violet rounded"
-                >
-                  {t('footer.email')}
-                </a>
-              </li>
-              <li className="flex items-center gap-3">
-                <MapPin size={16} className="text-accent-violet shrink-0" />
-                <span>{t('footer.location')}</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <Globe size={16} className="text-accent-violet shrink-0" />
-                <span className="truncate">{t('footer.website')}</span>
-              </li>
+            <ul className="space-y-2.5">
+              {quickLinks.map((link) => (
+                <li key={link.path}>
+                  <Link
+                    to={link.path}
+                    className="text-xs sm:text-sm dark:text-zinc-400 light:text-slate-500 hover:text-accent-violet transition-colors focus:outline-none focus:ring-1 focus:ring-accent-violet rounded px-1"
+                  >
+                    {link.name}
+                  </Link>
+                </li>
+              ))}
             </ul>
+          </div>
+
+          {/* Column 4: Resources */}
+          <div className="space-y-5 text-left">
+            <h3 className="text-xs font-bold tracking-widest uppercase dark:text-zinc-300 light:text-slate-700 font-display">
+              {isSwahili ? 'Nyenzo' : 'Resources'}
+            </h3>
+            <ul className="space-y-2.5">
+              {resourcesLinks.map((link) => (
+                <li key={link.path}>
+                  <Link
+                    to={link.path}
+                    className="text-xs sm:text-sm dark:text-zinc-400 light:text-slate-500 hover:text-accent-violet transition-colors focus:outline-none focus:ring-1 focus:ring-accent-violet rounded px-1 font-semibold"
+                  >
+                    {link.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Column 5: Contact & Follow Me */}
+          <div className="space-y-6 text-left">
+            <div className="space-y-5">
+              <h3 className="text-xs font-bold tracking-widest uppercase dark:text-zinc-300 light:text-slate-700 font-display">
+                {isSwahili ? 'Mawasiliano' : 'Contact'}
+              </h3>
+              <ul className="space-y-3 text-xs sm:text-sm dark:text-zinc-400 light:text-slate-600">
+                <li className="flex items-center gap-2">
+                  <Mail size={14} className="text-accent-violet shrink-0" />
+                  <a 
+                    href={`mailto:${contactEmail}`}
+                    className="hover:underline hover:text-accent-violet focus:outline-none focus:ring-1 focus:ring-accent-violet rounded truncate"
+                  >
+                    {contactEmail}
+                  </a>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Phone size={14} className="text-accent-violet shrink-0" />
+                  <a 
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:underline hover:text-accent-violet focus:outline-none focus:ring-1 focus:ring-accent-violet rounded flex items-center gap-1"
+                  >
+                    <span>{contactPhone}</span>
+                    <ExternalLink size={10} className="shrink-0 text-zinc-500" />
+                  </a>
+                </li>
+                <li className="flex items-start gap-2">
+                  <MapPin size={14} className="text-accent-violet shrink-0 mt-0.5" />
+                  <span>{contactLocation}</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Follow Me Dynamic Subsection */}
+            <div className="space-y-3 pt-2">
+              <h4 className="text-[10px] font-bold uppercase tracking-widest dark:text-zinc-400 light:text-slate-600 font-display">
+                {isSwahili ? 'Nifuatilie' : 'Follow Me'}
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {socialMedias.map((soc) => (
+                  <motion.a
+                    whileHover={{ scale: 1.08 }}
+                    whileTap={{ scale: 0.95 }}
+                    key={soc.name}
+                    href={soc.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`p-2 rounded-xl border dark:border-zinc-800/80 light:border-slate-200 dark:bg-zinc-900/20 light:bg-white text-zinc-400 transition-colors ${soc.colorClass} focus:outline-none focus:ring-2 focus:ring-accent-violet`}
+                    aria-label={`Follow Denis on ${soc.name}`}
+                  >
+                    <svg 
+                      className="w-4 h-4 fill-current" 
+                      viewBox={soc.viewBox || '0 0 24 24'} 
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path d={soc.svgPath} />
+                    </svg>
+                  </motion.a>
+                ))}
+              </div>
+            </div>
           </div>
 
         </div>
 
-        {/* Bottom Metadata & Credits Section */}
+        {/* Bottom Section Credits (Premium custom branding lines) */}
         <div className="mt-16 pt-8 border-t dark:border-zinc-800/80 light:border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6 text-xs dark:text-zinc-500 light:text-slate-400 text-center md:text-left">
           
-          {/* Copyright & Designed & Developed Credits */}
-          <div className="space-y-1">
+          <div className="space-y-1 font-body">
             <p>
-              &copy; {currentYear} Denis Chamkaga. {t('footer.rights')}
+              &copy; {currentYear} Denis Chamkaga. {isSwahili ? 'Haki zote zimehifadhiwa.' : 'All rights reserved.'}
             </p>
-            <p className="dark:text-zinc-600 light:text-slate-400">
-              Designed & Developed by <span className="font-semibold text-accent-violet">Denis Chamkaga</span>
+            <p className="dark:text-zinc-600 light:text-slate-500">
+              {isSwahili 
+                ? 'Imejengwa kwa shauku, ubunifu, na mafunzo endelevu.' 
+                : 'Built with passion, innovation, and continuous learning.'}
             </p>
           </div>
 
-          {/* Built With Tech Stack Disclosures */}
-          <div className="flex flex-wrap items-center justify-center md:justify-end gap-6">
-            <span className="font-medium dark:text-zinc-600 light:text-slate-400">
-              Built with React · TypeScript · Vite · Node.js
+          <div className="flex flex-col md:items-end gap-2 text-xs">
+            <span className="font-semibold dark:text-zinc-500 light:text-slate-400 font-display">
+              {isSwahili ? 'Inaendeshwa na Terrasafi' : 'Powered by Terrasafi'}
             </span>
             <Link 
               to={ROUTES.ADMIN_LOGIN} 
-              className="hover:text-accent-violet transition-colors focus:outline-none focus:ring-1 focus:ring-accent-violet rounded px-1"
+              className="text-[10px] text-zinc-500 hover:text-accent-violet transition-colors focus:outline-none focus:ring-1 focus:ring-accent-violet rounded px-1"
             >
               {t('nav.adminConsole')}
             </Link>
@@ -149,3 +228,4 @@ export const Footer: React.FC = () => {
   );
 };
 
+export default Footer;

@@ -503,6 +503,19 @@ analytics
 
 ---
 
+### 3.27 faqs
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | String (cuid) | PK | Unique identifier |
+| question | String | Not Null | FAQ question text |
+| answer | String | Not Null | FAQ answer text |
+| display_order | Int | Default: 0 | Sorting display order |
+| created_at | DateTime | Default: now() | Created timestamp |
+| updated_at | DateTime | UpdatedAt | Updated timestamp |
+
+---
+
 ## 4. Indexes
 
 | Table | Index | Type | Purpose |

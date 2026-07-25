@@ -6,7 +6,7 @@
 
 ## 1. Dynamic Prompt Construction Template
 
-This represents the structured payload sent to the local Ollama Llama 3 engine by the backend `prompt-builder.ts`:
+This represents the structured payload sent to the local OpenAI engine by the backend `prompt-builder.ts`:
 
 ```markdown
 [SYSTEM INSTRUCTION]

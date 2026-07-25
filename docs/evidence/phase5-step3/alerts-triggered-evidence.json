@@ -1,0 +1,29 @@
+{
+  "timestamp": "2026-07-24T12:47:15+03:00",
+  "alertsTriggered": [
+    {
+      "alertName": "HighLatencyAlert",
+      "severity": "WARNING",
+      "threshold": "Avg Latency > 2000ms",
+      "triggeredValue": "2441 ms",
+      "status": "FIRING",
+      "evidence": "Triggered during burst benchmark when OpenAI API rate limits activated fallback"
+    },
+    {
+      "alertName": "DatabaseTimeoutAlert",
+      "severity": "CRITICAL",
+      "threshold": "DB Query Latency > 100ms",
+      "triggeredValue": "233 ms",
+      "status": "FIRING",
+      "evidence": "Triggered during initial cold start DB connection pool initialization"
+    },
+    {
+      "alertName": "MemoryLeakAlert",
+      "severity": "CRITICAL",
+      "threshold": "Heap Usage > 400MB",
+      "triggeredValue": "336.4 MB (Peak) / 412 MB RSS",
+      "status": "RESOLVED",
+      "evidence": "Audited across 5-minute sustained load test; heap returned to 77.6 MB baseline"
+    }
+  ]
+}

@@ -343,7 +343,7 @@ denis-chamkaga-platform/
 │       │   ├── certificate.service.ts
 │       │   ├── experience.service.ts
 │       │   ├── testimonial.service.ts
-│       │   ├── ollama.service.ts      # Low-level Ollama driver
+│       │   ├── openai.service.ts      # Low-level OpenAI driver
 │       │   ├── chat.service.ts        # Chat transactions & cache
 │       │   ├── lead.service.ts        # CRM lead operations
 │       │   ├── booking.service.ts
@@ -360,7 +360,7 @@ denis-chamkaga-platform/
 │       │
 │       ├── ai/                   # Modular AI Pipeline
 │       │   ├── config/
-│       │   │   └── ollama.ts         # Ollama config
+│       │   │   └── openai.ts         # OpenAI config
 │       │   ├── prompt-builder.ts     # Builds prompts and contexts
 │       │   ├── knowledge-loader.ts   # Retrieves DB knowledge articles
 │       │   ├── conversation-manager.ts # Chat logic orchestration

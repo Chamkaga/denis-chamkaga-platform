@@ -18,7 +18,7 @@ interface JwtPayload {
 // ─── Require valid JWT ────────────────────────────────────────────────────────
 export const requireAuth = async (
   req: Request,
-  _res: Response,
+  res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
@@ -39,14 +39,15 @@ export const requireAuth = async (
     };
 
     next();
-  } catch (err) {
-    if (err instanceof jwt.TokenExpiredError) {
-      next(new AppError(401, 'TOKEN_EXPIRED', 'Access token has expired'));
-    } else if (err instanceof jwt.JsonWebTokenError) {
-      next(new AppError(401, 'INVALID_TOKEN', 'Invalid access token'));
-    } else {
-      next(err);
-    }
+  } catch (err: any) {
+    res.status(401).json({
+      success: false,
+      error: {
+        code: err.name === 'TokenExpiredError' ? 'TOKEN_EXPIRED' : 'INVALID_TOKEN',
+        message: err.message || 'Invalid or expired authentication token'
+      }
+    });
+    return;
   }
 };
 

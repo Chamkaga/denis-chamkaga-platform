@@ -8,7 +8,7 @@
 
 The AI Assistant is a specialized business assistant, **NOT** a general chatbot. Its sole responsibility is to guide visitors through Denis Chamkaga's portfolio, services, credentials, and business vision.
 
-**Critical Guardrail:** The frontend must never communicate directly with Ollama. All interactions flow through the secure backend AI services.
+**Critical Guardrail:** The frontend must never communicate directly with OpenAI. All interactions flow through the secure backend AI services.
 
 ---
 
@@ -20,7 +20,7 @@ The backend AI pipeline is modularized into dedicated components:
 backend/src/
 ├── ai/
 │   ├── config/
-│   │   └── ollama.ts             # Ollama client configuration
+│   │   └── openai.ts             # OpenAI client configuration
 │   ├── prompt-builder.ts         # Assembles systems prompt and context
 │   ├── knowledge-loader.ts       # Reads dynamic DB content (projects, services, etc.)
 │   ├── conversation-manager.ts   # Core chatbot logic coordinator
@@ -34,7 +34,7 @@ backend/src/
 │   └── guards.ts                 # Input filtering and safety constraints
 │
 ├── services/
-│   ├── ollama.service.ts         # Handles low-level Ollama communication
+│   ├── openai.service.ts         # Handles low-level OpenAI communication
 │   ├── chat.service.ts           # Handles conversation transactions & caching
 │   ├── lead.service.ts           # Saves leads, scores, and triggers notifications
 │   └── recommendation.service.ts # Performs project/service matching based on intent
@@ -48,13 +48,13 @@ backend/src/
 
 ---
 
-## 3. Ollama + Llama 3 Integration Pipeline
+## 3. OpenAI + gpt-4o-mini 3 Integration Pipeline
 
 ```
-Ollama (Local Llama 3 Engine)
+OpenAI (Local gpt-4o-mini 3 Engine)
           ▲
           │
-    ollama.service.ts
+    openai.service.ts
           ▲
           │
   conversation-manager.ts ◀─── guards.ts (Input safety)
@@ -82,3 +82,9 @@ The AI is strictly blocked from discussing general topics (e.g., world history, 
 - **Off-topic Redirection:** If the input or response is flagged as off-topic by the `guards.ts` or `response-validator.ts`, the assistant must return the standard fallback redirection block.
 - **Answer Guarantee:** The AI answers only from Denis's verified biography, portfolio, services, credentials, and future company vision. If information does not exist, the assistant replies:
   > "I don't currently have that information. Denis can provide further details during consultation."
+
+---
+
+## 5. Phase 2 Planning
+
+*   [Phase 2 – Admin AI Copilot Planning Package](file:///d:/Projects/denis-chamkaga-platform/docs/ai/AdminAICopilotPlanning.md) - Product Backlog, functional specs, tool registries, permission matrices, and sprint plans for the Phase 2 implementation.

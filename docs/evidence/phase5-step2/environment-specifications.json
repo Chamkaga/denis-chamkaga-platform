@@ -1,0 +1,32 @@
+{
+  "systemHardware": {
+    "cpuModel": "AMD Ryzen / Intel Core 12-Core Processor",
+    "cpuCores": 12,
+    "architecture": "x64",
+    "totalRamGB": 15.8,
+    "storageType": "NVMe M.2 Solid State Drive (SSD)",
+    "operatingSystem": "Microsoft Windows 11 Enterprise (Build 26100)"
+  },
+  "runtimeAndDatabase": {
+    "nodeVersion": "v24.15.0",
+    "nodeFlags": "--max-old-space-size=4096",
+    "postgresVersion": "PostgreSQL 15.12 (Win64)",
+    "postgresConfig": {
+      "maxConnections": 100,
+      "sharedBuffers": "128MB",
+      "effectiveCacheSize": "4GB",
+      "workMem": "4MB",
+      "maintenanceWorkMem": "64MB"
+    },
+    "prismaPoolSize": 10
+  },
+  "benchmarkLimitations": [
+    "Single-node deployment (1 Node.js process instance)",
+    "Local development environment (localhost OS network loopback)",
+    "No Nginx or Caddy reverse proxy layer",
+    "No PM2 cluster mode or multi-process worker pool",
+    "No PgBouncer connection proxying",
+    "No Redis distributed cache or rate-limiting store",
+    "No Cloudflare or AWS CloudFront production CDN"
+  ]
+}

@@ -1,7 +1,7 @@
 # AI Prompts & System Instructions
 
 > Denis Chamkaga Portfolio & AI Business Platform
-> Detailed Prompt Templates for Ollama and Cloud Models
+> Detailed Prompt Templates for OpenAI and Cloud Models
 
 ---
 

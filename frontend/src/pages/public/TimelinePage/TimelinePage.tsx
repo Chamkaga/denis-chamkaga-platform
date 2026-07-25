@@ -1,169 +1,171 @@
 import React from 'react';
-import { Calendar, GraduationCap, Award, Shield, Headphones, Cpu, Briefcase, ExternalLink, BookOpen, TrendingUp, CheckSquare } from 'lucide-react';
+import { Calendar, GraduationCap, Shield, Headphones, Cpu, ExternalLink, BookOpen } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/cn';
 import { IMAGES } from '../../../constants/images';
 import { AnimatedImage } from '../../../components/atoms/AnimatedImage/AnimatedImage';
 import { PageTitle } from '../../../components/atoms/PageTitle/PageTitle';
 import { useScrollReveal } from '../../../hooks/useScrollReveal';
 import { heroStaggerContainer, fadeUpVariants, slideLeftVariants, slideRightVariants, lineGrowVariants } from '../../../lib/motion';
-import { SecurexLogo, PCCILogo, YasLogo, UDSMLogo, UDCCLogo, TerrasafiLogo } from '../../../components/atoms/CompanyLogos/CompanyLogos';
+import { SecurexLogo, PCCILogo, UDSMLogo, UDCCLogo, TerrasafiLogo } from '../../../components/atoms/CompanyLogos/CompanyLogos';
+
+export interface Milestone {
+  year: string;
+  role: string;
+  institution: string;
+  logo: React.ReactNode;
+  image: string;
+  website: string;
+  story: string;       // Single concise paragraph, 3–5 sentences
+  lessonLearned: string;
+  skills: string[];
+  type: 'work' | 'academic' | 'future';
+  icon: React.ReactNode;
+}
 
 export const TimelinePage: React.FC = () => {
-  const milestones = [
+  const { i18n } = useTranslation();
+  const isSwahili = i18n.language === 'sw';
+
+  const milestones: Milestone[] = [
+    // ─── 1. Securex Security ───────────────────────────────────────────────
     {
       year: '2015 – 2017',
-      duration: '2 Years',
-      role: 'Security Officer & Audit Coordinator',
-      institution: 'Securex Africa',
+      role: isSwahili ? 'Askari Usalama' : 'Security Officer',
+      institution: 'Securex Security',
       logo: <SecurexLogo />,
-      image: IMAGES.timeline.security,
+      image: IMAGES.timeline.security3d,
       website: 'https://securexafrica.com',
-      responsibilities: [
-        'Guarded critical entry pathways and patrolled commercial parameters under strict procedures.',
-        'Audited manual guard registration logs and site checklists to trace security loopholes.',
-        'Supervised night compliance rosters to verify proper incident tracking and access controls.'
-      ],
-      skillsGained: ['Access Auditing', 'Operations Discipline', 'Risk Analysis', 'Incident Management'],
-      techLearned: ['Risk Logging Systems', 'Patrol Guard Hardware Systems'],
-      achievement: 'Maintained 100% compliance rate on physical access registers across key commercial facilities.',
-      impact: 'Prevented key operational vulnerabilities by enforcing hourly checkpoint log validations.',
-      lessons: 'Vigilance is not a feeling, it\'s a procedural habit. If you miss the small checkpoints, the entire system becomes vulnerable.',
+      story: isSwahili
+        ? 'Baada ya kumaliza shule, nilikuwa na fursa ndogo sana. Securex ilinipa nafasi ya kuanza. Kufanya kazi mchana na usiku ilinifundisha nidhamu, uwajibikaji na uvumilivu. Miaka ile pia ilinifanya nitambue kwamba elimu itakuwa msingi wa mustakabali wangu.'
+        : 'After finishing school, I started my career at Securex Security. Working day and night shifts taught me discipline, responsibility and patience. Those experiences made me realize that education would become the foundation of my future.',
+      lessonLearned: isSwahili
+        ? 'Nidhamu huunda fursa kabla mafanikio hayajafika.'
+        : 'Discipline creates opportunities before success arrives.',
+      skills: isSwahili
+        ? ['Ulinzi wa Lango', 'Uendeshaji wa Doria', 'Udhibiti wa Uingiaji', 'Umakini', 'Taarifa za Matukio', 'Nidhamu']
+        : ['Gate Security', 'Patrol Operations', 'Access Control', 'Observation', 'Incident Reporting', 'Discipline'],
       type: 'work',
-      icon: <Shield size={14} />
+      icon: <Shield size={14} />,
     },
+
+    // ─── 2. PCCI Group ─────────────────────────────────────────────────────
     {
       year: '2017 – Present',
-      duration: '8+ Years',
-      role: 'Customer Service Professional',
+      role: isSwahili ? 'Mwakilishi wa Huduma kwa Wateja' : 'Customer Service Representative',
       institution: 'PCCI Group',
       logo: <PCCILogo />,
-      image: IMAGES.timeline.customerService,
+      image: IMAGES.timeline.customerService3d,
       website: 'https://pcci-group.com',
-      responsibilities: [
-        'Configured ticketing routing rules and queue queues under strict customer agreements (SLA).',
-        'Resolved complex digital channel inquiries (WhatsApp, Voice, Facebook) for tier-1 telecommunications clients.',
-        'Audited daily queue logs to identify support bottlenecks and optimize response speeds.'
-      ],
-      skillsGained: ['SLA Compliance', 'Queue Optimization', 'Customer Support Strategy', 'CRM Management'],
-      techLearned: ['Avaya Systems', 'Ticketing Databases', 'SAP Client Portals'],
-      achievement: 'Received Top Performer Recognition for maintaining a 98%+ SLA response score across digital queues.',
-      impact: 'Minimized queue response delays by configuring logical ticket routing pathways.',
-      lessons: 'Behind every support ticket is a human voice waiting for clarity. Decoupled, automated routing systems build trust far faster than manual assignments.',
+      story: isSwahili
+        ? 'PCCI ikawa hatua ya mabadiliko. Nilisaidia akaunti ya Tigo — baadaye Yas — kupitia PCCI, sio kama mfanyakazi wa moja kwa moja wa Tigo. Kusaidia wateja kila siku kuliimarisha mawasiliano, utatuzi wa matatizo na kazi ya pamoja. Kipindi hiki pia kilinichocha kuendelea na masomo yangu.'
+        : 'PCCI became my turning point. I supported the Tigo account — which later rebranded to Yas — through PCCI, not as a direct Tigo employee. Helping customers every day built my communication, problem-solving and teamwork. This period also motivated me to continue studying.',
+      lessonLearned: isSwahili
+        ? 'Kila mazungumzo na mteja ni fursa ya kujifunza na kuboresha.'
+        : 'Every customer interaction is an opportunity to learn and improve.',
+      skills: isSwahili
+        ? ['Huduma kwa Wateja', 'Msaada wa HVC', 'Msaada wa Kidijitali', 'Mawasiliano', 'Kutatua Matatizo', 'Kazi ya Pamoja']
+        : ['Customer Service', 'HVC Support', 'Digital Support', 'Communication', 'Problem Solving', 'Teamwork'],
       type: 'work',
-      icon: <Headphones size={14} />
+      icon: <Headphones size={14} />,
     },
+
+    // ─── 3. University of Dar es Salaam Computing Centre ──────────────────
     {
-      year: '2018 – 2021',
-      duration: '3 Years',
-      role: 'Business Systems Studies',
+      year: '2021 – 2026',
+      role: isSwahili ? 'Stashahada ya Teknolojia ya Habari za Biashara' : 'Diploma in Business Information Technology',
+      institution: 'University of Dar es Salaam Computing Centre (UCC)',
+      logo: <UDCCLogo />,
+      image: IMAGES.timeline.udcc3d,
+      website: 'https://www.ucc.co.tz',
+      story: isSwahili
+        ? 'Nikifanya kazi PCCI, nilijiandikisha UCC kusomea Teknolojia ya Habari za Biashara. Kujifunza darasani huku nikifanya kazi na mifumo halisi ya biashara kila siku kulinisaidia kuunganisha nadharia na vitendo. Uzoefu huu uliongeza shauku yangu ya uundaji wa programu na teknolojia ya biashara.'
+        : 'While working at PCCI, I enrolled at UCC to study Business Information Technology. Learning theory in class while applying it in a real workplace helped me connect concepts with practice. This experience deepened my passion for software development and business technology.',
+      lessonLearned: isSwahili
+        ? 'Maarifa yanakuwa na thamani pale nadharia inapokutana na vitendo.'
+        : 'Knowledge becomes valuable when theory meets practice.',
+      skills: isSwahili
+        ? ['Mifumo ya Habari za Biashara', 'Uprogramu', 'Kanzidata', 'Mitandao', 'Uundaji wa Programu', 'Uchambuzi wa Mifumo']
+        : ['Business Information Systems', 'Programming', 'Databases', 'Networking', 'Software Development', 'System Analysis'],
+      type: 'academic',
+      icon: <GraduationCap size={14} />,
+    },
+
+    // ─── 4. University of Dar es Salaam (Future Goal) ─────────────────────
+    {
+      year: '2026 – Future',
+      role: isSwahili ? 'Shahada ya Kwanza ya Teknolojia ya Habari za Biashara' : "Bachelor's Degree in Business Information Technology",
       institution: 'University of Dar es Salaam',
       logo: <UDSMLogo />,
-      image: IMAGES.timeline.udcc,
+      image: IMAGES.timeline.udsmFuture3d,
       website: 'https://www.udsm.ac.tz',
-      responsibilities: [
-        'Studied relational database systems, corporate accounting models, and statistics.',
-        'Formulated spreadsheet financial models and computed sales trend forecasts.',
-        'Conducted systems analysis case studies analyzing corporate administrative structures.'
-      ],
-      skillsGained: ['Relational Database Modeling', 'Business Systems Analysis', 'Excel Financial Models', 'Statistics'],
-      techLearned: ['Excel Financial Modeling', 'Relational Data Analysis'],
-      achievement: 'Mastered double-entry ledgers and normalization rules to transition manual accounting safely.',
-      impact: 'Bridged business operational theory with software modeling skills to prevent inventory leaks.',
-      lessons: 'Accounting is the language of business, and databases are the translators. A poorly normalized database will eventually leak cash.',
-      type: 'academic',
-      icon: <GraduationCap size={14} />
+      story: isSwahili
+        ? 'Hatua yangu inayofuata ni kufuata Shahada ya Kwanza ya Teknolojia ya Habari za Biashara katika Chuo Kikuu cha Dar es Salaam. Hii inawakilisha kujitolea kwangu kwa kujifunza kuendelea, maarifa ya kina ya kiufundi na ukuaji wa kitaalamu wa muda mrefu.'
+        : "My next step is to pursue a Bachelor's Degree in Business Information Technology at the University of Dar es Salaam. This represents my commitment to continuous learning, deeper technical knowledge and long-term professional growth.",
+      lessonLearned: isSwahili
+        ? 'Kujifunza hakuishii kamwe.'
+        : 'Learning never ends.',
+      skills: isSwahili
+        ? ['Uhandisi wa Programu wa Hali ya Juu', 'Mifumo ya Makampuni', 'Utafiti', 'Uongozi', 'Ubunifu']
+        : ['Advanced Software Engineering', 'Enterprise Systems', 'Research', 'Leadership', 'Innovation'],
+      type: 'future',
+      icon: <GraduationCap size={14} />,
     },
-    {
-      year: '2021 – 2025',
-      duration: '4 Years',
-      role: 'Diploma in Business Information Technology',
-      institution: 'University of Dar es Salaam Computing Centre',
-      logo: <UDCCLogo />,
-      image: IMAGES.timeline.projects,
-      website: 'https://www.ucc.co.tz',
-      responsibilities: [
-        'Designed custom normalized database schemas using MySQL and SQLite environments.',
-        'Built full-stack web platforms using PHP, CSS, Bootstrap, and relational backends.',
-        'Drafted systems requirement specifications (SRS) and defended BIT capstones.'
-      ],
-      skillsGained: ['Web Engineering', 'Fullstack Development', 'System Requirements', 'PHP & MySQL'],
-      techLearned: ['PHP', 'MySQL', 'Bootstrap', 'Relational Databases'],
-      achievement: 'Successfully built and defended a custom School Management System as a core graduation requirement.',
-      impact: 'Proved that localized database systems successfully replace paper registers for SMEs.',
-      lessons: 'A stable application is only as good as its underlying constraints. Strict schema design prevents years of debugging later on.',
-      type: 'academic',
-      icon: <GraduationCap size={14} />
-    },
-    {
-      year: '2024 – 2025',
-      duration: '1 Year',
-      role: 'CRM Integration & Database Analyst',
-      institution: 'Yas Tanzania',
-      logo: <YasLogo />,
-      image: IMAGES.timeline.development,
-      website: 'https://www.yas.co.tz',
-      responsibilities: [
-        'Audited database record migration routines during the Tigo-to-Yas customer data transfer.',
-        'Verified integration script logs and ran PostgreSQL schema verification checks.',
-        'Audited data integration procedures to guarantee clean, duplicate-free customer profiles.'
-      ],
-      skillsGained: ['Data Migration Auditing', 'Schema Validation', 'API Verifications', 'CRM Integrations'],
-      techLearned: ['PostgreSQL', 'API Integration', 'Migration Verification Scripts'],
-      achievement: 'Validated customer records scripts with zero operational downtime for active lines during rebranding.',
-      impact: 'Guaranteed customer profile continuity by validating SQL schemas prior to final production transfer.',
-      lessons: 'Data migration is not just shifting rows; it is preserving histories. Rigorous PostgreSQL verification guarantees continuity of service.',
-      type: 'work',
-      icon: <Briefcase size={14} />
-    },
+
+    // ─── 5. Terrasafi T Ltd ── DO NOT MODIFY ──────────────────────────────
     {
       year: '2025+',
-      duration: 'Active',
-      role: 'Founder & CEO (Future Vision)',
+      role: isSwahili ? 'Mwanzilishi & Mkurugenzi Mtendaji' : 'Founder & CEO',
       institution: 'Terrasafi T Ltd',
       logo: <TerrasafiLogo />,
-      image: IMAGES.timeline.futureVision,
+      image: IMAGES.timeline.terrasafi3d,
       website: 'https://terrasafi.com',
-      responsibilities: [
-        'Bootstrapping clean, automated database software for local Tanzanian SMEs.',
-        'Engineering lightweight monorepos with React, Node.js, and Prisma ORM mappings.',
-        'Designing paperless workflow templates to secure inventory controls.'
-      ],
-      skillsGained: ['SaaS Strategy', 'Business Automation', 'Relational Systems Integration', 'React & Node.js'],
-      techLearned: ['React / Vite', 'Node.js & Express API', 'PostgreSQL / Prisma ORM', 'Docker Containerization'],
-      achievement: 'Laying the technical foundation to eliminate spreadsheet bottlenecks and manual list errors.',
-      impact: 'Providing local entrepreneurs with tools to secure records, stop leaks, and exit manual entry books.',
-      lessons: 'SaaS platforms scale when they are simple to use but engineered with uncompromising architectural discipline.',
+      story: isSwahili
+        ? 'Terrasafi ilianza kama suluhisho la tatizo nililoiona kila siku — wafanyabiashara wadogo wa Tanzania wakijaribu kudhibiti hesabu, bidhaa, na wateja kwa vitabu vya mikono na lahajedwali. Niliamua kujenga mfumo rahisi, unaofanya kazi bila karatasi. Leo ninajipanga kutumia React, Node.js, na PostgreSQL kuunda programu nyepesi za SaaS zinazoweza kusaidia SMEs za ndani. Bado ninajenga — lakini msingi uko imara.'
+        : 'Terrasafi started as a solution to a problem I witnessed every day — small Tanzanian businesses struggling to manage records, inventory, and customers using manual books and spreadsheets. I decided to build something clean, automated, and paperless. Today I am engineering lightweight SaaS applications using React, Node.js, and PostgreSQL to serve local SMEs. I am still building — but the foundation is solid.',
+      lessonLearned: isSwahili
+        ? 'Mifumo ya SaaS inakua inapokuwa rahisi kutumia lakini imeundwa kwa nidhamu ya kimuundo isiyoyumba.'
+        : 'SaaS platforms scale when they are simple to use but engineered with uncompromising architectural discipline.',
+      skills: isSwahili
+        ? ['Mkakati wa SaaS', 'React & Node.js', 'PostgreSQL', 'Uendeshaji Kiotomatiki']
+        : ['SaaS Strategy', 'React & Node.js', 'PostgreSQL', 'Business Automation'],
       type: 'future',
-      icon: <Cpu size={14} />
-    }
+      icon: <Cpu size={14} />,
+    },
   ];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12 text-left font-body">
       <PageTitle
-        title="Career Journey | Denis Chamkaga"
-        description="Denis Chamkaga's full career timeline — from Securex Africa to PCCI Group, Yas Tanzania, UDSM, UCC and Terrasafi."
+        title={isSwahili ? 'Safari ya Kazi | Denis Chamkaga' : 'Career Journey | Denis Chamkaga'}
+        description={
+          isSwahili
+            ? 'Historia kamili ya kazi ya Denis Chamkaga — kutoka Securex Africa hadi PCCI Group, UDSM, UCC na Terrasafi.'
+            : "Denis Chamkaga's full career timeline — from Securex Africa to PCCI Group, UDSM, UCC and Terrasafi."
+        }
       />
 
-      {/* Header — staggered */}
+      {/* Header — staggered reveal */}
       <motion.div className="space-y-4 max-w-3xl" variants={heroStaggerContainer} initial="hidden" animate="visible">
-        <motion.span variants={fadeUpVariants} custom={0} className="text-xs font-semibold text-accent-violet uppercase tracking-wider font-display block">My Growth</motion.span>
+        <motion.span variants={fadeUpVariants} custom={0} className="text-xs font-semibold text-accent-violet uppercase tracking-wider font-display block">
+          {isSwahili ? 'Ukuaji Wangu' : 'My Growth'}
+        </motion.span>
         <motion.h1 variants={fadeUpVariants} custom={0.1} className="text-4xl font-extrabold dark:text-white light:text-slate-800 tracking-tight">
-          Career Timeline Case Studies
+          {isSwahili ? 'Safari ya Ukuaji Wangu' : 'My Career Journey'}
         </motion.h1>
         <motion.p variants={fadeUpVariants} custom={0.2} className="text-lg dark:text-zinc-400 light:text-slate-600 leading-relaxed font-body">
-          A visual chronicle of my career transitions from physical security operations to customer excellence strategy, and computing systems engineering.
+          {isSwahili
+            ? 'Nilianza na kidogo. Nikaendelea. Bado ninajifunza. Hiyo ndiyo hadithi yangu.'
+            : 'I started with very little. Kept working. Kept studying. I am still growing. That is the story.'}
         </motion.p>
       </motion.div>
 
       {/* Vertical Timeline wrapper — animated growing line */}
       <div className="relative ml-4 md:ml-6 space-y-16">
-        {/* The growing vertical line */}
         <TimelineLine />
-
         {milestones.map((node, i) => (
-          <TimelineCard key={i} node={node} index={i} />
+          <TimelineCard key={i} node={node} index={i} isSwahili={isSwahili} />
         ))}
       </div>
     </div>
@@ -185,7 +187,7 @@ const TimelineLine: React.FC = () => {
 };
 
 // ── Individual timeline card ─────────────────────────────────────────────────
-const TimelineCard: React.FC<{ node: ReturnType<typeof getMilestones>[0]; index: number }> = ({ node, index }) => {
+const TimelineCard: React.FC<{ node: Milestone; index: number; isSwahili: boolean }> = ({ node, index, isSwahili }) => {
   const { ref, isInView } = useScrollReveal({ threshold: 0.08 });
   const isLeft = index % 2 === 0;
   const variants = isLeft ? slideLeftVariants : slideRightVariants;
@@ -205,141 +207,126 @@ const TimelineCard: React.FC<{ node: ReturnType<typeof getMilestones>[0]; index:
         animate={isInView ? { scale: 1 } : { scale: 0 }}
         transition={{ delay: 0.2, type: 'spring', stiffness: 400, damping: 20 }}
         className={cn(
-          "absolute -left-[17px] top-1 w-8 h-8 rounded-full border-4 flex items-center justify-center dark:bg-primary-bg light:bg-light-bg",
+          'absolute -left-[17px] top-1 w-8 h-8 rounded-full border-4 flex items-center justify-center dark:bg-primary-bg light:bg-light-bg z-20',
           {
-            "border-accent-violet text-accent-violet": node.type === 'work',
-            "border-green-500 text-green-500": node.type === 'academic',
-            "border-amber-500 text-amber-500": node.type === 'future',
+            'border-accent-violet text-accent-violet': node.type === 'work',
+            'border-green-500 text-green-500': node.type === 'academic',
+            'border-amber-500 text-amber-500': node.type === 'future',
           }
         )}
       >
+        <span className="w-2.5 h-2.5 rounded-full bg-current" />
       </motion.div>
-      
-      {/* Card Container */}
-      <div className="p-6 sm:p-8 rounded-3xl border dark:border-zinc-800/80 light:border-slate-200 dark:bg-zinc-900/40 light:bg-white hover:border-accent-violet transition-all duration-300 shadow-xl max-w-5xl group hover:shadow-accent-violet/5 space-y-6">
-        
-        {/* Top Row: Year and Type Badge */}
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b dark:border-zinc-800/60 light:border-slate-100 pb-3">
-          <div className="flex items-center gap-4">
-                  <span className="text-xs font-bold text-accent-violet uppercase tracking-wider flex items-center gap-1.5 font-display">
-                    <Calendar size={14} />
-                    {node.year}
-                  </span>
-                  <span className="text-[10px] py-0.5 px-2.5 rounded-md dark:bg-zinc-800 dark:text-zinc-300 light:bg-slate-100 light:text-slate-600 font-semibold font-body">
-                    Duration: {node.duration}
-                  </span>
-                </div>
-                <span className={cn(
-                  "text-[9px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider",
-                  {
-                    "bg-accent-violet/10 text-accent-violet": node.type === 'work',
-                    "bg-green-500/10 text-green-500": node.type === 'academic',
-                    "bg-amber-500/10 text-amber-500": node.type === 'future',
-                  }
-                )}>
-                  {node.type}
-                </span>
-              </div>
 
-              {/* Grid: Image on Left (Desktop), Details on Right */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                
-                {/* Visual Image Block */}
-                <div className="lg:col-span-4 relative rounded-xl overflow-hidden border dark:border-zinc-800 light:border-slate-200 h-44 bg-zinc-950">
-                  <AnimatedImage 
-                    src={node.image} 
-                    alt={node.role} 
-                    className="w-full h-full"
-                    hoverZoom={true}
-                  />
-                  {/* Company Logo Badge */}
-                  <div className="absolute top-2 left-2 w-8 h-8 rounded-lg overflow-hidden bg-white/95 p-1 flex items-center justify-center border shadow-sm text-zinc-900">
-                    {node.logo}
-                  </div>
-                </div>
+      {/* ── Card — horizontal split: image left (42%), content right (58%) ── */}
+      <div className="rounded-3xl border dark:border-zinc-800/80 light:border-slate-200 dark:bg-zinc-900/40 light:bg-white hover:border-accent-violet transition-all duration-300 shadow-xl max-w-5xl group hover:shadow-accent-violet/5 overflow-hidden">
+        <div className="flex flex-col md:flex-row">
 
-          <div className="lg:col-span-8 space-y-4">
-            <div>
-              <h3 className="text-xl font-bold dark:text-white light:text-slate-800 leading-snug">{node.role}</h3>
-              <h4 className="text-xs font-semibold dark:text-zinc-400 light:text-slate-500 font-body uppercase tracking-wider">{node.institution}</h4>
+          {/* LEFT — 3D Illustration: full-width on mobile (220px), 42% on desktop (min 300px) */}
+          <div className={cn(
+            'relative flex-shrink-0 dark:bg-zinc-950 light:bg-slate-50',
+            'w-full h-[220px]',
+            'md:w-[42%] md:h-auto md:min-h-[300px]',
+            'border-b md:border-b-0 md:border-r dark:border-zinc-800 light:border-slate-200'
+          )}>
+            <AnimatedImage
+              src={node.image}
+              alt={`${node.institution} — ${node.role}`}
+              className="absolute inset-0 w-full h-full"
+              objectFit="contain"
+              hoverZoom={false}
+            />
+            {/* Company Logo badge */}
+            <div className="absolute top-3 left-3 w-7 h-7 rounded-lg overflow-hidden bg-white/95 p-0.5 flex items-center justify-center border shadow-sm text-zinc-900 z-10">
+              {node.logo}
             </div>
-            <div className="space-y-1.5">
-              <span className="font-bold text-[10px] dark:text-zinc-300 light:text-slate-700 uppercase tracking-widest flex items-center gap-1.5">
-                <CheckSquare size={12} className="text-accent-violet" /> Key Responsibilities:
+            {/* Type chip — bottom of image */}
+            <div className="absolute bottom-3 right-3 z-10">
+              <span className={cn(
+                'text-[9px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider backdrop-blur-sm',
+                {
+                  'bg-accent-violet/20 text-accent-violet border border-accent-violet/30': node.type === 'work',
+                  'bg-green-500/20 text-green-400 border border-green-500/30': node.type === 'academic',
+                  'bg-amber-500/20 text-amber-400 border border-amber-500/30': node.type === 'future',
+                }
+              )}>
+                {isSwahili
+                  ? node.type === 'work' ? 'kazi' : node.type === 'academic' ? 'elimu' : 'maono'
+                  : node.type}
               </span>
-              <ul className="list-disc list-inside text-xs dark:text-zinc-400 light:text-slate-600 space-y-1 pl-1 leading-relaxed">
-                {node.responsibilities.map((r, idx) => (<li key={idx}>{r}</li>))}
-              </ul>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 text-xs font-body leading-relaxed">
-              <div className="p-3.5 rounded-xl dark:bg-zinc-950/40 light:bg-slate-50 border dark:border-zinc-800/80 light:border-slate-200/80 space-y-1">
-                <span className="font-extrabold text-[10px] dark:text-zinc-300 light:text-slate-800 uppercase tracking-wider flex items-center gap-1">
-                  <Award size={12} className="text-accent-violet" /> Achievement:
-                </span>
-                <p className="dark:text-zinc-400 light:text-slate-500 text-[11px]">{node.achievement}</p>
-              </div>
-              <div className="p-3.5 rounded-xl dark:bg-zinc-950/40 light:bg-slate-50 border dark:border-zinc-800/80 light:border-slate-200/80 space-y-1">
-                <span className="font-extrabold text-[10px] dark:text-zinc-300 light:text-slate-800 uppercase tracking-wider flex items-center gap-1">
-                  <TrendingUp size={12} className="text-accent-violet" /> Business Impact:
-                </span>
-                <p className="dark:text-zinc-400 light:text-slate-500 text-[11px]">{node.impact}</p>
-              </div>
-              <div className="p-3.5 rounded-xl dark:bg-zinc-950/40 light:bg-slate-50 border dark:border-zinc-800/80 light:border-slate-200/80 space-y-1 sm:col-span-2">
-                <span className="font-extrabold text-[10px] dark:text-zinc-300 light:text-slate-800 uppercase tracking-wider flex items-center gap-1">
-                  <BookOpen size={12} className="text-accent-violet" /> Lesson Learned:
-                </span>
-                <p className="dark:text-zinc-400 light:text-slate-500 text-[11px]">{node.lessons}</p>
-              </div>
             </div>
           </div>
-        </div>
 
-        {/* Tags row */}
-        <div className="pt-4 border-t dark:border-zinc-800/40 light:border-slate-100 flex flex-col md:flex-row md:items-end justify-between gap-6 text-xs font-body">
-          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <span className="font-semibold dark:text-zinc-300 light:text-slate-700 block mb-1">Skills Gained:</span>
-              <div className="flex flex-wrap gap-1">
-                {node.skillsGained.map((s) => (
-                  <span key={s} className="text-[9px] font-semibold py-0.5 px-2 rounded-lg dark:bg-zinc-800 dark:text-zinc-300 light:bg-slate-100 light:text-slate-600">{s}</span>
-                ))}
-              </div>
+          {/* RIGHT — Content column */}
+          <div className="flex-1 min-w-0 p-5 sm:p-6 flex flex-col justify-between gap-4">
+
+            {/* Top: year + company + role */}
+            <div className="space-y-1">
+              <span className="text-[10px] font-semibold text-accent-violet/70 flex items-center gap-1.5 uppercase tracking-wider font-display">
+                <Calendar size={11} />
+                {node.year}
+              </span>
+              <h3 className="text-lg sm:text-xl font-extrabold dark:text-white light:text-slate-900 leading-tight tracking-tight">
+                {node.institution}
+              </h3>
+              <p className={cn(
+                'text-[11px] font-bold uppercase tracking-wider font-body',
+                {
+                  'text-accent-violet': node.type === 'work',
+                  'text-green-500': node.type === 'academic',
+                  'text-amber-500': node.type === 'future',
+                }
+              )}>
+                {node.role}
+              </p>
             </div>
-            <div>
-              <span className="font-semibold dark:text-zinc-300 light:text-slate-700 block mb-1">Technologies &amp; Systems:</span>
-              <div className="flex flex-wrap gap-1">
-                {node.techLearned.map((t) => (
-                  <span key={t} className="text-[9px] font-semibold py-0.5 px-2 rounded-lg bg-accent-violet/10 text-accent-violet">{t}</span>
-                ))}
-              </div>
+
+            {/* Story — single paragraph, 3–5 sentences */}
+            <p className="text-sm dark:text-zinc-300 light:text-slate-700 leading-relaxed font-body">
+              {node.story}
+            </p>
+
+            {/* Lesson Learned */}
+            <div className="flex items-start gap-2 border-l-2 border-accent-violet/40 pl-3 py-0.5">
+              <BookOpen size={11} className="text-accent-violet shrink-0 mt-0.5" />
+              <p className="text-[11px] italic dark:text-zinc-400 light:text-slate-500 leading-relaxed font-body">
+                &ldquo;{node.lessonLearned}&rdquo;
+              </p>
             </div>
+
+            {/* Skills chips */}
+            <div className="flex flex-wrap gap-1.5">
+              {node.skills.map((skill) => (
+                <span
+                  key={skill}
+                  className="text-[10px] font-semibold py-0.5 px-2 rounded-lg dark:bg-zinc-800 dark:text-zinc-300 light:bg-slate-100 light:text-slate-600 border dark:border-zinc-700/50 light:border-slate-200 transition-colors hover:border-accent-violet hover:text-accent-violet cursor-default"
+                >
+                  {skill}
+                </span>
+              ))}
+            </div>
+
+            {/* Visit button */}
+            {node.website && (
+              <div>
+                <a
+                  href={node.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 py-1.5 px-3.5 rounded-xl border dark:border-zinc-800 light:border-slate-200 dark:bg-zinc-950/30 light:bg-white dark:text-zinc-300 light:text-slate-700 hover:border-accent-violet hover:text-accent-violet transition-colors focus:outline-none focus:ring-2 focus:ring-accent-violet font-semibold text-[11px] shadow-sm"
+                  aria-label={`Visit official website for ${node.institution}`}
+                >
+                  <span>{isSwahili ? 'Tembelea ' : 'Visit '}{node.institution}</span>
+                  <ExternalLink size={11} />
+                </a>
+              </div>
+            )}
           </div>
-          {node.website && (
-            <div className="shrink-0 pt-2 md:pt-0">
-              <a
-                href={node.website} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 py-2 px-4 rounded-xl border dark:border-zinc-800 light:border-slate-200 dark:bg-zinc-950/30 light:bg-white dark:text-zinc-300 light:text-slate-700 hover:border-accent-violet hover:text-accent-violet transition-colors focus:outline-none focus:ring-2 focus:ring-accent-violet font-semibold text-[11px] shadow-sm"
-                aria-label={`Visit official website for ${node.institution}`}
-              >
-                <span>Visit {node.institution}</span>
-                <ExternalLink size={12} />
-              </a>
-            </div>
-          )}
+
         </div>
       </div>
     </motion.div>
   );
 };
-
-// getMilestones return type helper
-type MilestoneNode = {
-  year: string; duration: string; role: string; institution: string;
-  logo: React.ReactNode; image: string; website: string;
-  responsibilities: string[]; skillsGained: string[]; techLearned: string[];
-  achievement: string; impact: string; lessons: string;
-  type: string; icon: React.ReactNode;
-};
-function getMilestones(): MilestoneNode[] { return []; }
 
 export default TimelinePage;

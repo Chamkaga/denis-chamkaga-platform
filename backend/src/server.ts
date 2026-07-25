@@ -1,5 +1,5 @@
 // src/server.ts
-// Application entry point.
+// Application entry point. Reloaded.
 // Starts the HTTP server and manages graceful shutdown.
 
 import { env } from './config/env';
@@ -13,14 +13,21 @@ async function startServer(): Promise<void> {
   try {
     // Verify database connection
     await prisma.$connect();
-    logger.info('✅ Database connected successfully');
 
     // Start HTTP server
     const server = app.listen(PORT, () => {
-      logger.info(`🚀 Server running on http://localhost:${PORT}`);
-      logger.info(`📖 Environment: ${env.NODE_ENV}`);
-      logger.info(`🔒 CORS origin: ${env.FRONTEND_URL}`);
-      logger.info(`🤖 Ollama endpoint: ${env.OLLAMA_URL}`);
+      console.log(`
+🚀 Denis Chamkaga Platform
+
+Backend      ✓ Running
+Frontend     ✓ Running
+Database     ✓ Connected
+Environment  ${env.NODE_ENV.charAt(0).toUpperCase() + env.NODE_ENV.slice(1)}
+AI Model     OpenAI (${env.OPENAI_MODEL})
+
+Frontend → ${env.FRONTEND_URL}
+Backend  → http://localhost:${PORT}
+`);
     });
 
     // ── Graceful Shutdown ──────────────────────────────────────────────────
