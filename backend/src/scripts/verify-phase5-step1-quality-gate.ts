@@ -127,6 +127,7 @@ async function runQualityGateReview() {
       (server as Server).close();
     }
     await prisma.$disconnect();
+    process.exit(0);
   }
 }
 

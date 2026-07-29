@@ -136,6 +136,7 @@ async function runStep3TelemetryVerification() {
     if (server) {
       (server as Server).close();
     }
+    process.exit(0);
   }
 }
 

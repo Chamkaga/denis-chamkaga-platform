@@ -226,6 +226,7 @@ async function runStep4SecurityPenTest() {
     if (server) {
       (server as Server).close();
     }
+    process.exit(0);
   }
 }
 

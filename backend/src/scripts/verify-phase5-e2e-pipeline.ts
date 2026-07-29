@@ -153,6 +153,7 @@ async function runPhase5E2EVerification() {
     process.exit(1);
   } finally {
     await prisma.$disconnect();
+    process.exit(0);
   }
 }
 

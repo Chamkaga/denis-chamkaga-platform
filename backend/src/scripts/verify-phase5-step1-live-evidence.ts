@@ -182,6 +182,7 @@ async function runStep1LiveEvidenceVerification() {
       (server as Server).close();
     }
     await prisma.$disconnect();
+    process.exit(0);
   }
 }
 

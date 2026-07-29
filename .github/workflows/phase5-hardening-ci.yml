@@ -47,7 +47,7 @@ jobs:
           DATABASE_URL: "postgresql://postgres:password@localhost:5432/denis_platform?schema=public"
         run: |
           cd backend
-          npx prisma migrate dev --name init
+          npx prisma migrate deploy
           npx tsx prisma/seed.ts
 
       - name: Run Phase 5 Permanent Test Suite
