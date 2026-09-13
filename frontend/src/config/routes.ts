@@ -20,14 +20,18 @@ export const ROUTES = {
   DENIS_ASSISTANT: '/denis-assistant',
   
   // Admin Panel
-  ADMIN_DASHBOARD: '/admin',
+  ADMIN_DASHBOARD: '/admin/dashboard',
   ADMIN_LOGIN: '/admin/login',
   ADMIN_MEDIA: '/admin/media',
+  ADMIN_FINANCE: '/admin/finance',
+  ADMIN_CRM: '/admin/crm',
+  ADMIN_CALENDAR: '/admin/calendar',
 
   // Public review and checkout links (unauthenticated)
   PUBLIC_QUOTATION: '/public/quotation/:token',
   PUBLIC_INVOICE: '/public/invoice/:token',
   PAYMENT_REDIRECT: '/public/invoice/payment-redirect',
+  PAYMENT_LINK_PUBLIC: '/pay/:token',
 } as const;
 
 export type RouteKeys = keyof typeof ROUTES;

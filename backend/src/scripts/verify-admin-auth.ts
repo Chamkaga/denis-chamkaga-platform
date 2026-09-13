@@ -3,6 +3,8 @@
 
 import app from '../app';
 import { Server } from 'http';
+import bcrypt from 'bcrypt';
+import prisma from '../config/database';
 
 async function verifyAdminAuth() {
   console.log('================================================================');
@@ -10,7 +12,8 @@ async function verifyAdminAuth() {
   console.log('================================================================\n');
 
   let server: Server | null = null;
-  const PORT = 5007;
+  let baseUrl = '';
+  let testUserId: string | undefined;
   let passed = 0;
   let total = 0;
 
@@ -27,17 +30,39 @@ async function verifyAdminAuth() {
 
   try {
     // 1. Start HTTP Server
-    await new Promise<void>((resolve) => {
-      server = app.listen(PORT, () => resolve());
-    });
-    assert(!!server, 'Backend HTTP server running on port 5007');
+    const role = await prisma.role.findUniqueOrThrow({ where: { name: 'super_admin' } });
+    const adminEmail = `auth-flow-${Date.now()}@example.test`;
+    const adminPassword = `Flow-${Date.now()}-Secure!`;
+    const testUser = await prisma.user.create({ data: {
+      email: adminEmail,
+      username: `auth_flow_${Date.now()}`,
+      passwordHash: await bcrypt.hash(adminPassword, 10),
+      firstName: 'Auth',
+      lastName: 'Flow',
+      roleId: role.id,
+      isActive: true
+    } });
+    testUserId = testUser.id;
 
-    const adminEmail = process.env.ADMIN_EMAIL || 'admin@denischamkaga.com';
-    const adminPassword = process.env.ADMIN_INITIAL_PASSWORD || 'Denis@Platform2025';
+    const startedServer = await new Promise<Server>((resolve) => {
+      const instance = app.listen(0, () => resolve(instance));
+    });
+    server = startedServer;
+    const address = startedServer.address();
+    if (!address || typeof address === 'string') throw new Error('Test server did not bind to a TCP port');
+    baseUrl = `http://127.0.0.1:${address.port}`;
+    assert(!!server, `Backend HTTP server running on isolated port ${address.port}`);
 
     // 2. Test POST /api/v1/auth/login
     console.log(`\n2. Testing POST /api/v1/auth/login with ${adminEmail}...`);
-    const loginRes = await fetch(`http://localhost:${PORT}/api/v1/auth/login`, {
+    const rejectedLogin = await fetch(`${baseUrl}/api/v1/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: adminEmail, password: 'wrong-password' }),
+    });
+    assert(rejectedLogin.status === 401, 'Invalid credentials are rejected');
+
+    const loginRes = await fetch(`${baseUrl}/api/v1/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -58,7 +83,7 @@ async function verifyAdminAuth() {
 
     // 3. Test GET /api/v1/auth/me with Bearer Token
     console.log('\n3. Testing GET /api/v1/auth/me (Authenticated Session)...');
-    const meRes = await fetch(`http://localhost:${PORT}/api/v1/auth/me`, {
+    const meRes = await fetch(`${baseUrl}/api/v1/auth/me`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
       },
@@ -69,7 +94,7 @@ async function verifyAdminAuth() {
 
     // 4. Test POST /api/v1/auth/refresh
     console.log('\n4. Testing POST /api/v1/auth/refresh (Token Rotation)...');
-    const refreshRes = await fetch(`http://localhost:${PORT}/api/v1/auth/refresh`, {
+    const refreshRes = await fetch(`${baseUrl}/api/v1/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken }),
@@ -83,12 +108,22 @@ async function verifyAdminAuth() {
     console.log('================================================================\n');
   } catch (error) {
     console.error('\n❌ AUTHENTICATION VERIFICATION FAILED:', error);
-    process.exit(1);
+    process.exitCode = 1;
   } finally {
     if (server) {
-      (server as Server).close();
+      await new Promise<void>((resolve, reject) => (server as Server).close(error => error ? reject(error) : resolve()));
     }
+    if (testUserId) {
+      await prisma.auditLog.deleteMany({ where: { userId: testUserId } });
+      await prisma.user.delete({ where: { id: testUserId } });
+    }
+    await prisma.$disconnect();
   }
 }
 
-verifyAdminAuth();
+verifyAdminAuth().then(() => {
+  if (!process.exitCode) process.exit(0);
+}).catch(error => {
+  console.error(error);
+  process.exit(1);
+});

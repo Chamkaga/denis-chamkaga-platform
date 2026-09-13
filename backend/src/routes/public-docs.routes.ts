@@ -253,7 +253,11 @@ router.post('/payments/webhook', wrap(async (req, res) => {
   const localHash = env.FLW_WEBHOOK_SECRET;
   const signature = req.headers['verif-hash'];
 
-  if (localHash && signature !== localHash) {
+  if (!localHash) {
+    res.status(503).json({ success: false, error: 'Payment webhook is not configured.' });
+    return;
+  }
+  if (signature !== localHash) {
     console.warn('⚠️ Webhook verification hash mismatch. Request rejected.');
     res.status(401).json({ success: false, error: 'Signature verify failed.' });
     return;

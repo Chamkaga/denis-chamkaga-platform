@@ -36,4 +36,36 @@ export default defineConfig({
       '@dc/shared': path.resolve(__dirname, '../shared/dist'),
     },
   },
+  build: {
+    target: 'es2020',
+    sourcemap: false,
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            if (id.includes('/xlsx/') || id.includes('\\xlsx\\')) {
+              return 'vendor-spreadsheet';
+            }
+            if (id.includes('jspdf') || id.includes('jspdf-autotable')) {
+              return 'vendor-pdf';
+            }
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+              return 'vendor-react';
+            }
+            if (id.includes('@tanstack') || id.includes('axios')) {
+              return 'vendor-query';
+            }
+            if (id.includes('lucide-react') || id.includes('framer-motion')) {
+              return 'vendor-ui';
+            }
+            if (id.includes('recharts')) {
+              return 'vendor-charts';
+            }
+            return 'vendor';
+          }
+        }
+      }
+    }
+  }
 })

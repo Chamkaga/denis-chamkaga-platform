@@ -3,13 +3,13 @@
 
 import { Router, Request, Response, NextFunction } from 'express';
 import { projectWorkspaceService } from '../services/project-workspace.service';
-import { requireAuth, requireRole } from '../middleware/auth.middleware';
+import { requireAuth, requireRole, requireResourceAccess, requirePermission } from '../middleware/auth.middleware';
 import { ApiResponse } from '../types/api';
 
 const router = Router();
 
 router.use(requireAuth);
-router.use(requireRole('admin', 'super_admin'));
+router.use(requireResourceAccess('projects'));
 
 const wrap = (fn: (req: Request<any, any, any, any>, res: Response, next: NextFunction) => Promise<void>) =>
   (req: Request, res: Response, next: NextFunction) => fn(req, res, next).catch(next);
@@ -21,7 +21,7 @@ router.get('/templates', wrap(async (_req, res) => {
 }));
 
 // Instant Quote-to-Project Creation
-router.post('/create-from-quote', wrap(async (req, res) => {
+router.post('/create-from-quote', requirePermission('projects', 'manage'), wrap(async (req, res) => {
   const { quotationId, templateName } = req.body;
   const workspace = await projectWorkspaceService.createProjectFromQuotation(quotationId, templateName);
   res.status(201).json({ success: true, data: workspace } satisfies ApiResponse);

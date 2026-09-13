@@ -211,7 +211,7 @@ export const Footer: React.FC = () => {
 
           <div className="flex flex-col md:items-end gap-2 text-xs">
             <span className="font-semibold dark:text-zinc-500 light:text-slate-400 font-display">
-              {isSwahili ? 'Inaendeshwa na Terrasafi' : 'Powered by Terrasafi'}
+              Technology by Terrasafi
             </span>
             <Link 
               to={ROUTES.ADMIN_LOGIN} 

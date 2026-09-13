@@ -1,9 +1,9 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, Link } from 'react-router-dom';
-import { Key, Mail, Lock } from 'lucide-react';
+import { Key, Mail, Lock, ArrowLeft, Home } from 'lucide-react';
 import { Button } from '../../../components/atoms/Button';
-import { useAuthStore } from '../../../store/useAuthStore';
+import { useAuthStore } from '../../../stores/useAuthStore';
 import { ROUTES } from '../../../config/routes';
 import { Logo } from '../../../components/atoms/Logo';
 import { api } from '../../../services/api';
@@ -27,7 +27,7 @@ export const LoginPage: React.FC = () => {
       const res = await api.post('/auth/login', data);
       const { user, accessToken, refreshToken } = res.data.data;
       login(user, accessToken, refreshToken);
-      navigate(ROUTES.ADMIN_DASHBOARD);
+      navigate(user.role === 'admin' ? '/admin/operations' : ROUTES.ADMIN_DASHBOARD);
     } catch (err: any) {
       const msg = err.response?.data?.error?.message || 'Authentication failed. Please verify credentials.';
       setLoginError(msg);
@@ -116,9 +116,16 @@ export const LoginPage: React.FC = () => {
 
         <div className="text-center pt-4 border-t dark:border-zinc-800/80 light:border-slate-200">
           <Link
-            to={ROUTES.HOME}
-            className="text-xs font-semibold text-zinc-500 hover:text-accent-violet transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer"
+            to="/"
+            id="back-to-home-btn"
+            onClick={(e) => {
+              e.preventDefault();
+              window.location.href = '/';
+            }}
+            className="text-xs font-semibold text-zinc-500 hover:text-accent-violet transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer group"
           >
+            <ArrowLeft size={13} className="group-hover:-translate-x-0.5 transition-transform" />
+            <Home size={13} />
             Back to Home
           </Link>
         </div>

@@ -186,3 +186,76 @@ body, header, footer, main, section, nav, .card, .glass-panel, .glass-navbar, bu
     animation: none;
   }
 }
+
+/* ── Unified Production Design System ─────────────────────────── */
+
+/* One Easing Philosophy */
+:root {
+  --ease-spring:      cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth:      cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-sharp:       cubic-bezier(0.4, 0, 0.6, 1);
+  --ease-out:         cubic-bezier(0, 0, 0.2, 1);
+
+  /* One Timing System */
+  --dur-instant:      100ms;
+  --dur-fast:         150ms;
+  --dur-normal:       250ms;
+  --dur-slow:         350ms;
+  --dur-deliberate:   500ms;
+
+  /* Card Elevation Tokens */
+  --shadow-card:       0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-card-hover: 0 4px 16px rgba(139,92,246,0.10), 0 2px 8px rgba(0,0,0,0.4);
+  --shadow-modal:      0 20px 60px rgba(0,0,0,0.6);
+  --shadow-toast:      0 8px 24px rgba(0,0,0,0.5);
+}
+
+/* Interactive card — hover elevation */
+.card-interactive {
+  transition:
+    transform var(--dur-normal) var(--ease-smooth),
+    box-shadow var(--dur-normal) var(--ease-smooth),
+    border-color var(--dur-normal) var(--ease-smooth);
+}
+.card-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* Button press haptic */
+.btn-press:active {
+  transform: scale(0.97);
+  transition: transform var(--dur-instant) var(--ease-sharp);
+}
+
+/* Consistent focus ring */
+.focus-ring:focus-visible {
+  @apply outline-none ring-2 ring-accent-violet ring-offset-2;
+}
+
+/* Toast progress bar animation */
+@keyframes toast-progress {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+
+/* Page entry fade-in */
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-page-enter {
+  animation: page-enter var(--dur-slow) var(--ease-out) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-interactive,
+  .card-interactive:hover,
+  .btn-press:active,
+  .animate-page-enter {
+    transition: none;
+    transform: none;
+    animation: none;
+  }
+}

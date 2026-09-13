@@ -5,7 +5,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import path from 'path';
 import { requireAuth, requireRole } from '../middleware/auth.middleware';
-import { upload } from '../middleware/upload.middleware';
+import { upload, validateUploadedFile } from '../middleware/upload.middleware';
 import { ApiResponse } from '../types/api';
 
 const router = Router();
@@ -18,6 +18,7 @@ router.use(requireRole('admin', 'super_admin'));
 router.post(
   '/upload',
   upload.single('file'),
+  validateUploadedFile,
   (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!req.file) {

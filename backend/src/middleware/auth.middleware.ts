@@ -29,12 +29,16 @@ export const requireAuth = async (
 
     const token = authHeader.split(' ')[1];
     const payload = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
+    const activeUser = await prisma.user.findUnique({ where: { id: payload.userId }, include: { role: true } });
+    if (!activeUser?.isActive || activeUser.roleId !== payload.roleId) {
+      throw new AppError(401, 'SESSION_REVOKED', 'This account session is no longer active');
+    }
 
     req.user = {
-      id: payload.userId,
-      email: payload.email,
-      roleId: payload.roleId,
-      roleName: payload.roleName,
+      id: activeUser.id,
+      email: activeUser.email,
+      roleId: activeUser.roleId,
+      roleName: activeUser.role.name,
       mustChangePassword: payload.mustChangePassword,
     };
 
@@ -76,6 +80,7 @@ export const requirePermission = (resource: string, action: string) => {
         throw new AppError(401, 'UNAUTHORIZED', 'Authentication required');
       }
 
+      if (req.user.roleName === 'super_admin' || req.user.roleName === 'owner') return next();
       const permission = await prisma.permission.findFirst({
         where: {
           roleId: req.user.roleId,
@@ -99,5 +104,22 @@ export const requirePermission = (resource: string, action: string) => {
   };
 };
 
+export const requireResourceAccess = (resource: string) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const action = req.method === 'GET' || req.method === 'HEAD'
+      ? 'read'
+      : req.method === 'DELETE'
+        ? 'delete'
+        : req.method === 'POST'
+          ? 'create'
+          : 'update';
+    return requirePermission(resource, action)(req, res, next);
+  };
+};
+
+export const requireMappedResourceAccess = (resolveResource: (path: string) => string) => {
+  return (req: Request, res: Response, next: NextFunction) => requireResourceAccess(resolveResource(req.path))(req, res, next);
+};
+
 // ─── Admin only shortcut ──────────────────────────────────────────────────────
-export const requireAdmin = [requireAuth, requireRole('admin', 'super_admin')];
+export const requireAdmin = [requireAuth, requireRole('admin', 'super_admin', 'owner')];

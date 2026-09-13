@@ -7,6 +7,7 @@ import prisma from '../../config/database';
 import { aiOrchestrator } from '../orchestrator';
 import { logger } from '../../utils/logger';
 import { aiEventBus } from '../event-bus';
+import { sessionCapabilityService } from '../session-capability.service';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -43,10 +44,15 @@ export const conversationService = {
       // Write closing session metadata block in SSE format
       res.write(`data: ${JSON.stringify({
         sessionId: output.sessionId,
+        sessionCapability: sessionCapabilityService.issue(output.sessionId, output.visitorId),
         intent: output.intent,
         leadScore: output.leadScore,
         temperature: output.temperature,
-        recommendation: output.recommendation
+        recommendation: output.recommendation,
+        provider: output.provider,
+        model: output.model,
+        generationMode: output.generationMode,
+        providerErrorCode: output.providerErrorCode
       })}\n\n`);
       
       res.end();

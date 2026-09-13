@@ -60,6 +60,21 @@ class FeatureFlagService {
     logger.info(`[FeatureFlag] Override set: ${flag} = ${enabled}`);
   }
 
+  async setFlag(flag: string, enabled: boolean): Promise<{ key: string; enabled: boolean }> {
+    const flagName = flag as FeatureFlagName;
+    this.inMemoryOverrides.set(flagName, enabled);
+    try {
+      await prisma.siteSetting.upsert({
+        where: { key: `FLAG_${flag}` },
+        update: { value: String(enabled) },
+        create: { key: `FLAG_${flag}`, value: String(enabled), type: 'boolean', category: 'FEATURE_FLAGS' }
+      });
+    } catch (err) {
+      logger.warn(`[FeatureFlag] Failed to persist ${flag} to DB, kept in memory.`);
+    }
+    return { key: flag, enabled };
+  }
+
   /**
    * Clear runtime overrides
    */

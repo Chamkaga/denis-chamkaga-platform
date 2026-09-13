@@ -2,15 +2,39 @@ import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { authService } from '../services/auth.service';
 import { ApiResponse } from '../types/api';
+import crypto from 'crypto';
+import { env } from '../config/env';
+import { AppError } from '../middleware/errorHandler';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(1, 'Password is required'),
 });
 
-const refreshSchema = z.object({
-  refreshToken: z.string().min(1, 'Refresh token is required'),
-});
+const refreshSchema = z.object({ refreshToken: z.string().min(1).optional() });
+
+const REFRESH_COOKIE = 'dc_refresh';
+const CSRF_COOKIE = 'dc_csrf';
+const cookieOptions = { httpOnly: true, secure: env.NODE_ENV === 'production', sameSite: 'strict' as const, path: '/api', maxAge: 7 * 24 * 60 * 60 * 1000 };
+
+function setSessionCookies(res: Response, refreshToken: string): string {
+  const csrfToken = crypto.randomBytes(32).toString('base64url');
+  res.cookie(REFRESH_COOKIE, refreshToken, cookieOptions);
+  res.cookie(CSRF_COOKIE, csrfToken, { ...cookieOptions, httpOnly: false, path: '/' });
+  return csrfToken;
+}
+
+function readRefreshToken(req: Request): string | undefined {
+  return req.cookies?.[REFRESH_COOKIE] || req.body?.refreshToken;
+}
+
+function assertCookieCsrf(req: Request): void {
+  if (!req.cookies?.[REFRESH_COOKIE]) return;
+  const header = req.headers['x-csrf-token'];
+  if (!header || header !== req.cookies?.[CSRF_COOKIE]) {
+    throw new AppError(403, 'CSRF_VALIDATION_FAILED', 'CSRF validation failed');
+  }
+}
 
 const forgotPasswordSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -34,10 +58,11 @@ export const authController = {
       const userAgent = req.headers['user-agent'];
 
       const result = await authService.login(email, password, { ipAddress, userAgent });
+      const csrfToken = setSessionCookies(res, result.refreshToken);
 
       res.status(200).json({
         success: true,
-        data: result,
+        data: { ...result, refreshToken: env.NODE_ENV === 'production' ? undefined : result.refreshToken, csrfToken },
       } satisfies ApiResponse);
     } catch (err) {
       next(err);
@@ -46,13 +71,17 @@ export const authController = {
 
   async refresh(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { refreshToken } = refreshSchema.parse(req.body);
+      refreshSchema.parse(req.body || {});
+      assertCookieCsrf(req);
+      const refreshToken = readRefreshToken(req);
+      if (!refreshToken) throw new AppError(401, 'REFRESH_TOKEN_REQUIRED', 'Refresh token is required');
       const ipAddress = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress;
       const userAgent = req.headers['user-agent'];
 
       const result = await authService.refresh(refreshToken, { ipAddress, userAgent });
+      const csrfToken = setSessionCookies(res, result.refreshToken);
 
-      res.status(200).json({ success: true, data: result } satisfies ApiResponse);
+      res.status(200).json({ success: true, data: { ...result, refreshToken: env.NODE_ENV === 'production' ? undefined : result.refreshToken, csrfToken } } satisfies ApiResponse);
     } catch (err) {
       next(err);
     }
@@ -61,11 +90,16 @@ export const authController = {
   async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.user?.id;
-      const refreshToken = req.body?.refreshToken;
+      assertCookieCsrf(req);
+      const refreshToken = readRefreshToken(req);
 
       if (userId) {
         await authService.logout(userId, refreshToken);
+      } else if (refreshToken) {
+        await authService.logoutByRefreshToken(refreshToken);
       }
+      res.clearCookie(REFRESH_COOKIE, { ...cookieOptions, maxAge: undefined });
+      res.clearCookie(CSRF_COOKIE, { ...cookieOptions, httpOnly: false, path: '/', maxAge: undefined });
 
       res.status(200).json({
         success: true,

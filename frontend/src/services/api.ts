@@ -13,10 +13,16 @@ export const api = axios.create({
 // Request Interceptor: Attach access token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    const sessionCapability = localStorage.getItem('assistantSessionCapability');
+    if (sessionCapability && config.headers && config.url?.includes('/ai/')) {
+      config.headers['X-Session-Capability'] = sessionCapability;
+    }
+    const csrfToken = document.cookie.split('; ').find(part => part.startsWith('dc_csrf='))?.split('=')[1];
+    if (csrfToken && config.headers) config.headers['X-CSRF-Token'] = decodeURIComponent(csrfToken);
     return config;
   },
   (error) => Promise.reject(error)
@@ -66,10 +72,8 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (!refreshToken) throw new Error('No refresh token available');
-
-        const res = await axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken });
+        const csrfToken = document.cookie.split('; ').find(part => part.startsWith('dc_csrf='))?.split('=')[1];
+        const res = await axios.post(`${API_BASE_URL}/auth/refresh`, {}, { withCredentials: true, headers: csrfToken ? { 'X-CSRF-Token': decodeURIComponent(csrfToken) } : {} });
         const { accessToken } = res.data.data;
 
         localStorage.setItem('accessToken', accessToken);
@@ -99,6 +103,12 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+export const authApi = {
+  logout: async () => {
+    await api.post('/auth/logout', {});
+  },
+};
 
 // Public Endpoints
 export const publicApi = {
@@ -214,9 +224,10 @@ export const aiApi = {
     // Returns a URL to the download endpoint — browser triggers native download
     return `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/ai/sessions/${sessionId}/download`;
   },
-  uploadAttachment: async (file: File) => {
+  uploadAttachment: async (file: File, sessionId: string) => {
     const form = new FormData();
     form.append('file', file);
+    form.append('sessionId', sessionId);
     const res = await api.post('/ai/attachments', form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
@@ -996,6 +1007,30 @@ export const adminApi = {
     const res = await api.get(`/admin/finance/access/${docId}/analytics`);
     return res.data.data;
   },
+
+  // Expenses CRUD
+  getExpenses: async (params?: any) => {
+    const res = await api.get('/admin/finance/expenses', { params });
+    return res.data.data;
+  },
+  createExpense: async (data: any) => {
+    const res = await api.post('/admin/finance/expenses', data);
+    return res.data.data;
+  },
+
+  // Financial Reports
+  getPnlReport: async () => {
+    const res = await api.get('/admin/finance/reports/pnl');
+    return res.data.data;
+  },
+  getBalanceSheet: async () => {
+    const res = await api.get('/admin/finance/reports/balance-sheet');
+    return res.data.data;
+  },
+  getClientFinancialSummary: async (email: string) => {
+    const res = await api.get('/admin/finance/client-summary', { params: { email } });
+    return res.data.data;
+  },
 };
 
 export const publicDocsApi = {
@@ -1026,6 +1061,3 @@ export const publicDocsApi = {
     return res.data.data;
   }
 };
-
-
-

@@ -1,0 +1,30 @@
+{
+  "short_name": "Denis Chamkaga",
+  "name": "Denis Chamkaga - Executive & Technology Platform",
+  "description": "Enterprise AI-Driven Digital Platform for Technology Strategy, Software Architecture, and Digital Transformation.",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "48x48 72x72 96x96 128x128 256x256 512x512"
+    },
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#09090b",
+  "theme_color": "#8b5cf6",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "categories": ["business", "productivity", "technology"]
+}

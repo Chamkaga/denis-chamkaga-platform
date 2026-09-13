@@ -14,6 +14,8 @@ export type IconKey =
   | "content"
   | "ai"
   | "reports"
+  | "reportsCenter"
+  | "documentation"
   | "system"
   | "settings"
   | "media"
@@ -22,13 +24,27 @@ export type IconKey =
   | "creator"
   | "innovation"
   | "futureVision"
-  | "partnerships";
+  | "partnerships"
+  | "operations"
+  | "finance"
+  | "invoices"
+  | "quotes"
+  | "contacts"
+  | "supporters"
+  | "collaborators"
+  | "leads"
+  | "projects"
+  | "portfolio"
+  | "services"
+  | "users";
 
 export type AdminGroup =
   | 'Dashboard'
   | 'Website & Content'
-  | 'CRM & Business'
-  | 'Communication Center'
+  | 'CRM & Sales'
+  | 'Finance & Accounting'
+  | 'Community & Network'
+  | 'Communication'
   | 'AI Platform'
   | 'Marketing & Growth'
   | 'Brand & Strategy'
@@ -61,26 +77,52 @@ export const MAIN_NAVIGATION: NavItem[] = [
 ];
 
 export const ADMIN_NAVIGATION: AdminNavItem[] = [
-  // ── 1. Dashboard Operations Center ──────────────────────────────────────────
+  // ── 1. Dashboard ─────────────────────────────────────────────────────────────
   {
     labelKey: "nav.dashboard",
     path: ROUTES.ADMIN_DASHBOARD,
     iconKey: "dashboard",
     group: "Dashboard",
-    requiredPermission: "Dashboard.READ",
     module: "dashboard",
     sortOrder: 1,
     isVisible: true
   },
-  // ── 2. Website & Content Management ──────────────────────────────────────────
+
+  // ── 2. Website & Content ──────────────────────────────────────────────────────
   {
-    labelKey: "nav.content",
+    labelKey: "nav.portfolioCms",
     path: "/admin/content",
-    iconKey: "content",
+    iconKey: "portfolio",
     group: "Website & Content",
-    requiredPermission: "Media.READ",
-    module: "content",
+    module: "portfolio-cms",
     sortOrder: 1,
+    isVisible: true
+  },
+  {
+    labelKey: "nav.services",
+    path: "/admin/content?tab=services",
+    iconKey: "services",
+    group: "Website & Content",
+    module: "services-cms",
+    sortOrder: 2,
+    isVisible: true
+  },
+  {
+    labelKey: "nav.projectsCms",
+    path: "/admin/content?tab=projects",
+    iconKey: "projects",
+    group: "Website & Content",
+    module: "projects-cms",
+    sortOrder: 3,
+    isVisible: true
+  },
+  {
+    labelKey: "nav.knowledge",
+    path: "/admin/knowledge",
+    iconKey: "ai",
+    group: "Website & Content",
+    module: "knowledge",
+    sortOrder: 4,
     isVisible: true
   },
   {
@@ -88,61 +130,157 @@ export const ADMIN_NAVIGATION: AdminNavItem[] = [
     path: ROUTES.ADMIN_MEDIA,
     iconKey: "media",
     group: "Website & Content",
-    requiredPermission: "Media.READ",
     module: "media",
-    sortOrder: 2,
+    sortOrder: 5,
     isVisible: true
   },
-  // ── 3. CRM & Business Operations ─────────────────────────────────────────────
+
+  // ── 3. CRM & Sales ────────────────────────────────────────────────────────────
   {
-    labelKey: "nav.business",
-    path: "/admin/business",
-    iconKey: "business",
-    group: "CRM & Business",
-    requiredPermission: "Users.READ",
-    module: "business",
+    labelKey: "nav.leads",
+    path: "/admin/crm?sub=leads",
+    iconKey: "leads",
+    group: "CRM & Sales",
+    module: "crm-leads",
     sortOrder: 1,
     isVisible: true
   },
   {
-    labelKey: "nav.supporters",
-    path: "/admin/supporters",
-    iconKey: "support",
-    group: "CRM & Business",
-    module: "supporters",
+    labelKey: "nav.contacts",
+    path: "/admin/crm?sub=contacts",
+    iconKey: "contacts",
+    group: "CRM & Sales",
+    module: "crm-contacts",
     sortOrder: 2,
     isVisible: true
   },
-  // ── 4. Communication Center ──────────────────────────────────────────────────
+  {
+    labelKey: "nav.organizations",
+    path: "/admin/crm?sub=orgs",
+    iconKey: "business",
+    group: "CRM & Sales",
+    module: "crm-orgs",
+    sortOrder: 3,
+    isVisible: true
+  },
+  {
+    labelKey: "nav.consultations",
+    path: "/admin/crm?sub=consultations",
+    iconKey: "crm",
+    group: "CRM & Sales",
+    module: "crm-consultations",
+    sortOrder: 4,
+    isVisible: true
+  },
+  {
+    labelKey: "nav.calendar",
+    path: "/admin/calendar",
+    iconKey: "crm",
+    group: "CRM & Sales",
+    module: "calendar",
+    sortOrder: 5,
+    isVisible: true
+  },
+
+  // ── 4. Finance & Accounting ───────────────────────────────────────────────────
+  {
+    labelKey: "nav.quotations",
+    path: "/admin/finance?sub=quotes",
+    iconKey: "quotes",
+    group: "Finance & Accounting",
+    module: "finance-quotes",
+    sortOrder: 1,
+    isVisible: true
+  },
+  {
+    labelKey: "nav.invoices",
+    path: "/admin/finance?sub=invoices",
+    iconKey: "invoices",
+    group: "Finance & Accounting",
+    module: "finance-invoices",
+    sortOrder: 2,
+    isVisible: true
+  },
+  {
+    labelKey: "nav.paymentLinks",
+    path: "/admin/finance?sub=payment-links",
+    iconKey: "finance",
+    group: "Finance & Accounting",
+    module: "finance-payment-links",
+    sortOrder: 3,
+    isVisible: true
+  },
+  {
+    labelKey: "nav.payments",
+    path: "/admin/finance?sub=payments",
+    iconKey: "finance",
+    group: "Finance & Accounting",
+    module: "finance-payments",
+    sortOrder: 4,
+    isVisible: true
+  },
+  {
+    labelKey: "nav.tenantConfig",
+    path: "/admin/finance?sub=settings",
+    iconKey: "settings",
+    group: "Finance & Accounting",
+    module: "finance-tenant",
+    sortOrder: 5,
+    isVisible: true
+  },
+
+  // ── 5. Community & Network ─────────────────────────────────────────────────────
+  {
+    labelKey: "nav.supporters",
+    path: "/admin/supporters",
+    iconKey: "supporters",
+    group: "Community & Network",
+    module: "supporters",
+    sortOrder: 1,
+    isVisible: true
+  },
+  {
+    labelKey: "nav.collaborators",
+    path: "/admin/supporters?tab=collaborators",
+    iconKey: "collaborators",
+    group: "Community & Network",
+    module: "collaborators",
+    sortOrder: 2,
+    isVisible: true
+  },
+  {
+    labelKey: "nav.partnerships",
+    path: "/admin/partnerships",
+    iconKey: "partnerships",
+    group: "Community & Network",
+    module: "partnerships",
+    sortOrder: 3,
+    isVisible: true
+  },
+
+  // ── 6. Communication ──────────────────────────────────────────────────────────
   {
     labelKey: "nav.communication",
     path: "/admin/communication",
     iconKey: "support",
-    group: "Communication Center",
+    group: "Communication",
     module: "communication",
     sortOrder: 1,
     isVisible: true
   },
-  // ── 5. AI Platform & Knowledge Engine ────────────────────────────────────────
-  {
-    labelKey: "nav.knowledgeBase",
-    path: "/admin/knowledge",
-    iconKey: "ai",
-    group: "AI Platform",
-    module: "knowledge",
-    sortOrder: 1,
-    isVisible: true
-  },
+
+  // ── 7. AI Platform & Knowledge Engine ─────────────────────────────────────────
   {
     labelKey: "nav.aiAssistant",
     path: "/admin/assistant",
     iconKey: "ai",
     group: "AI Platform",
     module: "ai",
-    sortOrder: 2,
+    sortOrder: 1,
     isVisible: true
   },
-  // ── 6. Marketing & Growth ────────────────────────────────────────────────────
+
+  // ── 8. Marketing & Growth ─────────────────────────────────────────────────────
   {
     labelKey: "nav.marketing",
     path: "/admin/marketing",
@@ -161,38 +299,8 @@ export const ADMIN_NAVIGATION: AdminNavItem[] = [
     sortOrder: 2,
     isVisible: true
   },
-  {
-    labelKey: "nav.partnerships",
-    path: "/admin/partnerships",
-    iconKey: "partnerships",
-    group: "Marketing & Growth",
-    module: "partnerships",
-    sortOrder: 3,
-    isVisible: true
-  },
-  // ── 7. Analytics & Reports ───────────────────────────────────────────────────
-  {
-    labelKey: "nav.analytics",
-    path: "/admin/analytics",
-    iconKey: "reports",
-    group: "Analytics & Reports",
-    requiredPermission: "Reports.READ",
-    module: "analytics",
-    sortOrder: 1,
-    isVisible: true
-  },
-  // ── 8. System Administration & Security ──────────────────────────────────────
-  {
-    labelKey: "nav.system",
-    path: "/admin/settings",
-    iconKey: "settings",
-    group: "System Administration",
-    requiredPermission: "Settings.READ",
-    module: "settings",
-    sortOrder: 1,
-    isVisible: true
-  },
-  // ── 9. Brand & Strategy ──────────────────────────────────────────────────────
+
+  // ── 9. Brand & Strategy ────────────────────────────────────────────────────────
   {
     labelKey: "nav.innovation",
     path: "/admin/innovation",
@@ -209,6 +317,57 @@ export const ADMIN_NAVIGATION: AdminNavItem[] = [
     group: "Brand & Strategy",
     module: "futureVision",
     sortOrder: 2,
+    isVisible: true
+  },
+
+  // ── 10. Analytics & Reports ────────────────────────────────────────────────────
+  {
+    labelKey: "nav.analytics",
+    path: "/admin/analytics",
+    iconKey: "reports",
+    group: "Analytics & Reports",
+    module: "analytics",
+    sortOrder: 1,
+    isVisible: true
+  },
+  {
+    labelKey: "nav.reportsCenter",
+    path: "/admin/reports-center",
+    iconKey: "reportsCenter",
+    group: "Analytics & Reports",
+    module: "reports-center",
+    sortOrder: 2,
+    isVisible: true
+  },
+
+  // ── 11. System Administration ──────────────────────────────────────────────────
+  {
+    labelKey: "nav.operations",
+    path: "/admin/operations",
+    iconKey: "operations",
+    group: "System Administration",
+    requiredPermission: "Settings.READ",
+    module: "operations",
+    sortOrder: 1,
+    isVisible: true
+  },
+  {
+    labelKey: "nav.documentation",
+    path: "/admin/documentation",
+    iconKey: "documentation",
+    group: "System Administration",
+    module: "documentation",
+    sortOrder: 2,
+    isVisible: true
+  },
+  {
+    labelKey: "nav.system",
+    path: "/admin/settings",
+    iconKey: "settings",
+    group: "System Administration",
+    requiredPermission: "Settings.READ",
+    module: "settings",
+    sortOrder: 3,
     isVisible: true
   }
 ];

@@ -11,6 +11,13 @@
     <!-- Viewport -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+    <!-- PWA Web App Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Denis Chamkaga" />
+
     <!-- Default Page Title (overridden per route by PageTitle component) -->
     <title>Denis Chamkaga | Web Software Developer</title>
 
@@ -42,17 +49,7 @@
 
     <!-- Theme color for browser chrome -->
     <meta name="theme-color" content="#8b5cf6" />
-    <script>
-      (function() {
-        try {
-          const cachedTheme = localStorage.getItem('theme-preference') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-          document.documentElement.classList.remove('light', 'dark');
-          document.documentElement.classList.add(cachedTheme);
-        } catch (e) {
-          console.error(e);
-        }
-      })();
-    </script>
+    <script src="/theme-init.js"></script>
   </head>
   <body>
     <div id="root"></div>

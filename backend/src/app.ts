@@ -27,17 +27,38 @@ import supportersRoutes from './routes/supporters.routes';
 import marketingRoutes from './routes/marketing.routes';
 import telemetryRoutes from './routes/telemetry.routes';
 import { correlationAndTelemetryMiddleware } from './middleware/correlation.middleware';
+import { observabilityMiddleware } from './middleware/observability.middleware';
 import { workflowEngine } from './workflow/workflow.engine';
 
 // Initialize Centralized Workflow Engine
 workflowEngine.initialize();
 
+import { preventPathTraversal } from './middleware/security.middleware';
+
 const app = express();
+
+// Establish request identity before every middleware and route that emits telemetry.
+app.use(correlationAndTelemetryMiddleware);
 
 // ── Security Middleware ────────────────────────────────────────────────────────
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", 'https://checkout.flutterwave.com'],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+      imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+      connectSrc: ["'self'", 'https://api.flutterwave.com', 'https://generativelanguage.googleapis.com'],
+      frameSrc: ["'self'", 'https://checkout.flutterwave.com', 'https://www.youtube.com'],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null,
+    },
+  },
 }));
+
+app.use(preventPathTraversal);
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -49,7 +70,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Session-Capability', 'X-CSRF-Token', 'X-Correlation-ID', 'X-Request-ID'],
 }));
 
 // ── Global Rate Limiting ──────────────────────────────────────────────────────
@@ -72,9 +93,10 @@ app.use(cookieParser());
 
 // ── Request Logging & Telemetry Middleware ────────────────────────────────────
 app.use(requestLogger);
-app.use(correlationAndTelemetryMiddleware);
+app.use(observabilityMiddleware);
 
 // ── Static Uploads ────────────────────────────────────────────────────────────
+app.use('/uploads/AI_Chat_Attachments', (_req, res) => res.status(404).end());
 app.use('/uploads', express.static(path.resolve(env.UPLOAD_DIR)));
 
 // ── Telemetry & Metrics Routes ────────────────────────────────────────────────
@@ -106,10 +128,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/admin', uploadRoutes);
 app.use('/api/admin', damRoutes);
-import { observabilityMiddleware } from './middleware/observability.middleware';
 import operationsRoutes from './routes/operations.routes';
-
-app.use(observabilityMiddleware);
 
 app.use('/api/admin/business', businessRoutes);
 app.use('/api/admin/finance', financeRoutes);

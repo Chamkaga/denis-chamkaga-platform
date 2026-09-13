@@ -3,6 +3,7 @@
 // Projects, Services, Experiences, Education, Certificates, Gallery, Blogs, Testimonials, FAQs, Settings
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '../../../services/api';
 import { ConfirmDialog } from '../../../components/admin/ConfirmDialog';
@@ -14,6 +15,9 @@ import {
   HelpCircle, Plus, Edit2, Trash2, Wrench, Info, Settings, Save,
   FileText, Users, Heart
 } from 'lucide-react';
+
+import { EnterpriseDataGrid } from '../../../components/organisms/EnterpriseDataGrid/EnterpriseDataGrid';
+import type { ColumnDef } from '../../../components/organisms/EnterpriseDataGrid/EnterpriseDataGrid';
 
 // ── Utility ──────────────────────────────────────────────────────────────────
 const cn = (...classes: (string | boolean | undefined)[]) => classes.filter(Boolean).join(' ');
@@ -57,6 +61,10 @@ function ProjectsTab() {
   const [modal, setModal] = useState<{ open: boolean; item?: any }>({ open: false });
   const [confirm, setConfirm] = useState<{ open: boolean; id?: string }>({ open: false });
   const [form, setForm] = useState<any>({});
+  
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const createM = useMutation({ mutationFn: (d: any) => adminApi.createProject(d), onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-projects'] }); setModal({ open: false }); } });
   const updateM = useMutation({ mutationFn: ({ id, data }: any) => adminApi.updateProject(id, data), onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-projects'] }); setModal({ open: false }); } });
@@ -70,44 +78,77 @@ function ProjectsTab() {
     else createM.mutate(payload);
   };
 
-  const items = data?.items || [];
+  const rawItems = data?.items || [];
+  const filteredItems = rawItems.filter((p: any) => 
+    !searchQuery || p.title?.toLowerCase().includes(searchQuery.toLowerCase()) || p.category?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const paginatedItems = filteredItems.slice((page - 1) * pageSize, page * pageSize);
+
+  const projectColumns: ColumnDef<any>[] = [
+    {
+      key: 'title',
+      header: 'Project Title',
+      sortable: true,
+      render: (p) => (
+        <div>
+          <div className="font-bold dark:text-white text-slate-800">{p.title}</div>
+          <div className="text-[10px] text-zinc-500 font-mono line-clamp-1">{p.description || 'No description provided'}</div>
+        </div>
+      ),
+    },
+    { key: 'category', header: 'Category', sortable: true },
+    {
+      key: 'status',
+      header: 'Status',
+      sortable: true,
+      render: (p) => (
+        <span className={cn('px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider', statusColor[p.status])}>
+          {p.status}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      render: (p) => (
+        <div className="flex items-center justify-end gap-1">
+          <button onClick={() => openEdit(p)} className="p-1.5 text-accent-violet hover:bg-accent-violet/10 rounded-lg cursor-pointer">
+            <Edit2 size={14} />
+          </button>
+          <button onClick={() => setConfirm({ open: true, id: p.id })} className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-lg cursor-pointer">
+            <Trash2 size={14} />
+          </button>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm dark:text-zinc-400 text-slate-500">{items.length} projects total</p>
-        <Button size="sm" leftIcon={<Plus size={14} />} onClick={openCreate}>Add Project</Button>
-      </div>
-
-      <div className="rounded-2xl border dark:border-zinc-800 overflow-hidden">
-        <table className="w-full text-sm text-left">
-          <thead className="dark:bg-zinc-900 bg-slate-50 border-b dark:border-zinc-800 text-xs uppercase tracking-wider dark:text-zinc-500 text-slate-400">
-            <tr>
-              <th className="p-4">Project</th>
-              <th className="p-4">Category</th>
-              <th className="p-4">Status</th>
-              <th className="p-4 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y dark:divide-zinc-800/60 divide-slate-100">
-            {isLoading && <tr><td colSpan={4} className="p-4 text-center text-xs text-zinc-500">Loading...</td></tr>}
-            {!isLoading && items.length === 0 && <tr><td colSpan={4} className="p-4 text-center text-xs text-zinc-500">No projects found.</td></tr>}
-            {items.map((p: any) => (
-              <tr key={p.id} className="dark:hover:bg-zinc-800/10">
-                <td className="p-4 font-semibold dark:text-white">{p.title}</td>
-                <td className="p-4 dark:text-zinc-400">{p.category}</td>
-                <td className="p-4">
-                  <span className={cn('px-2 py-0.5 rounded-full text-[10px] font-bold uppercase', statusColor[p.status])}>{p.status}</span>
-                </td>
-                <td className="p-4 text-right space-x-1">
-                  <button onClick={() => openEdit(p)} className="p-1.5 text-accent-violet hover:bg-accent-violet/10 rounded-lg cursor-pointer"><Edit2 size={14} /></button>
-                  <button onClick={() => setConfirm({ open: true, id: p.id })} className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-lg cursor-pointer"><Trash2 size={14} /></button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <EnterpriseDataGrid
+        title="Portfolio Projects Directory"
+        subtitle="Full CRUD management for software solutions, POS systems & AI applications"
+        columns={projectColumns}
+        data={paginatedItems}
+        keyExtractor={(item) => item.id || Math.random().toString()}
+        totalItems={filteredItems.length}
+        currentPage={page}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        isLoading={isLoading}
+        isOwner={true}
+        customHeaderActions={
+          <Button size="sm" leftIcon={<Plus size={14} />} onClick={openCreate}>
+            Add Project
+          </Button>
+        }
+        emptyStateTitle="No projects found"
+        emptyStateDescription="Create a project record or clear your search filter."
+      />
 
       <AdminModal isOpen={modal.open} onClose={() => setModal({ open: false })} title={modal.item ? 'Edit Project' : 'New Project'} size="lg"
         footer={<><Button variant="outline" onClick={() => setModal({ open: false })}>Cancel</Button><Button onClick={save} isLoading={createM.isPending || updateM.isPending}>{modal.item ? 'Save' : 'Create'}</Button></>}
@@ -1128,7 +1169,20 @@ function SupportSettingsTab() {
 
 // ── MAIN CMS COMPONENT ───────────────────────────────────────────────────────
 export const PortfolioCmsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('projects');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'projects');
+
+  useEffect(() => {
+    const t = searchParams.get('tab');
+    if (t) {
+      setActiveTab(t);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId);
+    setSearchParams({ tab: tabId });
+  };
 
   const tabComponents: Record<string, React.ReactNode> = {
     projects: <ProjectsTab />,
@@ -1160,7 +1214,7 @@ export const PortfolioCmsPage: React.FC = () => {
         {TABS.map(tab => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => handleTabChange(tab.id)}
             className={cn(
               'flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer',
               activeTab === tab.id

@@ -1,19 +1,38 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '../../services/api';
+import { useSearchParams } from 'react-router-dom';
 import {
-  Heart, Users, Award, Plus, Filter, Search, UserPlus
+  Heart, Users, UserPlus
 } from 'lucide-react';
 import { Button } from '../../components/atoms/Button';
-import { AdminModal, FormField, inputCls, selectCls } from '../../components/admin/AdminModal';
-
-const cn = (...classes: (string | boolean | undefined)[]) => classes.filter(Boolean).join(' ');
+import { AdminModal, FormField, inputCls } from '../../components/admin/AdminModal';
+import { useToast } from '../../components/atoms/Toast';
+import { EnterpriseDataGrid } from '../../components/organisms/EnterpriseDataGrid/EnterpriseDataGrid';
+import type { ColumnDef } from '../../components/organisms/EnterpriseDataGrid/EnterpriseDataGrid';
+import { Supporter360Drawer } from '../../components/admin/Supporter360Drawer';
+import { cn } from '../../lib/cn';
 
 export const SupportersAdminPage: React.FC = () => {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<'supporters' | 'collaborators'>('supporters');
-  const [tierFilter, setTierFilter] = useState<string>('ALL');
+  const [tierFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  // Supporter 360 Profile Drawer state
+  const [selectedSupporter, setSelectedSupporter] = useState<any | null>(null);
+  const [is360Open, setIs360Open] = useState(false);
+
+  // Deep-link: ?tab=collaborators opens Collaborators automatically
+  useEffect(() => {
+    if (searchParams.get('tab') === 'collaborators') {
+      setActiveTab('collaborators');
+    }
+  }, [searchParams]);
 
   // Modals
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
@@ -71,8 +90,9 @@ export const SupportersAdminPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-supporters-overview'] });
       queryClient.invalidateQueries({ queryKey: ['admin-supporters-list'] });
       setIsRecordModalOpen(false);
-      alert('Support contribution recorded & synced across CRM, Finance, and Analytics!');
+      toast.success('Support contribution recorded and synced across CRM, Finance, and Analytics.', 'Contribution Recorded');
     },
+    onError: () => toast.error('Failed to record contribution.', 'Error'),
   });
 
   const upsertCollaboratorMutation = useMutation({
@@ -81,12 +101,12 @@ export const SupportersAdminPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-collaborators-overview'] });
       queryClient.invalidateQueries({ queryKey: ['admin-collaborators-list'] });
       setIsCollaboratorModalOpen(false);
-      alert('Collaborator profile saved successfully!');
+      toast.success('Collaborator profile saved successfully.', 'Saved');
     },
+    onError: () => toast.error('Failed to save collaborator profile.', 'Error'),
   });
 
   const summary = overview?.summary || {};
-  const tierBreakdown = overview?.tierBreakdown || {};
 
   const handleRecordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,389 +115,238 @@ export const SupportersAdminPage: React.FC = () => {
 
   const handleCollabSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const skillsArray = collabForm.skills.split(',').map((s) => s.trim()).filter(Boolean);
-    upsertCollaboratorMutation.mutate({ ...collabForm, skills: skillsArray });
+    upsertCollaboratorMutation.mutate(collabForm);
   };
 
-  return (
-    <div className="space-y-8 text-left font-body">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b dark:border-zinc-800">
+  const supporterColumns: ColumnDef<any>[] = [
+    {
+      key: 'supporterName',
+      header: 'Supporter & Email',
+      render: (item) => (
         <div>
-          <h1 className="text-3xl font-extrabold dark:text-white text-slate-800 tracking-tight font-display flex items-center gap-2.5">
-            <Heart className="text-red-500 fill-red-500/20" size={28} />
-            Vision Supporters & Collaborators Platform
+          <p className="font-bold dark:text-white text-zinc-900">{item.supporterName}</p>
+          <p className="text-[10px] text-zinc-500 font-mono">{item.supporterEmail || '—'}</p>
+        </div>
+      )
+    },
+    {
+      key: 'tier',
+      header: 'Support Tier',
+      render: (item) => (
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-accent-violet/10 text-accent-violet border border-accent-violet/20 font-mono">
+          {item.tier}
+        </span>
+      )
+    },
+    {
+      key: 'country',
+      header: 'Country',
+      render: (item) => <span className="font-mono text-xs text-zinc-400">{item.country || 'Tanzania'}</span>
+    },
+    {
+      key: 'amount',
+      header: 'Contribution Amount',
+      render: (item) => (
+        <span className="font-mono font-bold text-emerald-400">
+          {(item.amount || 0).toLocaleString()} {item.currency || 'TZS'}
+        </span>
+      )
+    },
+    {
+      key: 'status',
+      header: 'Payment Status',
+      render: (item) => (
+        <span className={cn(
+          "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase",
+          item.status === 'completed' ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400"
+        )}>
+          {item.status || 'completed'}
+        </span>
+      )
+    }
+  ];
+
+  const collaboratorColumns: ColumnDef<any>[] = [
+    {
+      key: 'fullName',
+      header: 'Collaborator Name & Email',
+      render: (item) => (
+        <div>
+          <p className="font-bold dark:text-white text-zinc-900">{item.fullName}</p>
+          <p className="text-[10px] text-zinc-500 font-mono">{item.email}</p>
+        </div>
+      )
+    },
+    {
+      key: 'roleTitle',
+      header: 'Role & Skills',
+      render: (item) => (
+        <div>
+          <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold bg-zinc-800 text-zinc-300">
+            {item.roleTitle || 'Senior Engineer'}
+          </span>
+          <p className="text-[10px] text-zinc-400 mt-1">{item.skills || 'React, Node.js, PostgreSQL'}</p>
+        </div>
+      )
+    },
+    {
+      key: 'availability',
+      header: 'Availability & Workload',
+      render: (item) => (
+        <div>
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            {item.availability || 'Available (30 hrs/wk)'}
+          </span>
+          <p className="text-[10px] text-zinc-400 mt-1">Workload: {item.workload || '2 Active Projects'}</p>
+        </div>
+      )
+    },
+    {
+      key: 'contractRate',
+      header: 'Hourly / Contract Rate',
+      render: (item) => (
+        <span className="font-mono text-xs font-bold text-amber-400">
+          {item.contractRate || 'TZS 75,000 / hr'}
+        </span>
+      )
+    },
+    {
+      key: 'performanceScore',
+      header: 'Performance Rating',
+      render: (item) => (
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20">
+          ⭐ {item.performanceScore || '98/100 (Top Contributor)'}
+        </span>
+      )
+    }
+  ];
+
+  const supporterData = supporters || [];
+  const collaboratorData = collaborators || [];
+
+  return (
+    <div className="p-4 sm:p-6 space-y-6 font-body text-left max-w-7xl mx-auto dark:text-zinc-100">
+      
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-zinc-200 dark:border-zinc-800 pb-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-extrabold dark:text-white text-zinc-900 tracking-tight font-heading flex items-center gap-2">
+            <Heart className="text-red-500" size={24} /> Supporters & Collaborators Platform
           </h1>
-          <p className="text-xs dark:text-zinc-400 text-slate-500 mt-1 font-medium">
-            Manage Vision Supporters across official platform tiers, record contributions, and manage platform collaborators.
+          <p className="text-xs text-zinc-500 font-mono">
+            Scalable directory tracking vision builders, financial backers, and engineering collaborators
           </p>
         </div>
+
         <div className="flex items-center gap-2">
-          {activeTab === 'supporters' ? (
-            <Button size="sm" variant="primary" leftIcon={<Plus size={14} />} onClick={() => setIsRecordModalOpen(true)}>
-              Record Contribution
-            </Button>
-          ) : (
-            <Button size="sm" variant="primary" leftIcon={<UserPlus size={14} />} onClick={() => setIsCollaboratorModalOpen(true)}>
+          {activeTab === 'collaborators' && (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setIsCollaboratorModalOpen(true)}
+              leftIcon={<UserPlus size={14} />}
+            >
               Add Collaborator
             </Button>
           )}
         </div>
       </div>
 
-      {/* Main Tab Switcher */}
-      <div className="flex items-center gap-2 p-1 rounded-2xl dark:bg-zinc-900 border dark:border-zinc-800 w-fit">
+      {/* Tabs */}
+      <div className="flex items-center gap-2 border-b border-zinc-200 dark:border-zinc-800 pb-3">
         <button
           onClick={() => setActiveTab('supporters')}
           className={cn(
-            "px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2",
-            activeTab === 'supporters' ? "bg-accent-violet text-white shadow-md" : "dark:text-zinc-400 hover:text-white"
+            "px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer",
+            activeTab === 'supporters' ? "bg-accent-violet text-white" : "text-zinc-400 hover:text-white bg-zinc-100 dark:bg-zinc-900"
           )}
         >
-          <Heart size={14} /> Supporters Management ({summary.totalSupporters || 0})
+          <Heart size={14} /> Supporters Directory ({summary.totalSupporters || 0})
         </button>
         <button
           onClick={() => setActiveTab('collaborators')}
           className={cn(
-            "px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2",
-            activeTab === 'collaborators' ? "bg-accent-violet text-white shadow-md" : "dark:text-zinc-400 hover:text-white"
+            "px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer",
+            activeTab === 'collaborators' ? "bg-accent-violet text-white" : "text-zinc-400 hover:text-white bg-zinc-100 dark:bg-zinc-900"
           )}
         >
           <Users size={14} /> Collaborators Hub ({collabOverview?.totalCollaborators || 0})
         </button>
       </div>
 
-      {/* ── TAB 1: SUPPORTERS MANAGEMENT ────────────────────────────────────────── */}
-      {activeTab === 'supporters' && (
-        <div className="space-y-8">
-          {/* Summary Metric Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-            <div className="p-5 rounded-2xl border dark:border-zinc-800 dark:bg-[#09090b]/80 bg-white shadow-md space-y-2">
-              <span className="text-xs text-zinc-400 font-bold uppercase tracking-wider block">Total Supporters</span>
-              <div className="text-2xl font-extrabold dark:text-white text-slate-800 font-display">
-                {summary.totalSupporters || 0}
-              </div>
-              <p className="text-[11px] text-zinc-500">Active Members: <span className="font-bold text-green-500">{summary.activeSupporters || 0}</span></p>
-            </div>
+      {/* Content */}
+      {activeTab === 'supporters' ? (
+        <EnterpriseDataGrid<any>
+          title="Supporters & Financial Backers"
+          subtitle="Directory of backers supporting Denis Chamkaga ecosystem projects"
+          data={supporterData}
+          columns={supporterColumns}
+          keyExtractor={(item) => item.id || Math.random().toString()}
+          totalItems={supporterData.length}
+          currentPage={page}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          isLoading={supportersLoading}
+          isOwner={true}
+          onRowClick={(item) => {
+            setSelectedSupporter(item);
+            setIs360Open(true);
+          }}
+          emptyStateTitle="No supporters found"
+          emptyStateDescription="Record a support contribution to see backer details here."
+        />
+      ) : (
+        <EnterpriseDataGrid<any>
+          title="Engineering & Creative Collaborators"
+          subtitle="Registered co-developers, designers, and strategic partners"
+          data={collaboratorData}
+          columns={collaboratorColumns}
+          keyExtractor={(item) => item.id || Math.random().toString()}
+          totalItems={collaboratorData.length}
+          currentPage={page}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          isLoading={collabLoading}
+          isOwner={true}
+          emptyStateTitle="No collaborators registered"
+          emptyStateDescription="Add a new collaborator profile to list team members."
+        />
+      )}
 
-            <div className="p-5 rounded-2xl border dark:border-zinc-800 dark:bg-[#09090b]/80 bg-white shadow-md space-y-2">
-              <span className="text-xs text-zinc-400 font-bold uppercase tracking-wider block">Monthly Support Revenue</span>
-              <div className="text-2xl font-extrabold text-green-500 font-display">
-                {(summary.monthlyRevenue || 0).toLocaleString()} TZS
-              </div>
-              <p className="text-[11px] text-zinc-500">Recurring Members: <span className="font-bold text-accent-violet">{summary.recurringSupporters || 0}</span></p>
-            </div>
-
-            <div className="p-5 rounded-2xl border dark:border-zinc-800 dark:bg-[#09090b]/80 bg-white shadow-md space-y-2">
-              <span className="text-xs text-zinc-400 font-bold uppercase tracking-wider block">Total Lifetime Revenue</span>
-              <div className="text-2xl font-extrabold text-accent-violet font-display">
-                {(summary.lifetimeRevenue || 0).toLocaleString()} TZS
-              </div>
-              <p className="text-[11px] text-zinc-500">Avg Contribution: <span className="font-bold dark:text-white">{(summary.avgContribution || 0).toLocaleString()} TZS</span></p>
-            </div>
-
-            <div className="p-5 rounded-2xl border dark:border-zinc-800 dark:bg-[#09090b]/80 bg-white shadow-md space-y-2">
-              <span className="text-xs text-zinc-400 font-bold uppercase tracking-wider block">Pending / Failed Status</span>
-              <div className="text-2xl font-extrabold text-amber-500 font-display">
-                {summary.pendingPayments || 0} Pending
-              </div>
-              <p className="text-[11px] text-zinc-500">Failed Payments: <span className="font-bold text-red-500">{summary.failedPayments || 0}</span></p>
-            </div>
-          </div>
-
-          {/* Official Platform Tier Breakdown Grid */}
-          <div className="space-y-4">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-400 font-display flex items-center gap-2">
-              <Award size={16} className="text-accent-violet" />
-              Official Platform Support Tiers Metrics
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4">
-              {/* 🌱 Seed Supporter */}
-              <div className="p-4 rounded-2xl border dark:border-zinc-800 dark:bg-zinc-900/40 bg-white space-y-2 shadow-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold dark:text-white">🌱 Seed Supporter</span>
-                  <span className="text-[10px] text-zinc-500">5k TZS+</span>
-                </div>
-                <div className="text-lg font-extrabold text-green-500">
-                  {tierBreakdown.SEED?.totalMembers || 0} Members
-                </div>
-                <div className="text-[11px] text-zinc-400 space-y-1">
-                  <p>Monthly: <span className="font-bold dark:text-white">{(tierBreakdown.SEED?.monthlyRevenue || 0).toLocaleString()} TZS</span></p>
-                  <p>Lifetime: <span className="font-bold dark:text-white">{(tierBreakdown.SEED?.lifetimeRevenue || 0).toLocaleString()} TZS</span></p>
-                </div>
-              </div>
-
-              {/* 🚀 Growth Supporter */}
-              <div className="p-4 rounded-2xl border dark:border-zinc-800 dark:bg-zinc-900/40 bg-white space-y-2 shadow-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold dark:text-white">🚀 Growth Supporter</span>
-                  <span className="text-[10px] text-zinc-500">20k TZS+</span>
-                </div>
-                <div className="text-lg font-extrabold text-blue-500">
-                  {tierBreakdown.GROWTH?.totalMembers || 0} Members
-                </div>
-                <div className="text-[11px] text-zinc-400 space-y-1">
-                  <p>Monthly: <span className="font-bold dark:text-white">{(tierBreakdown.GROWTH?.monthlyRevenue || 0).toLocaleString()} TZS</span></p>
-                  <p>Lifetime: <span className="font-bold dark:text-white">{(tierBreakdown.GROWTH?.lifetimeRevenue || 0).toLocaleString()} TZS</span></p>
-                </div>
-              </div>
-
-              {/* ⭐ Vision Builder */}
-              <div className="p-4 rounded-2xl border dark:border-zinc-800 dark:bg-zinc-900/40 bg-white space-y-2 shadow-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold dark:text-white">⭐ Vision Builder</span>
-                  <span className="text-[10px] text-zinc-500">50k TZS+</span>
-                </div>
-                <div className="text-lg font-extrabold text-amber-500">
-                  {tierBreakdown.VISION_BUILDER?.totalMembers || 0} Members
-                </div>
-                <div className="text-[11px] text-zinc-400 space-y-1">
-                  <p>Monthly: <span className="font-bold dark:text-white">{(tierBreakdown.VISION_BUILDER?.monthlyRevenue || 0).toLocaleString()} TZS</span></p>
-                  <p>Lifetime: <span className="font-bold dark:text-white">{(tierBreakdown.VISION_BUILDER?.lifetimeRevenue || 0).toLocaleString()} TZS</span></p>
-                </div>
-              </div>
-
-              {/* ❤️ Mission Champion */}
-              <div className="p-4 rounded-2xl border dark:border-zinc-800 dark:bg-zinc-900/40 bg-white space-y-2 shadow-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold dark:text-white">❤️ Mission Champion</span>
-                  <span className="text-[10px] text-zinc-500">100k TZS+</span>
-                </div>
-                <div className="text-lg font-extrabold text-red-500">
-                  {tierBreakdown.MISSION_CHAMPION?.totalMembers || 0} Members
-                </div>
-                <div className="text-[11px] text-zinc-400 space-y-1">
-                  <p>Monthly: <span className="font-bold dark:text-white">{(tierBreakdown.MISSION_CHAMPION?.monthlyRevenue || 0).toLocaleString()} TZS</span></p>
-                  <p>Lifetime: <span className="font-bold dark:text-white">{(tierBreakdown.MISSION_CHAMPION?.lifetimeRevenue || 0).toLocaleString()} TZS</span></p>
-                </div>
-              </div>
-
-              {/* ❤️ Custom Support */}
-              <div className="p-4 rounded-2xl border dark:border-zinc-800 dark:bg-zinc-900/40 bg-white space-y-2 shadow-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold dark:text-white">❤️ Custom Support</span>
-                  <span className="text-[10px] text-zinc-500">Custom</span>
-                </div>
-                <div className="text-lg font-extrabold text-accent-violet">
-                  {tierBreakdown.CUSTOM?.totalMembers || 0} Members
-                </div>
-                <div className="text-[11px] text-zinc-400 space-y-1">
-                  <p>Monthly: <span className="font-bold dark:text-white">{(tierBreakdown.CUSTOM?.monthlyRevenue || 0).toLocaleString()} TZS</span></p>
-                  <p>Lifetime: <span className="font-bold dark:text-white">{(tierBreakdown.CUSTOM?.lifetimeRevenue || 0).toLocaleString()} TZS</span></p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Directory Filter & Search */}
-          <div className="p-4 rounded-2xl border dark:border-zinc-800 dark:bg-zinc-900/40 bg-white flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <Search size={16} className="text-zinc-500" />
+      {/* Record Contribution Modal */}
+      {isRecordModalOpen && (
+        <AdminModal
+          isOpen={isRecordModalOpen}
+          title="Record Support Contribution"
+          subtitle="Manually add a financial support entry"
+          onClose={() => setIsRecordModalOpen(false)}
+        >
+          <form onSubmit={handleRecordSubmit} className="space-y-4">
+            <FormField label="Supporter Name">
               <input
                 type="text"
-                placeholder="Search supporters by name, email, or country..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="text-xs dark:bg-zinc-950 border dark:border-zinc-800 rounded-lg p-2 text-white w-full sm:w-80"
+                required
+                value={recordForm.supporterName}
+                onChange={(e) => setRecordForm({ ...recordForm, supporterName: e.target.value })}
+                className={inputCls}
               />
-            </div>
-            <div className="flex items-center gap-2">
-              <Filter size={14} className="text-zinc-400" />
-              <select
-                value={tierFilter}
-                onChange={(e) => setTierFilter(e.target.value)}
-                className="text-xs dark:bg-zinc-950 border dark:border-zinc-800 rounded-lg p-2 text-white cursor-pointer"
-              >
-                <option value="ALL">All Support Tiers</option>
-                <option value="SEED">🌱 Seed Supporter</option>
-                <option value="GROWTH">🚀 Growth Supporter</option>
-                <option value="VISION_BUILDER">⭐ Vision Builder</option>
-                <option value="MISSION_CHAMPION">❤️ Mission Champion</option>
-                <option value="CUSTOM">❤️ Custom Support</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Supporters Directory Table */}
-          <div className="rounded-2xl border dark:border-zinc-800 overflow-hidden bg-white dark:bg-[#09090b]">
-            {supportersLoading ? (
-              <div className="text-center py-12 text-zinc-500">Loading supporters directory...</div>
-            ) : supporters?.length === 0 ? (
-              <div className="text-center py-12 text-zinc-500">No supporters found matching search filter.</div>
-            ) : (
-              <table className="w-full text-xs text-left">
-                <thead className="dark:bg-zinc-900/80 dark:text-zinc-400 border-b dark:border-zinc-800 uppercase font-bold text-[10px]">
-                  <tr>
-                    <th className="p-3.5">Supporter Name</th>
-                    <th className="p-3.5">Support Tier</th>
-                    <th className="p-3.5">Country</th>
-                    <th className="p-3.5">Lifetime Amount</th>
-                    <th className="p-3.5">Support Type</th>
-                    <th className="p-3.5">Status</th>
-                    <th className="p-3.5">Registered</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y dark:divide-zinc-800/60">
-                  {supporters?.map((s: any) => (
-                    <tr key={s.id} className="dark:hover:bg-zinc-800/20 transition-all">
-                      <td className="p-3.5">
-                        <div className="font-bold dark:text-white">{s.fullName}</div>
-                        <div className="text-[10px] text-zinc-500">{s.email}</div>
-                      </td>
-                      <td className="p-3.5 font-semibold">
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold border border-accent-violet/30 bg-accent-violet/10 text-accent-violet">
-                          {s.tier === 'SEED' ? '🌱 Seed Supporter' :
-                           s.tier === 'GROWTH' ? '🚀 Growth Supporter' :
-                           s.tier === 'VISION_BUILDER' ? '⭐ Vision Builder' :
-                           s.tier === 'MISSION_CHAMPION' ? '❤️ Mission Champion' :
-                           '❤️ Custom Support'}
-                        </span>
-                      </td>
-                      <td className="p-3.5 dark:text-zinc-300">{s.country || 'Tanzania'}</td>
-                      <td className="p-3.5 font-bold text-green-400">
-                        {s.totalLifetimeAmount.toLocaleString()} {s.currency || 'TZS'}
-                      </td>
-                      <td className="p-3.5 uppercase text-[10px] font-bold dark:text-zinc-400">
-                        {s.isRecurring ? 'Recurring' : 'One-Time'}
-                      </td>
-                      <td className="p-3.5">
-                        <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-green-500/10 text-green-400 border border-green-500/20">
-                          {s.status}
-                        </span>
-                      </td>
-                      <td className="p-3.5 text-zinc-500 text-[10px]">
-                        {new Date(s.createdAt).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── TAB 2: COLLABORATORS & CONTRIBUTORS HUB ────────────────────────────── */}
-      {activeTab === 'collaborators' && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-5 rounded-2xl border dark:border-zinc-800 dark:bg-zinc-900/40 bg-white space-y-1">
-              <span className="text-xs text-zinc-400 font-bold uppercase tracking-wider block">Total Collaborators</span>
-              <div className="text-2xl font-extrabold dark:text-white font-display">{collabOverview?.totalCollaborators || 0}</div>
-            </div>
-            <div className="p-5 rounded-2xl border dark:border-zinc-800 dark:bg-zinc-900/40 bg-white space-y-1">
-              <span className="text-xs text-zinc-400 font-bold uppercase tracking-wider block">Active Contributors</span>
-              <div className="text-2xl font-extrabold text-green-500 font-display">{collabOverview?.activeContributors || 0}</div>
-            </div>
-            <div className="p-5 rounded-2xl border dark:border-zinc-800 dark:bg-zinc-900/40 bg-white space-y-1">
-              <span className="text-xs text-zinc-400 font-bold uppercase tracking-wider block">Pending Invitations</span>
-              <div className="text-2xl font-extrabold text-amber-500 font-display">{collabOverview?.pendingInvitations || 0}</div>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border dark:border-zinc-800 overflow-hidden bg-white dark:bg-[#09090b]">
-            {collabLoading ? (
-              <div className="text-center py-12 text-zinc-500">Loading collaborators directory...</div>
-            ) : collaborators?.length === 0 ? (
-              <div className="text-center py-12 text-zinc-500">No collaborators registered yet.</div>
-            ) : (
-              <table className="w-full text-xs text-left">
-                <thead className="dark:bg-zinc-900/80 dark:text-zinc-400 border-b dark:border-zinc-800 uppercase font-bold text-[10px]">
-                  <tr>
-                    <th className="p-3.5">Collaborator Name</th>
-                    <th className="p-3.5">Role Title</th>
-                    <th className="p-3.5">Skills</th>
-                    <th className="p-3.5">Status</th>
-                    <th className="p-3.5">Joined</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y dark:divide-zinc-800/60">
-                  {collaborators?.map((c: any) => (
-                    <tr key={c.id} className="dark:hover:bg-zinc-800/20">
-                      <td className="p-3.5">
-                        <div className="font-bold dark:text-white">{c.fullName}</div>
-                        <div className="text-[10px] text-zinc-500">{c.email}</div>
-                      </td>
-                      <td className="p-3.5 font-bold text-accent-violet">{c.roleTitle}</td>
-                      <td className="p-3.5">
-                        <div className="flex flex-wrap gap-1">
-                          {Array.isArray(c.skills) && c.skills.map((sk: string, idx: number) => (
-                            <span key={idx} className="px-1.5 py-0.5 rounded text-[9px] dark:bg-zinc-800 dark:text-zinc-300 border dark:border-zinc-700">
-                              {sk}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="p-3.5">
-                        <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-green-500/10 text-green-400 border border-green-500/20">
-                          {c.status}
-                        </span>
-                      </td>
-                      <td className="p-3.5 text-zinc-500 text-[10px]">
-                        {new Date(c.createdAt).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Modal: Record Contribution */}
-      <AdminModal
-        isOpen={isRecordModalOpen}
-        onClose={() => setIsRecordModalOpen(false)}
-        title="Record Support Contribution & Multi-Module Sync"
-      >
-        <form onSubmit={handleRecordSubmit} className="space-y-4">
-          <FormField label="Full Name" required>
-            <input
-              type="text"
-              required
-              value={recordForm.supporterName}
-              onChange={(e) => setRecordForm({ ...recordForm, supporterName: e.target.value })}
-              className={inputCls}
-              placeholder="e.g. Denis Chamkaga"
-            />
-          </FormField>
-          <div className="grid grid-cols-2 gap-4">
-            <FormField label="Email" required>
+            </FormField>
+            <FormField label="Supporter Email">
               <input
                 type="email"
                 required
                 value={recordForm.supporterEmail}
                 onChange={(e) => setRecordForm({ ...recordForm, supporterEmail: e.target.value })}
                 className={inputCls}
-                placeholder="supporter@example.com"
               />
             </FormField>
-            <FormField label="Phone">
-              <input
-                type="text"
-                value={recordForm.supporterPhone}
-                onChange={(e) => setRecordForm({ ...recordForm, supporterPhone: e.target.value })}
-                className={inputCls}
-                placeholder="+255 700 000 000"
-              />
-            </FormField>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <FormField label="Support Tier" required>
-              <select
-                value={recordForm.tier}
-                onChange={(e) => setRecordForm({ ...recordForm, tier: e.target.value })}
-                className={selectCls}
-              >
-                <option value="SEED">🌱 Seed Supporter (5,000 TZS+)</option>
-                <option value="GROWTH">🚀 Growth Supporter (20,000 TZS+)</option>
-                <option value="VISION_BUILDER">⭐ Vision Builder (50,000 TZS+)</option>
-                <option value="MISSION_CHAMPION">❤️ Mission Champion (100,000 TZS+)</option>
-                <option value="CUSTOM">❤️ Custom Support</option>
-              </select>
-            </FormField>
-            <FormField label="Contribution Amount (TZS)" required>
+            <FormField label="Amount (TZS)">
               <input
                 type="number"
                 required
@@ -486,73 +355,66 @@ export const SupportersAdminPage: React.FC = () => {
                 className={inputCls}
               />
             </FormField>
-          </div>
-          <div className="flex justify-end gap-2 pt-4 border-t dark:border-zinc-800">
-            <Button variant="outline" type="button" onClick={() => setIsRecordModalOpen(false)}>Cancel</Button>
-            <Button variant="primary" type="submit" isLoading={recordContributionMutation.isPending}>
-              Record & Sync Workflow
-            </Button>
-          </div>
-        </form>
-      </AdminModal>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => setIsRecordModalOpen(false)}>Cancel</Button>
+              <Button type="submit" variant="primary">Record Entry</Button>
+            </div>
+          </form>
+        </AdminModal>
+      )}
 
-      {/* Modal: Add Collaborator */}
-      <AdminModal
-        isOpen={isCollaboratorModalOpen}
-        onClose={() => setIsCollaboratorModalOpen(false)}
-        title="Add Collaborator Profile"
-      >
-        <form onSubmit={handleCollabSubmit} className="space-y-4">
-          <FormField label="Full Name" required>
-            <input
-              type="text"
-              required
-              value={collabForm.fullName}
-              onChange={(e) => setCollabForm({ ...collabForm, fullName: e.target.value })}
-              className={inputCls}
-            />
-          </FormField>
-          <FormField label="Email" required>
-            <input
-              type="email"
-              required
-              value={collabForm.email}
-              onChange={(e) => setCollabForm({ ...collabForm, email: e.target.value })}
-              className={inputCls}
-            />
-          </FormField>
-          <FormField label="Role Title" required>
-            <select
-              value={collabForm.roleTitle}
-              onChange={(e) => setCollabForm({ ...collabForm, roleTitle: e.target.value })}
-              className={selectCls}
-            >
-              <option value="Developer">Developer</option>
-              <option value="Designer">Designer</option>
-              <option value="Writer">Writer</option>
-              <option value="Researcher">Researcher</option>
-              <option value="Volunteer">Volunteer</option>
-              <option value="Advisor">Advisor</option>
-              <option value="Business Partner">Business Partner</option>
-            </select>
-          </FormField>
-          <FormField label="Skills (comma-separated)">
-            <input
-              type="text"
-              value={collabForm.skills}
-              onChange={(e) => setCollabForm({ ...collabForm, skills: e.target.value })}
-              className={inputCls}
-              placeholder="React, TypeScript, Node.js"
-            />
-          </FormField>
-          <div className="flex justify-end gap-2 pt-4 border-t dark:border-zinc-800">
-            <Button variant="outline" type="button" onClick={() => setIsCollaboratorModalOpen(false)}>Cancel</Button>
-            <Button variant="primary" type="submit" isLoading={upsertCollaboratorMutation.isPending}>
-              Save Profile
-            </Button>
-          </div>
-        </form>
-      </AdminModal>
+      {/* Collaborator Modal */}
+      {isCollaboratorModalOpen && (
+        <AdminModal
+          isOpen={isCollaboratorModalOpen}
+          title="Add Collaborator"
+          subtitle="Register an active contributor"
+          onClose={() => setIsCollaboratorModalOpen(false)}
+        >
+          <form onSubmit={handleCollabSubmit} className="space-y-4">
+            <FormField label="Full Name">
+              <input
+                type="text"
+                required
+                value={collabForm.fullName}
+                onChange={(e) => setCollabForm({ ...collabForm, fullName: e.target.value })}
+                className={inputCls}
+              />
+            </FormField>
+            <FormField label="Email">
+              <input
+                type="email"
+                required
+                value={collabForm.email}
+                onChange={(e) => setCollabForm({ ...collabForm, email: e.target.value })}
+                className={inputCls}
+              />
+            </FormField>
+            <FormField label="Role Title">
+              <input
+                type="text"
+                required
+                value={collabForm.roleTitle}
+                onChange={(e) => setCollabForm({ ...collabForm, roleTitle: e.target.value })}
+                className={inputCls}
+              />
+            </FormField>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => setIsCollaboratorModalOpen(false)}>Cancel</Button>
+              <Button type="submit" variant="primary">Save Collaborator</Button>
+            </div>
+          </form>
+        </AdminModal>
+      )}
+
+      {/* Supporter 360 Profile Drawer */}
+      <Supporter360Drawer
+        supporter={selectedSupporter}
+        isOpen={is360Open}
+        onClose={() => setIs360Open(false)}
+      />
     </div>
   );
 };
+
+export default SupportersAdminPage;

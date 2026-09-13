@@ -15,7 +15,7 @@ interface AuthState {
   user: User | null;
   rememberMe: boolean;
   setRememberMe: (remember: boolean) => void;
-  login: (user: User, accessToken: string, refreshToken: string, rememberMe?: boolean) => void;
+  login: (user: User, accessToken: string, refreshToken?: string, rememberMe?: boolean) => void;
   logout: () => void;
 }
 
@@ -53,10 +53,9 @@ export const useAuthStore = create<AuthState>((set) => {
 
     setRememberMe: (remember: boolean) => set({ rememberMe: remember }),
 
-    login: (user, accessToken, refreshToken, rememberMe = true) => {
+    login: (user, accessToken, _refreshToken, rememberMe = true) => {
       const storage = rememberMe ? localStorage : sessionStorage;
       storage.setItem('accessToken', accessToken);
-      storage.setItem('refreshToken', refreshToken);
       storage.setItem('user', JSON.stringify(user));
       set({ isAuthenticated: true, user, rememberMe });
     },

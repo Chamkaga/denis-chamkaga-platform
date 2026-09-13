@@ -3,7 +3,7 @@
 
 import { Router, Request, Response, NextFunction } from 'express';
 import { adminService } from '../services/admin.service';
-import { requireAuth, requireRole } from '../middleware/auth.middleware';
+import { requireAuth, requireRole, requireMappedResourceAccess } from '../middleware/auth.middleware';
 import { ApiResponse } from '../types/api';
 import prisma from '../config/database';
 import * as knowledgePipeline from '../ai/services/knowledge-pipeline.service';
@@ -14,7 +14,21 @@ const router = Router();
 
 // All admin routes require authentication
 router.use(requireAuth);
-router.use(requireRole('admin', 'super_admin'));
+router.use(requireMappedResourceAccess((routePath) => {
+  const root = routePath.split('/').filter(Boolean)[0] || 'dashboard';
+  const mapping: Record<string, string> = {
+    dashboard: 'analytics', analytics: 'analytics', activity: 'audit_logs', 'audit-logs': 'audit_logs',
+    projects: 'projects', services: 'services', 'blog-posts': 'blog_posts', leads: 'leads', messages: 'messages',
+    appointments: 'appointments', testimonials: 'testimonials', gallery: 'gallery', settings: 'settings',
+    experiences: 'experiences', education: 'education', certificates: 'certificates', languages: 'settings',
+    faqs: 'knowledge', tutorials: 'knowledge', assistant: 'ai', 'ai-prompts': 'ai', 'ai-settings': 'ai',
+    'ai-knowledge': 'knowledge', 'ai-copilot': 'ai', webrtc: 'calls', content: 'blog_posts',
+    newsletter: 'marketing', campaigns: 'marketing', partnerships: 'marketing', 'product-ideas': 'projects',
+    'roadmap-items': 'projects', presence: 'settings', users: 'users', backup: 'settings', calendar: 'calendar',
+    erp: 'finance', 'visitor-analytics': 'analytics'
+  };
+  return mapping[root] || root;
+}));
 
 // Cache invalidation middleware for knowledge-base mutation routes
 import { knowledgeService } from '../ai/services/knowledge.service';
@@ -1145,7 +1159,19 @@ router.post('/webrtc/answer', wrap(async (req, res) => {
     res.status(400).json({ success: false, error: { message: 'sessionId and sdpAnswer are required' } });
     return;
   }
+  const callSession = await prisma.callSession.findUnique({ where: { sessionId } });
+  if (!callSession || !['initiated', 'ringing', 'connecting'].includes(callSession.status)) {
+    res.status(409).json({ success: false, error: { code: 'INVALID_CALL_TRANSITION', message: `Call cannot be answered from ${callSession?.status || 'missing'} state` } });
+    return;
+  }
   webrtcSignaling.registerAnswer(sessionId, sdpAnswer);
+  await prisma.callSession.update({
+    where: { id: callSession.id },
+    data: { status: 'connected', answeredAt: new Date() }
+  });
+  await prisma.callLog.create({
+    data: { callSessionId: callSession.id, event: 'join', detail: 'Authenticated operator accepted the call' }
+  });
   res.json({ success: true, message: 'SDP Answer registered' });
 }));
 
@@ -1276,9 +1302,9 @@ router.get('/erp/reports', wrap(async (req, res) => {
   
   for (const t of txs) {
     if (t.type === 'income') {
-      totalRevenue += t.amount;
+      totalRevenue += t.amount.toNumber();
     } else if (t.type === 'expense') {
-      totalExpenses += t.amount;
+      totalExpenses += t.amount.toNumber();
     }
   }
   

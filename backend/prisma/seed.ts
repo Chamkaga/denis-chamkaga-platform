@@ -24,6 +24,11 @@ async function main() {
     update: {},
     create: { name: 'super_admin', description: 'Full system access' },
   });
+  const ownerRole = await prisma.role.upsert({
+    where: { name: 'owner' },
+    update: {},
+    create: { name: 'owner', description: 'Business owner with full system authority' },
+  });
   const adminRole = await prisma.role.upsert({
     where: { name: 'admin' },
     update: {},
@@ -54,7 +59,7 @@ async function main() {
     update: {},
     create: { name: 'customer', description: 'Public customer / client workspace access' },
   });
-  console.log(`  ✓ Roles: super_admin, admin, developer, manager, finance, support, customer`);
+  console.log(`  ✓ Roles: owner, super_admin, admin, developer, manager, finance, support, customer`);
 
   // ─── 2. Permissions ───────────────────────────────────────────────────────
   console.log('Creating permissions...');
@@ -62,9 +67,10 @@ async function main() {
     'projects', 'services', 'blog_posts', 'gallery', 'certificates',
     'experiences', 'education', 'testimonials', 'leads', 'messages',
     'appointments', 'users', 'roles', 'settings', 'analytics',
-    'audit_logs', 'notifications', 'investor_requests',
+    'audit_logs', 'notifications', 'investor_requests', 'crm', 'finance',
+    'knowledge', 'media', 'marketing', 'supporters', 'ai', 'calls', 'calendar',
   ];
-  const allActions = ['create', 'read', 'update', 'delete'];
+  const allActions = ['create', 'read', 'update', 'delete', 'publish', 'verify', 'manage'];
   const readOnlyActions = ['read'];
 
   // Super admin gets everything
@@ -78,10 +84,15 @@ async function main() {
     }
   }
 
-  // Admin gets everything except user/role management
-  const adminResources = resources.filter(r => r !== 'users' && r !== 'roles');
-  for (const resource of adminResources) {
-    for (const action of allActions) {
+  // Technical Administrator gets only the operations permissions defined in TestAccountMatrix.
+  await prisma.permission.deleteMany({ where: { roleId: adminRole.id } });
+  const adminPermissions: Record<string, string[]> = {
+    analytics: ['read'], audit_logs: ['read'], messages: ['read', 'update'],
+    appointments: ['read'], notifications: ['read', 'update'], calls: ['read', 'update', 'manage'],
+    settings: ['read', 'update'], ai: ['read'], calendar: ['read'], leads: ['read']
+  };
+  for (const [resource, actions] of Object.entries(adminPermissions)) {
+    for (const action of actions) {
       await prisma.permission.upsert({
         where: { roleId_resource_action: { roleId: adminRole.id, resource, action } },
         update: {},
@@ -115,7 +126,7 @@ async function main() {
   }
 
   // Finance role gets read + create + update on finance and analytics
-  for (const resource of ['analytics', 'audit_logs', 'projects', 'services']) {
+  for (const resource of ['analytics', 'audit_logs', 'projects', 'services', 'finance']) {
     for (const action of ['create', 'read', 'update']) {
       await prisma.permission.upsert({
         where: { roleId_resource_action: { roleId: financeRole.id, resource, action } },
@@ -126,7 +137,7 @@ async function main() {
   }
 
   // Support role gets read + create + update on support tickets/leads
-  for (const resource of ['leads', 'messages', 'appointments', 'notifications']) {
+  for (const resource of ['leads', 'messages', 'appointments', 'notifications', 'crm']) {
     for (const action of ['create', 'read', 'update']) {
       await prisma.permission.upsert({
         where: { roleId_resource_action: { roleId: supportRole.id, resource, action } },
@@ -147,27 +158,44 @@ async function main() {
 
   console.log(`  ✓ Permissions created for all roles`);
 
-  // ─── 3. Admin User ────────────────────────────────────────────────────────
-  console.log('Creating admin user...');
+  // ─── 3. Owner User ────────────────────────────────────────────────────────
+  console.log('Creating owner user...');
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@denischamkaga.com';
-  const adminPassword = process.env.ADMIN_INITIAL_PASSWORD || 'Denis@Platform2025';
-  const passwordHash = await bcrypt.hash(adminPassword, BCRYPT_ROUNDS);
+  const ownerPassword = process.env.OWNER_INITIAL_PASSWORD || 'Denis@Platform2025';
+  const passwordHash = await bcrypt.hash(ownerPassword, BCRYPT_ROUNDS);
 
   await prisma.user.upsert({
-    where: { email: adminEmail },
-    update: {},
+    where: { email: 'denis@denischamkaga.com' },
+    update: { username: 'denis', firstName: 'Denis', lastName: 'Chamkaga', roleId: ownerRole.id, isActive: true },
     create: {
-      email: adminEmail,
-      username: 'admin',
+      email: 'denis@denischamkaga.com',
+      username: 'denis',
       passwordHash,
       firstName: 'Denis',
       lastName: 'Chamkaga',
-      roleId: superAdminRole.id,
+      roleId: ownerRole.id,
       isActive: true,
       mustChangePassword: true, // Force password change on first login
     },
   });
-  console.log(`  ✓ Admin user: ${adminEmail} (mustChangePassword: true)`);
+  console.log('  ✓ Owner user: denis@denischamkaga.com (mustChangePassword: true)');
+
+  const adminPasswordHash = await bcrypt.hash(process.env.ADMIN_INITIAL_PASSWORD || 'Admin@Platform2025', BCRYPT_ROUNDS);
+  await prisma.user.upsert({
+    where: { email: adminEmail },
+    update: { username: 'admin', firstName: 'System', lastName: 'Administrator', roleId: adminRole.id, isActive: true },
+    create: {
+      email: adminEmail,
+      username: 'admin',
+      passwordHash: adminPasswordHash,
+      firstName: 'System',
+      lastName: 'Administrator',
+      roleId: adminRole.id,
+      isActive: true,
+      mustChangePassword: true,
+    },
+  });
+  console.log(`  ✓ Administrator user: ${adminEmail} (mustChangePassword: true)`);
 
   // ─── 4. Languages ─────────────────────────────────────────────────────────
   console.log('Creating languages...');

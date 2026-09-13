@@ -56,7 +56,9 @@ export const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
 
     setUploading(true);
     try {
-      const asset = await aiApi.uploadAttachment(file);
+      const sessionId = localStorage.getItem('assistantSessionId');
+      if (!sessionId) throw new Error('Start a secure conversation before uploading a file.');
+      const asset = await aiApi.uploadAttachment(file, sessionId);
       onAttachmentsChange([...attachments, asset]);
     } catch (err: any) {
       const msg = err?.response?.data?.error?.message || 'Upload failed. Please try again.';

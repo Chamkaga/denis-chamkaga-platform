@@ -8,28 +8,28 @@ datasource db {
 }
 
 model User {
-  id                 String         @id @default(cuid())
-  email              String         @unique
-  username           String         @unique
-  passwordHash       String
-  firstName          String
-  lastName           String
-  roleId             String
-  avatarUrl          String?
-  isActive           Boolean        @default(true)
-  mustChangePassword Boolean        @default(false)
-  lastLoginAt        DateTime?
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
-  auditLogs          AuditLog[]
-  blogPosts          BlogPost[]
-  client             Client?
-  leads              Lead[]         @relation("AssignedLeads")
-  notifications      Notification[]
-  projects           Project[]
-  role               Role           @relation(fields: [roleId], references: [id])
-  refreshTokens      RefreshToken[]
-  sessions           Session[]
+  id                  String               @id @default(cuid())
+  email               String               @unique
+  username            String               @unique
+  passwordHash        String
+  firstName           String
+  lastName            String
+  roleId              String
+  avatarUrl           String?
+  isActive            Boolean              @default(true)
+  mustChangePassword  Boolean              @default(false)
+  lastLoginAt         DateTime?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  auditLogs           AuditLog[]
+  blogPosts           BlogPost[]
+  client              Client?
+  leads               Lead[]               @relation("AssignedLeads")
+  notifications       Notification[]
+  projects            Project[]
+  role                Role                 @relation(fields: [roleId], references: [id])
+  refreshTokens       RefreshToken[]
+  sessions            Session[]
   passwordResetTokens PasswordResetToken[]
 
   @@index([email])
@@ -60,38 +60,38 @@ model Permission {
 }
 
 model Project {
-  id               String        @id @default(cuid())
-  title            String
-  slug             String        @unique
-  description      String
-  content          String
-  thumbnailUrl     String?
-  images           Json?
-  techStack        Json
-  category         String
-  status           ProjectStatus
-  liveUrl          String?
-  githubUrl        String?
-  gitlabUrl        String?
-  startDate        DateTime?
-  endDate          DateTime?
-  isFeatured       Boolean       @default(false)
-  displayOrder     Int           @default(0)
-  createdById      String
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  deletedAt        DateTime?
-  thumbnailAssetId String?
-  assignedTeam     Json?
-  organizationId   String?
-  progressPercent  Int           @default(0)
-  budget           Decimal?      @db.Decimal(12, 2)
-  contracts        Contract[]
-  invoices         Invoice[]
-  createdBy        User          @relation(fields: [createdById], references: [id])
-  organization     Organization? @relation(fields: [organizationId], references: [id])
-  thumbnailAsset   DigitalAsset? @relation("ProjectThumbnail", fields: [thumbnailAssetId], references: [id])
-  quotations       Quotation[]
+  id                  String             @id @default(cuid())
+  title               String
+  slug                String             @unique
+  description         String
+  content             String
+  thumbnailUrl        String?
+  images              Json?
+  techStack           Json
+  category            String
+  status              ProjectStatus
+  liveUrl             String?
+  githubUrl           String?
+  gitlabUrl           String?
+  startDate           DateTime?
+  endDate             DateTime?
+  isFeatured          Boolean            @default(false)
+  displayOrder        Int                @default(0)
+  createdById         String
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  deletedAt           DateTime?
+  thumbnailAssetId    String?
+  assignedTeam        Json?
+  organizationId      String?
+  progressPercent     Int                @default(0)
+  budget              Decimal?           @db.Decimal(12, 2)
+  contracts           Contract[]
+  invoices            Invoice[]
+  createdBy           User               @relation(fields: [createdById], references: [id])
+  organization        Organization?      @relation(fields: [organizationId], references: [id])
+  thumbnailAsset      DigitalAsset?      @relation("ProjectThumbnail", fields: [thumbnailAssetId], references: [id])
+  quotations          Quotation[]
   workspaceMilestones ProjectMilestone[]
   workspaceTasks      ProjectTask[]
   assetFiles          ProjectAssetFile[]
@@ -620,11 +620,11 @@ model Tutorial {
   title        String
   description  String?
   videoUrl     String
-  provider     String   // e.g. "youtube", "vimeo", "self-hosted"
+  provider     String // e.g. "youtube", "vimeo", "self-hosted"
   durationMin  Int      @default(0)
   thumbnailUrl String?
   isActive     Boolean  @default(true)
-  resources    Json?    // Stores future PDF notes, slides, and downloadable links
+  resources    Json? // Stores future PDF notes, slides, and downloadable links
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -666,9 +666,9 @@ model Campaign {
   name      String
   type      String
   status    String    @default("planned")
-  budget    Float?
-  spend     Float?
-  revenue   Float?
+  budget    Decimal?  @db.Decimal(14, 2)
+  spend     Decimal?  @db.Decimal(14, 2)
+  revenue   Decimal?  @db.Decimal(14, 2)
   metrics   Json?
   startDate DateTime?
   endDate   DateTime?
@@ -1024,7 +1024,7 @@ model CreditNote {
 model Payment {
   id                   String    @id @default(cuid())
   paymentNumber        String    @unique
-  invoiceId            String?   // Optional to support donation/consultation payments
+  invoiceId            String? // Optional to support donation/consultation payments
   paymentType          String    @default("invoice") // invoice, support, consultation, etc.
   amount               Decimal   @db.Decimal(12, 2)
   currency             String    @default("TZS") // Tanzanian Shillings default
@@ -1197,6 +1197,27 @@ model AiKnowledgeJob {
   @@map("ai_knowledge_jobs")
 }
 
+model AiMemoryJob {
+  id                  String    @id @default(cuid())
+  sessionId           String
+  conversationVersion Int
+  userMessage         String
+  assistantResponse   String
+  idempotencyKey      String    @unique
+  status              String    @default("pending")
+  attempts            Int       @default(0)
+  maxAttempts         Int       @default(3)
+  errorMessage        String?
+  availableAt         DateTime  @default(now())
+  processedAt         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([status, availableAt])
+  @@index([sessionId, conversationVersion])
+  @@map("ai_memory_jobs")
+}
+
 model AiKnowledgeAuditLog {
   id        String   @id @default(cuid())
   action    String
@@ -1337,7 +1358,7 @@ model CallSession {
   endedAt          DateTime?
   callerName       String
   receiverName     String
-  status           String    // "ringing", "completed", "missed", "failed"
+  status           String // "ringing", "completed", "missed", "failed"
   durationSec      Int       @default(0)
   quality          String?
   packetLoss       Float?
@@ -1346,9 +1367,9 @@ model CallSession {
   audioLevel       Float?
   reconnectCount   Int       @default(0)
   recordingUrl     String?
-  recordingStatus  String?   // "none", "pending", "processing", "completed", "failed"
+  recordingStatus  String? // "none", "pending", "processing", "completed", "failed"
   transcript       String?
-  transcriptStatus String?   // "none", "pending", "processing", "completed", "failed"
+  transcriptStatus String? // "none", "pending", "processing", "completed", "failed"
   summary          String?
   sentiment        String?
   actionItems      String?
@@ -1371,7 +1392,7 @@ model CallSession {
 model CallLog {
   id            String      @id @default(cuid())
   callSessionId String
-  event         String      // "join", "leave", "mute", "unmute", "hold", "resume", "failed", "reconnected"
+  event         String // "join", "leave", "mute", "unmute", "hold", "resume", "failed", "reconnected"
   detail        String?
   createdAt     DateTime    @default(now())
   callSession   CallSession @relation(fields: [callSessionId], references: [id], onDelete: Cascade)
@@ -1385,7 +1406,7 @@ model InventoryItem {
   name        String
   description String?
   quantity    Int      @default(0)
-  unitPrice   Float    @default(0.0)
+  unitPrice   Decimal  @default(0.0) @db.Decimal(14, 2)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -1395,8 +1416,8 @@ model InventoryItem {
 model FinancialTransaction {
   id          String   @id @default(cuid())
   reference   String   @unique
-  type        String   // "credit", "debit"
-  amount      Float
+  type        String // "credit", "debit"
+  amount      Decimal  @db.Decimal(14, 2)
   description String
   invoiceId   String?
   createdAt   DateTime @default(now())
@@ -1433,7 +1454,7 @@ model SupporterProfile {
   startDate           DateTime              @default(now())
   renewalDate         DateTime?
   expiryDate          DateTime?
-  totalLifetimeAmount Float                 @default(0.0)
+  totalLifetimeAmount Decimal               @default(0.0) @db.Decimal(14, 2)
   currency            String                @default("TZS")
   paymentProvider     String                @default("DPO")
   paymentMethod       String?
@@ -1452,12 +1473,12 @@ model CollaboratorProfile {
   fullName         String
   email            String   @unique
   phone            String?
-  roleTitle        String   // Developer, Designer, Writer, Researcher, Volunteer, Advisor, Business Partner
-  skills           Json     // Array of skill tags
-  assignedProjects Json?    // Array of assigned project IDs or names
-  permissions      Json?    // Granular permission keys
+  roleTitle        String // Developer, Designer, Writer, Researcher, Volunteer, Advisor, Business Partner
+  skills           Json // Array of skill tags
+  assignedProjects Json? // Array of assigned project IDs or names
+  permissions      Json? // Granular permission keys
   status           String   @default("active") // active, pending, inactive
-  activityLog      Json?    // Activity history array
+  activityLog      Json? // Activity history array
   notes            String?  @db.Text
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -1469,23 +1490,23 @@ model CollaboratorProfile {
 
 model SupportContribution {
   id                 String            @id @default(cuid())
-  ctrId              String            @unique                  // Human-readable ID (e.g. CTR-2026-000001)
-  receiptNo          String?           @unique                  // Human-readable Receipt ID (e.g. RCP-2026-000001)
-  type               String            @default("Financial")    // Financial, Collaboration, Partnership, Mentor, Volunteer, Research
+  ctrId              String            @unique // Human-readable ID (e.g. CTR-2026-000001)
+  receiptNo          String?           @unique // Human-readable Receipt ID (e.g. RCP-2026-000001)
+  type               String            @default("Financial") // Financial, Collaboration, Partnership, Mentor, Volunteer, Research
   tier               SupportTier       @default(SEED)
-  status             String            @default("Draft")        // Draft, Pending, Redirected, Paid, Verified, Completed, Cancelled, Failed, Expired, Refunded, PendingReview
+  status             String            @default("Draft") // Draft, Pending, Redirected, Paid, Verified, Completed, Cancelled, Failed, Expired, Refunded, PendingReview
   supporterName      String?
   supporterEmail     String
   supporterPhone     String?
   country            String?           @default("Tanzania")
-  notes              String?           @db.Text                 // Supporter message or collaboration goals
-  amount             Float?                                     // Nullable for non-financial contributions
-  currency           String?           @default("TZS")          // USD, TZS, KES, UGX, EUR, GBP
-  exchangeRate       Float?            @default(1.0)            // Relative value vs base system currency (TZS)
+  notes              String?           @db.Text // Supporter message or collaboration goals
+  amount             Decimal?          @db.Decimal(14, 2) // Nullable for non-financial contributions
+  currency           String?           @default("TZS") // USD, TZS, KES, UGX, EUR, GBP
+  exchangeRate       Decimal?          @default(1.0) @db.Decimal(18, 6) // Relative value vs base system currency (TZS)
   paymentProvider    String?           @default("DPO")
-  paymentMethod      String?                                    // Mobile Money, Card, Bank, etc.
-  reference          String?           @unique                  // Payment gateway tracking token
-  supportType        String?           @default("one_time")     // one_time, recurring
+  paymentMethod      String? // Mobile Money, Card, Bank, etc.
+  reference          String?           @unique // Payment gateway tracking token
+  supportType        String?           @default("one_time") // one_time, recurring
   supporterProfileId String?
   createdAt          DateTime          @default(now())
   completedAt        DateTime?
@@ -1514,15 +1535,15 @@ enum CurrencyType {
 }
 
 model ChartOfAccount {
-  id           String               @id @default(cuid())
-  accountCode  String               @unique // e.g., 1010 (Cash TZS), 1020 (Cash USD), 1200 (AR), 2000 (AP), 4000 (Revenue), 5000 (Expenses)
+  id           String          @id @default(cuid())
+  accountCode  String          @unique // e.g., 1010 (Cash TZS), 1020 (Cash USD), 1200 (AR), 2000 (AP), 4000 (Revenue), 5000 (Expenses)
   name         String
   category     AccountCategory
-  currency     CurrencyType         @default(TZS)
-  balance      Decimal              @default(0.00) @db.Decimal(14, 2)
-  isSystem     Boolean              @default(false)
-  createdAt    DateTime             @default(now())
-  updatedAt    DateTime             @updatedAt
+  currency     CurrencyType    @default(TZS)
+  balance      Decimal         @default(0.00) @db.Decimal(14, 2)
+  isSystem     Boolean         @default(false)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
   journalLines JournalLine[]
 
   @@map("chart_of_accounts")
@@ -1533,8 +1554,8 @@ model JournalEntry {
   entryNumber  String        @unique // e.g., JRN-2026-00001
   date         DateTime      @default(now())
   description  String
-  sourceModule String        // CRM, Finance, Support, Project, Manual
-  eventTrigger String?       // InvoicePaid, SupporterContributionPaid, ExpenseRecorded, etc.
+  sourceModule String // CRM, Finance, Support, Project, Manual
+  eventTrigger String? // InvoicePaid, SupporterContributionPaid, ExpenseRecorded, etc.
   reference    String?
   performedBy  String?       @default("WorkflowEngine")
   isReversal   Boolean       @default(false)
@@ -1550,7 +1571,7 @@ model JournalLine {
   id             String         @id @default(cuid())
   journalEntryId String
   accountId      String
-  type           String         // DEBIT or CREDIT
+  type           String // DEBIT or CREDIT
   amount         Decimal        @db.Decimal(14, 2)
   currency       CurrencyType   @default(TZS)
   exchangeRate   Decimal        @default(1.0000) @db.Decimal(12, 4)
@@ -1566,7 +1587,7 @@ model JournalLine {
 model BusinessExpense {
   id            String       @id @default(cuid())
   expenseNumber String       @unique // e.g., EXP-2026-00001
-  category      String       // Infrastructure, Salaries, Marketing, R&D, Travel, Utilities, Licenses
+  category      String // Infrastructure, Salaries, Marketing, R&D, Travel, Utilities, Licenses
   vendor        String
   description   String
   amount        Decimal      @db.Decimal(14, 2)
@@ -1590,7 +1611,7 @@ model BusinessExpense {
 model ProjectTemplate {
   id          String                     @id @default(cuid())
   name        String                     @unique // e.g. Website Development, Mobile App, Brand Identity, Custom ERP
-  category    String                     // Development, Design, AI Infrastructure, Marketing
+  category    String // Development, Design, AI Infrastructure, Marketing
   description String?
   isDefault   Boolean                    @default(false)
   createdAt   DateTime                   @default(now())
@@ -1699,8 +1720,8 @@ model ProjectAssetFile {
   taskId     String?
   fileName   String
   fileUrl    String
-  fileType   String       // PDF, Image, Video, SourceCode, Document, Archive
-  fileSize   Int?         // Bytes
+  fileType   String // PDF, Image, Video, SourceCode, Document, Archive
+  fileSize   Int? // Bytes
   version    Int          @default(1)
   uploadedBy String
   visibility String       @default("internal") // internal, client_visible
@@ -1736,16 +1757,16 @@ enum BrandVoice {
 }
 
 model ContactConsent {
-  id                String    @id @default(cuid())
-  contactEmail      String    @unique
-  emailOptIn        Boolean   @default(true)
-  smsOptIn          Boolean   @default(true)
-  whatsappOptIn     Boolean   @default(true)
-  newsletterSub     Boolean   @default(true)
-  consentTimestamp  DateTime  @default(now())
+  id                String   @id @default(cuid())
+  contactEmail      String   @unique
+  emailOptIn        Boolean  @default(true)
+  smsOptIn          Boolean  @default(true)
+  whatsappOptIn     Boolean  @default(true)
+  newsletterSub     Boolean  @default(true)
+  consentTimestamp  DateTime @default(now())
   unsubscribeReason String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   @@index([contactEmail])
   @@map("contact_consents")
@@ -1755,9 +1776,9 @@ model MarketingCampaign {
   id                String             @id @default(cuid())
   campaignNumber    String             @unique // e.g. CMP-2026-00001
   name              String
-  type              String             // Email, Newsletter, ProductLaunch, ServicePromo, EventInvite
+  type              String // Email, Newsletter, ProductLaunch, ServicePromo, EventInvite
   channels          MarketingChannel[]
-  audienceRule      String             // Dynamic CRM query rule JSON
+  audienceRule      String // Dynamic CRM query rule JSON
   brandVoice        BrandVoice         @default(PROFESSIONAL)
   subject           String?
   content           String             @db.Text
@@ -1782,9 +1803,9 @@ model CustomerJourney {
   id           String             @id @default(cuid())
   campaignId   String?
   name         String
-  triggerEvent String             // LeadQualified, ProjectCompleted, SupporterJoined
+  triggerEvent String // LeadQualified, ProjectCompleted, SupporterJoined
   status       String             @default("active")
-  nodesJson    Json               // Visual Workflow DAG nodes (Triggers, Delays, Conditions, Actions)
+  nodesJson    Json // Visual Workflow DAG nodes (Triggers, Delays, Conditions, Actions)
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
   campaign     MarketingCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
@@ -1793,15 +1814,13 @@ model CustomerJourney {
 }
 
 model MarketingAsset {
-  id          String   @id @default(cuid())
-  title       String
-  assetType   String   // Image, Video, PDF, CaseStudy, Logo, Template
-  fileUrl     String
-  fileSize    Int?
-  uploadedBy  String
-  createdAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  title      String
+  assetType  String // Image, Video, PDF, CaseStudy, Logo, Template
+  fileUrl    String
+  fileSize   Int?
+  uploadedBy String
+  createdAt  DateTime @default(now())
 
   @@map("marketing_assets")
 }
-
-

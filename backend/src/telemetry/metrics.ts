@@ -52,3 +52,16 @@ export const eventBusCounter = new client.Counter({
   help: 'Total events published to EventBus',
   labelNames: ['event_type']
 });
+
+export const aiGenerationCounter = new client.Counter({
+  name: 'denis_platform_ai_generations_total',
+  help: 'AI generation outcomes separated by provider, model, and mode',
+  labelNames: ['provider', 'model', 'mode', 'error_code']
+});
+
+export const aiStageDurationHistogram = new client.Histogram({
+  name: 'denis_platform_ai_stage_duration_seconds',
+  help: 'Mary orchestration stage duration',
+  labelNames: ['stage'],
+  buckets: [0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 20]
+});

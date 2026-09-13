@@ -5,6 +5,20 @@ import { getAIProvider } from './providers';
 import { aiMemory, ChatSessionFacts } from './memory';
 import { logger } from '../utils/logger';
 import prisma from '../config/database';
+import { z } from 'zod';
+
+const extractedFactsSchema = z.object({
+  visitorProfile: z.enum(['Explorer', 'Student / Learner', 'Startup Founder', 'Small Business Owner', 'Registered Company', 'Existing Client']).optional(),
+  businessStage: z.enum(['Idea', 'Startup', 'Established', 'Growth', 'Not Applicable']).optional(),
+  goals: z.string().trim().min(1).max(500).optional(),
+  challenges: z.string().trim().min(1).max(500).optional(),
+  name: z.string().trim().min(1).max(120).optional(),
+  company: z.string().trim().min(1).max(160).optional(),
+  email: z.string().email().max(254).optional(),
+  phone: z.string().regex(/^\+?[0-9][0-9\s-]{8,18}$/).optional(),
+  budget: z.string().trim().min(1).max(120).optional(),
+  industry: z.string().trim().min(1).max(120).optional(),
+}).strict();
 
 export const aiExtractor = {
   /**
@@ -14,21 +28,30 @@ export const aiExtractor = {
     sessionId: string;
     userMessage: string;
     assistantResponse: string;
+    conversationVersion: number;
   }): Promise<void> {
-    const { sessionId, userMessage, assistantResponse } = params;
+    const { sessionId, userMessage, conversationVersion } = params;
 
     try {
-      const existingFacts = await aiMemory.getFacts(sessionId);
-      
       // Feature Flag Check: If memory engine is disabled, do not update
       if (process.env.AI_MEMORY_ENGINE === 'false') {
         return;
       }
 
+      const currentSession = await prisma.chatSession.findUnique({
+        where: { id: sessionId },
+        select: { metadata: true, messageCount: true, leadId: true }
+      });
+      if (!currentSession || currentSession.messageCount !== conversationVersion) {
+        throw new Error('MEMORY_JOB_STALE_OR_SESSION_DELETED');
+      }
+      const currentMeta = (currentSession.metadata as Record<string, any>) || {};
+      const existingFacts = (currentMeta.facts as ChatSessionFacts) || {};
+
       logger.info(`[AI Extractor] Triggering async background facts extraction for session: ${sessionId}`);
 
       const systemPrompt = `You are a background data extraction utility.
-Your job is to read the latest User Message, the latest Assistant Response, and the Existing Memory JSON, and output an updated JSON block containing all parsed values.
+Your job is to extract facts explicitly stated by the user in the latest User Message. Never copy or infer facts from an assistant response. Output only newly supported fields.
 
 Supported visitorProfile values: Explorer, Student / Learner, Startup Founder, Small Business Owner, Registered Company, Existing Client.
 Supported businessStage values: Idea, Startup, Established, Growth, Not Applicable.
@@ -50,7 +73,7 @@ Output ONLY a valid JSON object matching this TypeScript interface (do not expla
 Existing Memory JSON:
 ${JSON.stringify(existingFacts)}`;
 
-      const turnPrompt = `User Message: "${userMessage}"\nAssistant Response: "${assistantResponse}"`;
+      const turnPrompt = `User Message: "${userMessage}"`;
 
       let parsedFacts: Partial<ChatSessionFacts> = {};
       try {
@@ -60,13 +83,13 @@ ${JSON.stringify(existingFacts)}`;
           { role: 'user' as const, content: turnPrompt }
         ];
         const startTime = Date.now();
-        const result = await provider.generate(messages);
+        const result = await provider.generate(messages, { allowFallback: false });
         const cleanContent = result.content.replace(/```json/g, '').replace(/```/g, '').trim();
         logger.info(`[AI Extractor] LLM raw extraction result in ${Date.now() - startTime}ms: ${cleanContent}`);
-        parsedFacts = JSON.parse(cleanContent);
+        parsedFacts = extractedFactsSchema.parse(JSON.parse(cleanContent));
       } catch (e: any) {
-        logger.warn('[AI Extractor] Provider call or JSON parse failed, falling back to rule heuristics:', e.message);
-        parsedFacts = aiMemory.learnFactsIncremental(userMessage, assistantResponse, existingFacts);
+        logger.warn('[AI Extractor] Provider extraction unavailable or invalid; applying user-message-only rules:', e.message);
+        parsedFacts = aiMemory.learnFactsIncremental(userMessage, '', existingFacts);
       }
 
       // Merge new facts into existing facts
@@ -74,26 +97,24 @@ ${JSON.stringify(existingFacts)}`;
         ...existingFacts,
         ...parsedFacts,
         // Ensure email/phone/name extracted by rule-based heuristic takes priority if LLM missed it
-        ...aiMemory.learnFactsIncremental(userMessage, assistantResponse, {})
+        ...aiMemory.learnFactsIncremental(userMessage, '', {})
       };
 
-      // Save to memory database
-      await aiMemory.saveFacts(sessionId, mergedFacts);
+      const saved = await prisma.chatSession.updateMany({
+        where: { id: sessionId, messageCount: conversationVersion },
+        data: { metadata: { ...currentMeta, facts: mergedFacts } as any }
+      });
+      if (saved.count !== 1) throw new Error('MEMORY_JOB_STALE_OR_SESSION_DELETED');
 
       // Trigger rolling conversation summarizer asynchronously
-      aiMemory.summarizeSessionHistory(sessionId).catch(err => {
+      aiMemory.summarizeSessionHistory(sessionId, conversationVersion).catch(err => {
         logger.error('[AI Extractor] Failed to run rolling context summary:', err);
       });
 
       // Link email/phone/company details to Lead if session is already qualified
-      const session = await prisma.chatSession.findUnique({
-        where: { id: sessionId },
-        select: { leadId: true }
-      });
-
-      if (session?.leadId && (mergedFacts.email || mergedFacts.phone)) {
-        await prisma.lead.update({
-          where: { id: session.leadId },
+      if (currentSession.leadId && (mergedFacts.email || mergedFacts.phone)) {
+        await prisma.lead.updateMany({
+          where: { id: currentSession.leadId },
           data: {
             email: mergedFacts.email || null,
             phone: mergedFacts.phone || null,
@@ -105,6 +126,7 @@ ${JSON.stringify(existingFacts)}`;
 
     } catch (err) {
       logger.error('[AI Extractor] Asynchronous context extraction failed:', err);
+      throw err;
     }
   }
 };

@@ -135,4 +135,9 @@ async function runPhase3MarketingAutomationVerification() {
   }
 }
 
-runPhase3MarketingAutomationVerification();
+runPhase3MarketingAutomationVerification()
+  .then(() => process.exit(0))
+  .catch(error => {
+    console.error(error);
+    process.exit(1);
+  });

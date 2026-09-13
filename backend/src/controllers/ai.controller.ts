@@ -7,6 +7,8 @@ import { getAIProvider } from '../ai/providers';
 import { ApiResponse } from '../types/api';
 import { webrtcSignaling } from '../ai/webrtc-signaling';
 import prisma from '../config/database';
+import { sessionCapabilityService } from '../ai/session-capability.service';
+import { AppError } from '../middleware/errorHandler';
 
 const chatSchema = z.object({
   message: z.string().min(1).max(2000, 'Message too long'),
@@ -85,23 +87,28 @@ export const aiController = {
       let qualified = false;
 
       if (sessionId) {
+        await sessionCapabilityService.assertRequestAccess(req, { sessionId });
         const session = await prisma.chatSession.findUnique({
           where: { id: sessionId },
           include: { lead: true }
         });
         if (session) {
-          qualified = true;
+          const metadata = (session.metadata as Record<string, any> | null) || {};
+          const authorization = metadata.maryCallAuthorization;
+          qualified = authorization?.allowed === true
+            && !authorization?.consumedAt
+            && Date.parse(authorization?.expiresAt || '') > Date.now();
         }
-      } else {
-        qualified = true;
       }
 
-      const webRtcActive = isEnabled && presence !== 'Offline' && activeCallCount === 0;
+      const webRtcActive = isEnabled && presence !== 'Offline' && activeCallCount === 0 && qualified;
       res.status(200).json({
         success: true,
         data: {
           enabled: webRtcActive,
-          status: activeCallCount > 0 ? 'busy' : (webRtcActive ? 'ready' : 'disabled')
+          status: activeCallCount > 0
+            ? 'busy'
+            : (!qualified ? 'mary_authorization_required' : (webRtcActive ? 'ready' : 'disabled'))
         }
       });
     } catch (err) {
@@ -125,6 +132,15 @@ export const aiController = {
       if (!chatSession) {
         res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Chat session not found' } });
         return;
+      }
+
+      const sessionMetadata = (chatSession.metadata as Record<string, any> | null) || {};
+      const callAuthorization = sessionMetadata.maryCallAuthorization;
+      const isAuthorizedByMary = callAuthorization?.allowed === true
+        && !callAuthorization?.consumedAt
+        && Date.parse(callAuthorization?.expiresAt || '') > Date.now();
+      if (!isAuthorizedByMary) {
+        throw new AppError(403, 'MARY_CALL_AUTHORIZATION_REQUIRED', 'Mary must authorize this call before it can be placed.');
       }
 
       const activeCallCount = await prisma.callSession.count({
@@ -161,6 +177,20 @@ export const aiController = {
           leadId: chatSession?.leadId || null,
           chatSessionId: sessionId,
           leadScoreBefore
+        }
+      });
+
+      await prisma.chatSession.update({
+        where: { id: sessionId },
+        data: {
+          metadata: {
+            ...sessionMetadata,
+            maryCallAuthorization: {
+              ...callAuthorization,
+              consumedAt: new Date().toISOString(),
+              callSessionId: callSession.id
+            }
+          }
         }
       });
 
@@ -248,6 +278,9 @@ export const aiController = {
         res.status(400).json({ success: false, error: { message: 'sessionId, role and candidate are required' } });
         return;
       }
+      if (role !== 'visitor') {
+        throw new AppError(403, 'FORBIDDEN', 'Public callers may only submit visitor candidates');
+      }
       webrtcSignaling.addCandidate(sessionId, role as any, candidate);
       res.status(200).json({ success: true, message: 'ICE candidate registered' });
     } catch (err) {
@@ -287,11 +320,36 @@ export const aiController = {
         res.status(400).json({ success: false, error: { message: 'sessionId and status are required' } });
         return;
       }
+      const actorRole = String((req as any).user?.role || '').toLowerCase();
+      const isAuthorizedOperator = ['owner', 'super_admin', 'admin'].includes(actorRole);
+      if (denisNotes !== undefined && !isAuthorizedOperator) {
+        throw new AppError(403, 'FORBIDDEN', 'Internal call notes require administrator access');
+      }
 
       const callSession = await prisma.callSession.findUnique({ where: { sessionId } });
       if (!callSession) {
         res.status(404).json({ success: false, error: { message: 'Call session not found' } });
         return;
+      }
+
+      const allowedVisitorTransitions: Record<string, string[]> = {
+        initiated: ['cancelled', 'failed', 'missed'],
+        ringing: ['cancelled', 'failed', 'missed'],
+        connecting: ['cancelled', 'failed'],
+        connected: ['completed', 'failed'],
+        reconnecting: ['completed', 'failed'],
+      };
+      const allowedOperatorTransitions: Record<string, string[]> = {
+        initiated: ['declined', 'failed', 'missed'],
+        ringing: ['declined', 'failed', 'missed'],
+        answered: ['completed', 'failed'],
+        connecting: ['completed', 'failed'],
+        connected: ['completed', 'failed'],
+        reconnecting: ['completed', 'failed'],
+      };
+      const allowedTransitions = isAuthorizedOperator ? allowedOperatorTransitions : allowedVisitorTransitions;
+      if (!(allowedTransitions[callSession.status] || []).includes(status)) {
+        throw new AppError(409, 'INVALID_CALL_TRANSITION', `Cannot transition call from ${callSession.status} to ${status}`);
       }
 
       const endedAt = new Date();
@@ -342,6 +400,9 @@ export const aiController = {
   async chat(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { message, sessionId, visitorId, language } = chatSchema.parse(req.body);
+      if (sessionId) {
+        await sessionCapabilityService.assertRequestAccess(req, { sessionId });
+      }
       
       // Configure Server-Sent Events (SSE) headers for streaming
       res.setHeader('Content-Type', 'text/event-stream');

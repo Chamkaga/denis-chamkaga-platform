@@ -6,6 +6,7 @@ import prisma from '../config/database';
 import { PaginationQuery } from '../types/api';
 import { AppError } from '../middleware/errorHandler';
 import { Prisma } from '@prisma/client';
+import { sanitizeBlogHtml } from '../utils/html-sanitizer';
 import { env } from '../config/env';
 import { getAIProvider } from '../ai/providers';
 
@@ -199,11 +200,16 @@ export const adminService = {
   },
 
   async createBlogPost(data: Prisma.BlogPostCreateInput) {
-    return prisma.blogPost.create({ data, include: { category: true, author: true } });
+    const safeData = { ...data, content: sanitizeBlogHtml(data.content) };
+    return prisma.blogPost.create({ data: safeData, include: { category: true, author: true } });
   },
 
   async updateBlogPost(id: string, data: Prisma.BlogPostUpdateInput) {
-    return prisma.blogPost.update({ where: { id }, data, include: { category: true } });
+    const safeData = {
+      ...data,
+      ...(typeof data.content === 'string' ? { content: sanitizeBlogHtml(data.content) } : {}),
+    };
+    return prisma.blogPost.update({ where: { id }, data: safeData, include: { category: true } });
   },
 
   async deleteBlogPost(id: string) {
@@ -744,4 +750,3 @@ export const adminService = {
     return prisma.aiPrompt.delete({ where: { id } });
   },
 };
-

@@ -1206,6 +1206,15 @@ export const financeService = {
         }
       }
       inv = await this.getInvoiceDetails(invoiceId);
+      if (!Number.isFinite(txn.amount) || txn.amount <= 0) {
+        throw new AppError(400, 'INVALID_PAYMENT_AMOUNT', 'Gateway returned an invalid payment amount.');
+      }
+      if (txn.currency.toUpperCase() !== inv.currency.toUpperCase()) {
+        throw new AppError(400, 'PAYMENT_CURRENCY_MISMATCH', 'Gateway currency does not match the invoice currency.');
+      }
+      if (!new Decimal(txn.amount).equals(new Decimal(inv.balanceDue))) {
+        throw new AppError(400, 'PAYMENT_AMOUNT_MISMATCH', 'Gateway amount does not match the invoice balance due.');
+      }
     }
 
     const paymentNumber = await this.getNextSequence('receipt').then(n => n.replace('REC', 'PAY')); // PAY-XXXXXX
@@ -1682,4 +1691,3 @@ export const financeService = {
     };
   }
 };
-

@@ -27,6 +27,7 @@ import { useLanguageStore } from '../../../store/useLanguageStore';
 import { audioSynth } from '../../../lib/audio-synth';
 import { aiApi, publicApi } from '../../../services/api';
 import { LogoIcon } from '../../../components/atoms/Logo/Logo';
+import { useToast } from '../../atoms/Toast';
 
 export interface UploadedAttachment {
   id: string;
@@ -47,6 +48,7 @@ export interface VisitorInfo {
 export const ChatWidget: React.FC = () => {
   const { isChatOpen, toggleChat } = useUIStore();
   const { language } = useLanguageStore();
+  const { toast } = useToast();
   
   const [activeTab, setActiveTab] = useState<'home' | 'conversation'>('home');
   const [showServicesList, setShowServicesList] = useState(false);
@@ -54,6 +56,7 @@ export const ChatWidget: React.FC = () => {
   const [messages, setMessages] = useState<Array<{ sender: 'user' | 'assistant'; text: string; attachments?: UploadedAttachment[] }>>([]);
   const [inputVal, setInputVal] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [chatState, setChatState] = useState<'idle' | 'sending' | 'connecting' | 'thinking' | 'streaming' | 'completed' | 'error'>('idle');
   const [sessionId, setSessionId] = useState<string | undefined>(undefined);
   const [visitorId, setVisitorId] = useState<string>('');
   const [isWebRtcEnabled, setIsWebRtcEnabled] = useState(false);
@@ -150,7 +153,8 @@ export const ChatWidget: React.FC = () => {
       ? `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/ai/webrtc/session?sessionId=${activeSid}`
       : `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/ai/webrtc/session`;
 
-    fetch(url)
+    const capability = localStorage.getItem('assistantSessionCapability');
+    fetch(url, capability ? { headers: { 'X-Session-Capability': capability } } : undefined)
       .then(res => res.json())
       .then(res => {
         if (res.success && res.data && res.data.enabled) {
@@ -208,6 +212,7 @@ export const ChatWidget: React.FC = () => {
         const diff = Date.now() - parseInt(lastMsgTime, 10);
         if (diff > 30 * 60 * 1000) {
           localStorage.removeItem('assistantSessionId');
+          localStorage.removeItem('assistantSessionCapability');
           localStorage.removeItem('assistantLastMessageTime');
         } else {
           setHasSavedSession(true);
@@ -437,6 +442,7 @@ export const ChatWidget: React.FC = () => {
     setAttachments([]);
     setNetworkError(null);
     localStorage.removeItem('assistantSessionId');
+    localStorage.removeItem('assistantSessionCapability');
     localStorage.removeItem('assistantLastMessageTime');
   };
 
@@ -446,6 +452,7 @@ export const ChatWidget: React.FC = () => {
       abortControllerRef.current = null;
     }
     setIsTyping(false);
+    setChatState('idle');
   };
 
   const handleDeleteMessage = (index: number) => {
@@ -484,7 +491,10 @@ export const ChatWidget: React.FC = () => {
     if (localSessionId) {
       fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/ai/webrtc/log`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Session-Capability': localStorage.getItem('assistantSessionCapability') || ''
+        },
         body: JSON.stringify({
           sessionId: localSessionId,
           status: 'completed'
@@ -554,7 +564,10 @@ export const ChatWidget: React.FC = () => {
         if (event.candidate) {
           fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/ai/webrtc/candidate`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Session-Capability': localStorage.getItem('assistantSessionCapability') || ''
+            },
             body: JSON.stringify({
               sessionId: localSessionId,
               role: 'visitor',
@@ -563,33 +576,106 @@ export const ChatWidget: React.FC = () => {
           }).catch(err => console.error('Failed to post candidate:', err));
         }
       };
+
+      pc.ontrack = (event) => {
+        const remoteAudio = new Audio();
+        remoteAudio.srcObject = event.streams[0];
+        remoteAudio.play().catch(err => console.error('Failed to play call audio:', err));
+      };
+
+      pc.onconnectionstatechange = () => {
+        if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+          setWebrtcStatus('error');
+          audioSynth.stop();
+        }
+      };
+
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      const capability = localStorage.getItem('assistantSessionCapability') || '';
+      const offerResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/ai/webrtc/offer`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Session-Capability': capability
+        },
+        body: JSON.stringify({ sessionId: localSessionId, sdpOffer: offer.sdp })
+      });
+      if (!offerResponse.ok) {
+        const failure = await offerResponse.json().catch(() => null);
+        throw new Error(failure?.error?.message || `Call request failed with status ${offerResponse.status}`);
+      }
+
+      const seenCandidates = new Set<string>();
+      pollIntervalRef.current = window.setInterval(async () => {
+        try {
+          if (!pc.remoteDescription) {
+            const answerResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/ai/webrtc/answer/${localSessionId}`, {
+              headers: { 'X-Session-Capability': capability }
+            });
+            if (answerResponse.ok) {
+              const answerData = await answerResponse.json();
+              if (answerData.data?.sdpAnswer) {
+                await pc.setRemoteDescription({ type: 'answer', sdp: answerData.data.sdpAnswer });
+                audioSynth.stop();
+                audioSynth.playConnectedTone();
+                setWebrtcStatus('active');
+              }
+            }
+          }
+
+          const candidatesResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/ai/webrtc/candidates/${localSessionId}?role=admin`, {
+            headers: { 'X-Session-Capability': capability }
+          });
+          if (candidatesResponse.ok) {
+            const candidatesData = await candidatesResponse.json();
+            for (const candidate of candidatesData.data?.candidates || []) {
+              const key = JSON.stringify(candidate);
+              if (!seenCandidates.has(key)) {
+                seenCandidates.add(key);
+                await pc.addIceCandidate(candidate);
+              }
+            }
+          }
+        } catch (pollError) {
+          console.error('Failed to receive call signaling update:', pollError);
+        }
+      }, 1500);
     } catch (e) {
       console.error(e);
+      setWebrtcStatus('error');
+      audioSynth.stop();
+      setMessages((prev) => [...prev, {
+        sender: 'assistant',
+        text: language === 'sw'
+          ? 'Simu haikuweza kuunganishwa. Tafadhali jaribu tena au endelea kwa ujumbe.'
+          : 'The call could not be connected. Please try again or continue by message.'
+      }]);
     }
   };
 
   const featureCards = language === 'sw' ? [
     { icon: '💼', title: 'Jenga Tovuti ya Biashara', query: 'Ninahitaji kujenga Tovuti ya Biashara.' },
-    { icon: '📱', title: 'Kutengeneza Mobile App', query: 'Ninataka kutengeneza Mobile App.' },
-    { icon: '🤖', title: 'Suluhisho za AI', query: 'Ninahitaji suluhisho za Akili Bandia (AI).' },
-    { icon: '🖥', title: 'Mifumo ya ERP / CRM', query: 'Ninahitaji mfumo wa ERP au CRM.' },
-    { icon: '🌐', title: 'Mtandao & Miundombinu', query: 'Ninahitaji usaidizi wa Networking & Infrastructure.' },
-    { icon: '☁', title: 'Cloud & Server Solutions', query: 'Ninahitaji huduma za Cloud & Seva.' },
-    { icon: '📊', title: 'Ushauri wa Biashara', query: 'Ninahitaji Ushauri wa Biashara.' },
-    { icon: '💬', title: 'Zungumza na Denis', query: 'Ninapenda kupata ushauri wa moja kwa moja kutoka kwa Denis.' },
+    { icon: '🗄️', title: 'Database & Systems', query: 'Nahitaji Database Design na Systems Optimization.' },
+    { icon: '🖥️', title: 'CRM na Business Automation', query: 'Nahitaji CRM na Business Automation.' },
+    { icon: '📦', title: 'Mifumo ya Biashara (ERP)', query: 'Nahitaji mfumo wa biashara wa ERP kwa shughuli zangu.' },
+    { icon: '🔧', title: 'Custom Software', query: 'Nahitaji Custom Software kwa biashara yangu.' },
+    { icon: '📈', title: 'Digital Transformation', query: 'Nahitaji Digital Transformation Consulting.' },
+    { icon: '🧭', title: 'Technology Consulting', query: 'Nahitaji Technology Consulting na ushauri wa mifumo.' },
+    { icon: '🎓', title: 'Training & Support', query: 'Nahitaji Training na Support baada ya mfumo.' },
     { icon: '💰', title: 'Omba Nukuu ya Bei', query: 'Naomba kupokea Nukuu ya Bei (Quotation).' },
-    { icon: '📅', title: 'Panga Mkutano', query: 'Ninataka kupanga Mkutano na Denis.' },
+    { icon: '📅', title: 'Panga Consultation', query: 'Ninataka kupanga consultation na Denis.' },
   ] : [
     { icon: '💼', title: 'Build a Business Website', query: 'I would like to build a Business Website.' },
-    { icon: '📱', title: 'Mobile App Development', query: 'I am interested in Mobile App Development.' },
-    { icon: '🤖', title: 'AI Solutions', query: 'I need AI Solutions for my business.' },
-    { icon: '🖥', title: 'ERP / CRM Systems', query: 'I want to deploy an ERP / CRM System.' },
-    { icon: '🌐', title: 'Networking & Infrastructure', query: 'I need Networking & Infrastructure services.' },
-    { icon: '☁', title: 'Cloud & Server Solutions', query: 'I need Cloud & Server Solutions.' },
-    { icon: '📊', title: 'Business Consultation', query: 'I would like a Business Consultation.' },
-    { icon: '💬', title: 'Talk to Denis', query: 'I would like to talk directly with Denis.' },
+    { icon: '🗄️', title: 'Database & Systems', query: 'I need Database Design and Systems Optimization.' },
+    { icon: '🖥️', title: 'CRM & Business Automation', query: 'I need CRM and Business Automation.' },
+    { icon: '📦', title: 'Business Systems (ERP)', query: 'I need an ERP business system for my operations.' },
+    { icon: '🔧', title: 'Custom Software', query: 'I need Custom Software for my business.' },
+    { icon: '📈', title: 'Digital Transformation', query: 'I need Digital Transformation Consulting.' },
+    { icon: '🧭', title: 'Technology Consulting', query: 'I need Technology Consulting for my systems.' },
+    { icon: '🎓', title: 'Training & Support', query: 'I need Training and Support after delivery.' },
     { icon: '💰', title: 'Request a Quote', query: 'I want to Request a Quote for a project.' },
-    { icon: '📅', title: 'Book a Meeting', query: 'I want to Book a Meeting with Denis.' },
+    { icon: '📅', title: 'Book a Consultation', query: 'I want to book a consultation with Denis.' },
   ];
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -598,13 +684,21 @@ export const ChatWidget: React.FC = () => {
     const file = files[0];
 
     if (file.size > 10 * 1024 * 1024) {
-      alert(language === 'sw' ? 'Faili ni kubwa mno (Ziada ya 10MB).' : 'File too large (Max 10MB).');
+      toast.warning(
+        language === 'sw' ? 'Faili ni kubwa mno (Zaidi ya 10MB).' : 'File too large. Maximum size is 10MB.',
+        language === 'sw' ? 'Faili Kubwa Mno' : 'File Too Large'
+      );
       return;
     }
 
     setUploadingFile(true);
     try {
-      const uploaded = await aiApi.uploadAttachment(file);
+      const activeSessionId = sessionId || localStorage.getItem('assistantSessionId');
+      if (!activeSessionId) {
+        toast.warning(language === 'sw' ? 'Tuma ujumbe kwanza ili kuanzisha mazungumzo salama.' : 'Send a message first to start a secure conversation before attaching files.');
+        return;
+      }
+      const uploaded = await aiApi.uploadAttachment(file, activeSessionId);
       setAttachments(prev => [...prev, uploaded]);
     } catch (err) {
       console.error('File upload error:', err);
@@ -636,6 +730,7 @@ export const ChatWidget: React.FC = () => {
 
     if (!customPrompt) setInputVal('');
     setNetworkError(null);
+    setChatState('sending');
 
     const currentAttachments = [...attachments];
     setAttachments([]);
@@ -678,6 +773,7 @@ export const ChatWidget: React.FC = () => {
     });
 
     setIsTyping(true);
+    setChatState('connecting');
 
     const activeSessionId = sessionId || localStorage.getItem('assistantSessionId') || undefined;
     const controller = new AbortController();
@@ -686,7 +782,10 @@ export const ChatWidget: React.FC = () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/ai/chat/stream`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(activeSessionId ? { 'X-Session-Capability': localStorage.getItem('assistantSessionCapability') || '' } : {})
+        },
         signal: controller.signal,
         body: JSON.stringify({
           message: fullPromptText,
@@ -705,10 +804,12 @@ export const ChatWidget: React.FC = () => {
       const decoder = new TextDecoder();
       if (!reader) throw new Error('No readable stream available');
 
+      setChatState('thinking');
       streamTextRef.current = '';
       setMessages((prev) => [...prev, { sender: 'assistant', text: '' }]);
 
       let buffer = '';
+      let tokensReceived = 0;
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -741,6 +842,8 @@ export const ChatWidget: React.FC = () => {
             }
 
             if (data.token) {
+              tokensReceived++;
+              setChatState('streaming');
               streamTextRef.current += data.token;
               setMessages((prev) => {
                 if (prev.length === 0) return prev;
@@ -758,29 +861,49 @@ export const ChatWidget: React.FC = () => {
               setSessionId(data.sessionId);
               localStorage.setItem('assistantSessionId', data.sessionId);
             }
+            if (data.sessionCapability) {
+              localStorage.setItem('assistantSessionCapability', data.sessionCapability);
+            }
+            if (data.generationMode === 'fallback' || data.generationMode === 'offline') {
+              setNetworkError(language === 'sw'
+                ? 'Mary yuko katika hali ya msaada wa msingi kwa sababu huduma ya AI haipatikani kwa sasa.'
+                : 'Mary is in limited fallback mode because the AI provider is currently unavailable.');
+              setChatState('error');
+            }
           } catch (e) {
             console.error('Failed to parse SSE JSON:', e);
           }
         }
       }
+      setChatState('completed');
       checkWebRtcStatus(localStorage.getItem('assistantSessionId') || undefined);
     } catch (err: any) {
       if (err.name === 'AbortError') {
         console.log('Chat stream aborted by user.');
+        setChatState('idle');
         return;
       }
 
       console.error('Widget chat stream request failed', err);
+      
+      // If tokens were already received before disconnection, preserve the response as partial/completed rather than wiping with red failure
+      if (streamTextRef.current.trim().length > 0) {
+        console.warn('Stream interrupted but partial tokens preserved.');
+        setChatState('completed');
+        return;
+      }
+
       const errorText = language === 'sw'
         ? 'Samahani, kumetokea hitilafu ya mtandao. Jaribu tena.'
-        : 'Sorry, a connection error occurred. Try again.';
+        : 'Sorry, a connection error occurred. Please try again.';
 
+      setChatState('error');
       setNetworkError(errorText);
 
       setMessages((prev) => {
         const updated = [...prev];
         const last = updated[updated.length - 1];
-        if (last && last.sender === 'assistant' && (last.text === 'Thinking...' || last.text === 'Fikra...')) {
+        if (last && last.sender === 'assistant' && (last.text === 'Thinking...' || last.text === 'Fikra...' || !last.text.trim())) {
           last.text = errorText;
         } else {
           updated.push({
@@ -793,6 +916,9 @@ export const ChatWidget: React.FC = () => {
     } finally {
       setIsTyping(false);
       abortControllerRef.current = null;
+      setTimeout(() => {
+        setChatState((prev) => (prev === 'completed' ? 'idle' : prev));
+      }, 300);
     }
   };
 
@@ -1251,20 +1377,27 @@ export const ChatWidget: React.FC = () => {
                             <div className="w-7 h-7 rounded-full overflow-hidden shrink-0 border border-accent-violet/40">
                               <img src="/images/assistant/mary_avatar.png" alt="Mary" className="w-full h-full object-cover" />
                             </div>
-                            <div className="p-3 rounded-2xl dark:bg-zinc-800/90 light:bg-slate-100 rounded-tl-none flex items-center gap-1.5 h-9">
-                              <span className="w-1.5 h-1.5 rounded-full bg-accent-violet animate-pulse" />
-                              <span className="w-1.5 h-1.5 rounded-full bg-accent-violet animate-pulse" style={{ animationDelay: '150ms' }} />
-                              <span className="w-1.5 h-1.5 rounded-full bg-accent-violet animate-pulse" style={{ animationDelay: '300ms' }} />
+                            <div className="px-3.5 py-2 rounded-2xl dark:bg-zinc-800/90 light:bg-slate-100 rounded-tl-none flex items-center gap-2 border border-zinc-700/40">
+                              <div className="flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-accent-violet animate-pulse" />
+                                <span className="w-1.5 h-1.5 rounded-full bg-accent-violet animate-pulse" style={{ animationDelay: '150ms' }} />
+                                <span className="w-1.5 h-1.5 rounded-full bg-accent-violet animate-pulse" style={{ animationDelay: '300ms' }} />
+                              </div>
+                              <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-400 light:text-slate-500">
+                                {chatState === 'connecting'
+                                  ? (language === 'sw' ? 'Inaunganisha...' : 'Connecting...')
+                                  : (language === 'sw' ? 'Mary anafikiri...' : 'Mary is thinking...')}
+                              </span>
                             </div>
                           </div>
                           
-                          {/* Cancel/Stop Response Generation Button */}
+                          {/* Cancel/Stop Response Generation Button (Neutral, subtle, NOT red error-looking) */}
                           <button
                             onClick={handleCancelGeneration}
-                            className="ml-10 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/30 text-red-500 hover:bg-red-500/20 text-[10px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                            className="ml-10 px-3 py-1 rounded-full dark:bg-zinc-800/80 light:bg-slate-200 border dark:border-zinc-700/70 light:border-slate-300 text-zinc-400 dark:hover:text-zinc-200 light:hover:text-slate-800 text-[10px] font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
                           >
-                            <StopCircle size={12} />
-                            {language === 'sw' ? 'Ahirisha Jibu (Stop)' : 'Stop Generating'}
+                            <StopCircle size={12} className="text-zinc-400" />
+                            {language === 'sw' ? 'Simamisha Jibu' : 'Stop generating'}
                           </button>
                         </div>
                       )}

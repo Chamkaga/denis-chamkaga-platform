@@ -3,7 +3,7 @@
 
 import { Router, Request, Response, NextFunction } from 'express';
 import { financeService } from '../services/finance.service';
-import { requireAuth, requireRole } from '../middleware/auth.middleware';
+import { requireAuth, requireRole, requireResourceAccess, requirePermission } from '../middleware/auth.middleware';
 import { ApiResponse } from '../types/api';
 import prisma from '../config/database';
 
@@ -11,7 +11,7 @@ const router = Router();
 
 // Secure admin routes
 router.use(requireAuth);
-router.use(requireRole('admin', 'super_admin'));
+router.use(requireResourceAccess('finance'));
 
 const wrap = (fn: (req: Request<any, any, any, any>, res: Response, next: NextFunction) => Promise<void>) =>
   (req: Request, res: Response, next: NextFunction) => fn(req, res, next).catch(next);
@@ -129,7 +129,7 @@ router.get('/payments', wrap(async (_req, res) => {
   res.json({ success: true, data: list } satisfies ApiResponse);
 }));
 
-router.post('/invoices/:id/payments', wrap(async (req, res) => {
+router.post('/invoices/:id/payments', requirePermission('finance', 'verify'), wrap(async (req, res) => {
   const username = (req as any).user?.email || 'admin';
   const pay = await financeService.recordPayment(req.params.id, req.body, username);
   res.status(201).json({ success: true, data: pay } satisfies ApiResponse);
@@ -222,4 +222,3 @@ router.get('/client-summary', wrap(async (req, res) => {
 }));
 
 export default router;
-

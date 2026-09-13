@@ -5,6 +5,8 @@ import { Router, Request, Response } from 'express';
 import { prometheusRegistry } from '../telemetry/metrics';
 import prisma from '../config/database';
 import os from 'os';
+import { getAIProvider } from '../ai/providers';
+import { env } from '../config/env';
 
 const router = Router();
 
@@ -37,8 +39,16 @@ router.get('/health/readiness', async (_req: Request, res: Response) => {
 
     const memoryUsageMB = Math.round((process.memoryUsage().heapUsed / (1024 * 1024)) * 10) / 10;
     const totalMemGB = Math.round((os.totalmem() / (1024 * 1024 * 1024)) * 10) / 10;
+    const providerHealth = await Promise.race([
+      getAIProvider().healthCheck(),
+      new Promise<{ status: 'unhealthy'; provider: string; model: string; latencyMs: number; error: string }>(resolve =>
+        setTimeout(() => resolve({ status: 'unhealthy', provider: 'openai', model: env.OPENAI_MODEL, latencyMs: 3000, error: 'Provider readiness timed out' }), 3000)
+      )
+    ]);
+    const paymentReady = !env.PAYMENT_DPO_ENABLED || env.PAYMENT_DPO_SANDBOX || (!!env.DPO_COMPANY_TOKEN && !!env.DPO_SERVICE_TYPE);
+    const aiRequired = process.env.AI_PROVIDER_REQUIRED !== 'false';
 
-    const isHealthy = dbLatencyMs <= 500 && memoryUsageMB <= 512;
+    const isHealthy = dbLatencyMs <= 500 && memoryUsageMB <= 512 && paymentReady && (!aiRequired || providerHealth.status === 'healthy');
 
     res.status(isHealthy ? 200 : 503).json({
       status: isHealthy ? 'READY' : 'DEGRADED',
@@ -46,6 +56,8 @@ router.get('/health/readiness', async (_req: Request, res: Response) => {
       checks: {
         database: { status: 'UP', latencyMs: dbLatencyMs, targetMs: 500 },
         memory: { heapUsedMB: memoryUsageMB, limitMB: 512, systemTotalGB: totalMemGB },
+        aiProvider: providerHealth,
+        payments: { status: paymentReady ? 'READY' : 'MISCONFIGURED', provider: env.PAYMENT_PROVIDER, sandbox: env.PAYMENT_DPO_SANDBOX },
         nodeVersion: process.version
       },
       sloTargets: {

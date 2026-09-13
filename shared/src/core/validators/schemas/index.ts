@@ -20,6 +20,7 @@ export const backendEnvSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(32, 'JWT_REFRESH_SECRET must be at least 32 characters'),
   JWT_ACCESS_EXPIRY: z.string().default('15m'),
   JWT_REFRESH_EXPIRY: z.string().default('7d'),
+  SESSION_CAPABILITY_SECRET: z.string().min(32).optional(),
 
   // CORS
   FRONTEND_URL: z.string().url().default('http://localhost:5173'),

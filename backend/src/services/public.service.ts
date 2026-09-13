@@ -3,6 +3,7 @@
 // Used by frontend to fetch real data from the database.
 
 import prisma from '../config/database';
+import { sanitizeBlogHtml } from '../utils/html-sanitizer';
 import { PaginationQuery } from '../types/api';
 
 export const publicService = {
@@ -120,7 +121,7 @@ export const publicService = {
     if (post) {
       await prisma.blogPost.update({ where: { slug }, data: { viewCount: { increment: 1 } } });
     }
-    return post;
+    return post ? { ...post, content: sanitizeBlogHtml(post.content) } : null;
   },
 
   async getCategories() {

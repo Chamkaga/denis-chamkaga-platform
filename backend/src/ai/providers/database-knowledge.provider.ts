@@ -13,15 +13,20 @@ const TTL = 10 * 60 * 1000; // 10 minutes cache
 
 class DatabaseKnowledgeProvider implements KnowledgeProvider {
   name = 'database';
+  precedence = 1; // Precedence 1 (Live DB CMS Entities)
 
   isEnabled(): boolean {
     return process.env.AI_KNOWLEDGE_ENGINE !== 'false';
   }
 
-  public clearCache(): void {
+  public invalidateCache(): void {
     logger.info('[AI DB Knowledge Provider] Invalidating cache for re-indexing...');
     cache = null;
     cacheTime = 0;
+  }
+
+  public clearCache(): void {
+    this.invalidateCache();
   }
 
   private async buildCache(): Promise<KnowledgeDocument[]> {
@@ -64,39 +69,57 @@ class DatabaseKnowledgeProvider implements KnowledgeProvider {
       // 1. Map services
       for (const s of services) {
         documents.push({
-          id: `db_service_${s.id}`,
+          id: `db.service.${s.id}`,
           source: 'service',
+          sourceType: 'DATABASE',
+          sourceId: s.id,
+          sourceOfTruth: `database:Service:${s.id}`,
           title: `Service: ${s.title}`,
           content: `${s.title}: ${s.description}. Features: ${Array.isArray(s.features) ? s.features.join(', ') : ''}. Technologies: ${Array.isArray(s.technologies) ? s.technologies.join(', ') : ''}`,
+          audience: 'BOTH',
+          status: 'ACTIVE',
+          version: '1.0.0',
           qualityScore: 100,
           relationships: []
-        } as any);
+        });
       }
 
       // 2. Map projects
       if (projectsResult && Array.isArray(projectsResult.items)) {
         for (const p of projectsResult.items) {
           documents.push({
-            id: `db_project_${p.id}`,
+            id: `db.project.${p.id}`,
             source: 'project',
+            sourceType: 'DATABASE',
+            sourceId: p.id,
+            sourceOfTruth: `database:Project:${p.id}`,
             title: `Project Case: ${p.title}`,
             content: `${p.title} (${p.status}): ${p.description}. Category: ${p.category}. Tech stack: ${Array.isArray(p.techStack) ? p.techStack.join(', ') : ''}`,
+            audience: 'BOTH',
+            status: 'ACTIVE',
+            version: '1.0.0',
             qualityScore: 100,
             relationships: []
-          } as any);
+          });
         }
       }
 
       // 3. Map FAQs
       for (const f of faqs) {
         documents.push({
-          id: `db_faq_${f.id}`,
+          id: `db.faq.${f.id}`,
           source: 'faq',
+          sourceType: 'DATABASE',
+          sourceId: f.id,
+          sourceOfTruth: `database:Faq:${f.id}`,
           title: `FAQ: ${f.question}`,
           content: `Question: ${f.question}\nAnswer: ${f.answer}`,
+          audience: 'BOTH',
+          status: 'ACTIVE',
+          version: '1.0.0',
           qualityScore: 100,
           relationships: []
-        } as any);
+        });
       }
 
       // 4. Map Custom AI Knowledge Items
@@ -105,15 +128,20 @@ class DatabaseKnowledgeProvider implements KnowledgeProvider {
           ? `${item.content}\n\nKeywords: ${item.keywords}`
           : item.content;
         documents.push({
-          id: `db_ai_knowledge_${item.id}`,
+          id: `db.ai_knowledge.${item.id}`,
           source: 'ai_knowledge',
+          sourceType: 'DATABASE',
+          sourceId: item.id,
+          sourceOfTruth: `database:AiKnowledgeItem:${item.id}`,
           title: item.title,
           content: enrichedContent,
-          qualityScore: item.qualityScore,
-          updatedAt: item.updatedAt,
+          audience: 'BOTH',
+          status: 'ACTIVE',
+          version: '1.0.0',
+          qualityScore: item.qualityScore || 100,
           relationships: Array.isArray(item.relationships) ? (item.relationships as string[]) : [],
-          validUntil: item.validUntil
-        } as any);
+          expiresAt: item.validUntil ? item.validUntil.toISOString() : undefined
+        });
       }
 
       cache = documents;
@@ -125,14 +153,20 @@ class DatabaseKnowledgeProvider implements KnowledgeProvider {
     }
   }
 
-  async retrieve(query: string, limit: number): Promise<KnowledgeDocument[]> {
+  async retrieve(query: string, limit: number, context?: any): Promise<KnowledgeDocument[]> {
     const docs = await this.buildCache();
     if (docs.length === 0) return [];
 
-    // Filter out expired items dynamically
+    const targetAudience = context?.audience;
+
+    // Filter out expired items dynamically and match audience
     const now = Date.now();
     const activeDocs = docs.filter((d: any) => {
-      if (d.validUntil && new Date(d.validUntil).getTime() < now) {
+      if (d.status !== 'ACTIVE') return false;
+      if (d.expiresAt && new Date(d.expiresAt).getTime() < now) {
+        return false;
+      }
+      if (targetAudience && d.audience !== 'BOTH' && d.audience !== targetAudience) {
         return false;
       }
       return true;
@@ -150,13 +184,8 @@ class DatabaseKnowledgeProvider implements KnowledgeProvider {
       
       const qScore = d.qualityScore !== undefined ? d.qualityScore : 100;
       const qualityBoost = 1.0 + (qScore / 200.0); // Up to +50% boost for 100% quality
-      
-      const ageInDays = d.updatedAt
-        ? Math.max(0, (now - new Date(d.updatedAt).getTime()) / (24 * 60 * 60 * 1000))
-        : 30;
-      const freshnessBoost = ageInDays < 7 ? 1.25 : (ageInDays < 30 ? 1.1 : 1.0); // up to +25% boost if updated in last 7 days
 
-      const compositeScore = bm25Score * qualityBoost * freshnessBoost;
+      const compositeScore = bm25Score * qualityBoost;
 
       return { doc: d, score: compositeScore, originalScore: bm25Score };
     })
@@ -164,7 +193,10 @@ class DatabaseKnowledgeProvider implements KnowledgeProvider {
     .sort((a, b) => b.score - a.score);
 
     // Get primary docs matching limit
-    const primaryDocs = scored.slice(0, limit).map(item => item.doc);
+    const primaryDocs = scored.slice(0, limit).map(item => ({
+      ...item.doc,
+      score: item.score
+    }));
 
     // Resolve relationships: Recursively fetch and append context of related Linked Documents
     const finalDocs: KnowledgeDocument[] = [...primaryDocs];
@@ -174,7 +206,7 @@ class DatabaseKnowledgeProvider implements KnowledgeProvider {
       const rawDoc = doc as any;
       if (Array.isArray(rawDoc.relationships) && rawDoc.relationships.length > 0) {
         for (const relId of rawDoc.relationships) {
-          const targetId = `db_ai_knowledge_${relId}`;
+          const targetId = `db.ai_knowledge.${relId}`;
           if (!seenIds.has(targetId)) {
             const relDoc = docs.find(d => d.id === targetId);
             if (relDoc) {

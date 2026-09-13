@@ -1,6 +1,6 @@
 import { ProviderMetadata, ProviderCapabilities, ProviderHealth } from '@dc/shared';
 
-export type SupportedAIProvider = 'openai' | 'gemini';
+export type SupportedAIProvider = 'openai';
 
 export interface IAIProvider {
   getMetadata(): ProviderMetadata;

@@ -19,7 +19,7 @@ function postXml(url: string, xml: string): Promise<string> {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Content-Length': Buffer.byteLength(xml)
       },
-      rejectUnauthorized: false
+      rejectUnauthorized: true
     };
 
     const req = https.request(options, (res) => {
@@ -107,14 +107,8 @@ export class DPOGateway implements PaymentGateway {
         message: `DPO checkout initialization failed: ${explanation} (Code: ${result})`
       };
     } catch (err: any) {
-      logger.error('[DPO Gateway] Initialization error, falling back to mock sandbox:', err);
-      // Fallback in case of networks blocking / DNS resolve failures
-      const mockToken = `MOCK_SANDBOX_TOKEN_FB_${Date.now()}`;
-      return {
-        success: true,
-        checkoutUrl: `${this.getCheckoutBaseUrl()}?ID=${mockToken}`,
-        message: 'DPO sandbox fallback token generated successfully.'
-      };
+      logger.error('[DPO Gateway] Initialization error:', err);
+      return { success: false, message: err.message || 'DPO checkout initialization failed.' };
     }
   }
 

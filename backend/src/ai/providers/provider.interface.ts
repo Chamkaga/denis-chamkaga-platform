@@ -21,6 +21,7 @@ export interface GenerateOptions {
   maxTokens?: number;
   systemPrompt?: string;
   responseFormat?: 'text' | 'json';
+  allowFallback?: boolean;
 }
 
 export interface ProviderResponse {
@@ -28,6 +29,11 @@ export interface ProviderResponse {
   tokensUsed?: number;
   durationMs?: number;
   toolCalls?: ToolCall[];
+  provider: string;
+  model: string;
+  mode: 'live' | 'fallback' | 'offline';
+  errorCode?: string;
+  errorMessage?: string;
 }
 
 export interface HealthCheckResult {

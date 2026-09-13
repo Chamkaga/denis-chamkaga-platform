@@ -1,14 +1,14 @@
 // backend/src/routes/supporters.routes.ts
 import { Router, Request, Response, NextFunction } from 'express';
 import { supportersService } from '../services/supporters.service';
-import { requireAuth, requireRole } from '../middleware/auth.middleware';
+import { requireAuth, requireRole, requireResourceAccess } from '../middleware/auth.middleware';
 import { ApiResponse } from '../types/api';
 
 const router = Router();
 
 // Secure admin routes
 router.use(requireAuth);
-router.use(requireRole('admin', 'super_admin'));
+router.use(requireResourceAccess('supporters'));
 
 const wrap = (fn: (req: Request<any, any, any, any>, res: Response, next: NextFunction) => Promise<void>) =>
   (req: Request, res: Response, next: NextFunction) => fn(req, res, next).catch(next);

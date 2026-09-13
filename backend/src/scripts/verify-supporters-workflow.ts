@@ -59,7 +59,7 @@ async function runSupportersE2EVerification() {
 
     assert(dbSupporter !== null, `Supporter Profile persisted in PostgreSQL (ID: ${dbSupporter?.id})`);
     assert(dbSupporter?.tier === 'VISION_BUILDER', 'Support tier accurately stored as VISION_BUILDER');
-    assert(dbSupporter?.totalLifetimeAmount === amount, `Lifetime contribution amount verified: ${dbSupporter?.totalLifetimeAmount} TZS`);
+    assert(dbSupporter?.totalLifetimeAmount.toNumber() === amount, `Lifetime contribution amount verified: ${dbSupporter?.totalLifetimeAmount} TZS`);
     assert(dbSupporter?.contributions.length === 1, 'Contribution history array contains 1 recorded contribution');
 
     console.log('\nStep 4: Verifying Financial Ledger Synchronization...');

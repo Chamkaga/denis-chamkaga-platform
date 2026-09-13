@@ -8,10 +8,13 @@ import { getAIProvider } from './providers';
 import { aiResponseValidator } from './response-validator';
 import { aiCommunicationEngine } from './communication-engine';
 import { aiEventBus } from './event-bus';
-import { aiExtractor } from './extractor';
+import { memoryJobService } from './memory-job.service';
 import prisma from '../config/database';
 import { logger } from '../utils/logger';
 import { AppError } from '../middleware/errorHandler';
+import { env } from '../config/env';
+import { aiGenerationCounter, aiStageDurationHistogram } from '../telemetry/metrics';
+import { pricingCapability } from './capabilities/pricing.capability';
 
 export interface OrchestratorInput {
   message: string;
@@ -28,6 +31,11 @@ export interface OrchestratorOutput {
   leadScore: number;
   temperature: string;
   recommendation?: any;
+  visitorId: string;
+  provider: string;
+  model: string;
+  generationMode: 'live' | 'fallback' | 'offline';
+  providerErrorCode?: string;
 }
 
 function isSwahili(text: string): boolean {
@@ -56,6 +64,27 @@ function isEnglish(text: string): boolean {
   ];
   const lower = text.toLowerCase();
   return enKeywords.some(kw => new RegExp(`\\b${kw}\\b`).test(lower));
+}
+
+function synthesizeKnowledgeFallback(query: string, intent: string, lang: 'sw' | 'en'): string {
+  const isSwahili = lang === 'sw';
+  const lower = query.toLowerCase();
+
+  if (intent === 'Greeting') {
+    return isSwahili
+      ? "Habari! 👋 Jina langu ni Mary, Msaidizi wa Biashara wa Denis Chamkaga. Karibu! Ninawezaje kukusaidia leo?"
+      : "Hello! 👋 My name is Mary, Denis Chamkaga's Business Assistant. How can I help you today?";
+  }
+
+  if (intent === 'Unsupported Question' || lower.includes('rocket') || lower.includes('space travel') || lower.includes('spaceship')) {
+    return isSwahili
+      ? "Mimi ni Msaidizi wa Biashara wa Denis Chamkaga anayehusika na mifumo ya biashara (POS, ERP, CRM, Web & Mobile Apps). Hatujengi roketi au miundombinu ya anga. Je, ninawezaje kukusaidia kuhusu mfumo wa biashara yako?"
+      : "I am Denis Chamkaga's Business Assistant focusing strictly on business software systems (POS, ERP, CRM, Web & Mobile Apps). We do not build rockets or aerospace hardware. How can I assist you with your business software needs?";
+  }
+
+  return isSwahili
+    ? "Samahani, kwa sasa kuna hitilafu ya muda katika kuunganisha na hifadhi ya taarifa za biashara. Tafadhali jaribu kuuliza tena au wasiliana moja kwa moja na Denis."
+    : "I am temporarily experiencing a connectivity delay with our business knowledge service. Please try asking again in a moment or book a direct consultation with Denis Chamkaga.";
 }
 
 export const aiOrchestrator = {
@@ -129,18 +158,22 @@ export const aiOrchestrator = {
         sessionId,
         intent: 'blocked_safety',
         leadScore: session.leadScore,
-        temperature: 'cold'
+        temperature: 'cold',
+        visitorId: session.visitorId || input.visitorId || 'anonymous_visitor',
+        provider: 'none',
+        model: 'none',
+        generationMode: 'offline'
       };
     }
 
     // 3. Context Aggregation via Context Manager
     const historyDb = await prisma.aiConversation.findMany({
       where: { sessionId },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: 'desc' },
       take: 10
     });
 
-    const contextHistory = historyDb.map(h => ({
+    const contextHistory = historyDb.reverse().map(h => ({
       role: h.role as 'user' | 'assistant' | 'system',
       content: h.content
     }));
@@ -172,17 +205,26 @@ export const aiOrchestrator = {
       });
     }
 
+    const contextStartedAt = performance.now();
     const context = await aiContextManager.getContext({
       message: sanitizedText,
       sessionId,
       visitorId: session.visitorId || undefined,
       history: [...contextHistory, { role: 'user', content: sanitizedText }],
       currentLanguage,
-      userRole: role
+      userRole: role,
+      sessionMetadata: sessionMeta
     });
+    aiStageDurationHistogram.observe({ stage: 'context_intent_retrieval' }, (performance.now() - contextStartedAt) / 1000);
 
-    // 4. Prompt construction
+    const primaryIntent = context.intents[0]?.intent || 'General Inquiry';
+    const primaryConfidence = context.intents[0]?.confidence || 0.4;
+
+    // 4. Prompt construction & timing
+    const tPromptStart = performance.now();
     const providerMessages = aiPromptBuilder.build(context);
+    const promptConstructionMs = performance.now() - tPromptStart;
+    aiStageDurationHistogram.observe({ stage: 'prompt_construction' }, promptConstructionMs / 1000);
 
     // Knowledge Engine Inspection & Audit Logging
     const knowledgeDocs = context.knowledge || [];
@@ -198,74 +240,120 @@ export const aiOrchestrator = {
     let responseText = '';
     let tokensUsed = 0;
     let durationMs = 0;
+    let ttftMs = 0;
+    let firstTokenLogged = false;
+    let providerName = 'openai';
+    let modelName = env.OPENAI_MODEL;
+    let generationMode: 'live' | 'fallback' | 'offline' = 'fallback';
+    let providerErrorCode: string | undefined;
+
+    // Wrap token callback to track high-resolution Time To First Token (TTFT)
+    const wrappedOnToken = onToken ? (token: string) => {
+      if (!firstTokenLogged && token.length > 0) {
+        firstTokenLogged = true;
+        ttftMs = Date.now() - startTime;
+      }
+      onToken(token);
+    } : undefined;
 
     // 6. Execute generation
     try {
-      if (hasStream && onToken) {
-        const res = await provider.stream(providerMessages, onToken);
+      if (hasStream && wrappedOnToken) {
+        const res = await provider.stream(providerMessages, wrappedOnToken);
         responseText = res.content;
         tokensUsed = res.tokensUsed || 0;
         durationMs = res.durationMs || 0;
+        providerName = res.provider;
+        modelName = res.model;
+        generationMode = res.mode;
+        providerErrorCode = res.errorCode;
       } else {
         const res = await provider.generate(providerMessages);
         responseText = res.content;
         tokensUsed = res.tokensUsed || 0;
         durationMs = res.durationMs || 0;
+        ttftMs = durationMs;
+        providerName = res.provider;
+        modelName = res.model;
+        generationMode = res.mode;
+        providerErrorCode = res.errorCode;
       }
     } catch (err) {
-      logger.error('[AI Orchestrator] Provider execution failed, rendering Knowledge Engine fallback:', err);
+      logger.error('[AI Orchestrator] Provider execution failed, rendering natural business response fallback:', err);
       
-      const isAskingForDenis = ['denis', 'ongea', 'piga', 'simu', 'speak', 'talk', 'call', 'meet', 'wasiliana'].some(term => sanitizedText.toLowerCase().includes(term));
+      const isDeferringHandoff = primaryIntent === 'Handoff Deferral' || ['help me first', 'guide me instead', 'before denis', 'instead of denis', 'not denis', 'without denis'].some(term => sanitizedText.toLowerCase().includes(term));
+      const explicitDenisRequest = ['ongea na denis', 'speak to denis', 'call denis', 'connect to denis', 'human agent', 'talk to denis', 'want denis', 'i want denis', 'speak with denis'].some(term => sanitizedText.toLowerCase().includes(term));
+      const isAskingForDenis = !isDeferringHandoff && (explicitDenisRequest || (!context.facts.aiFirstPreference && sanitizedText.toLowerCase().includes('denis')));
       const activePresence = (context.presenceState || 'Offline').trim().toLowerCase();
 
       if (isAskingForDenis) {
         if (activePresence === 'online') {
           responseText = currentLanguage === 'sw'
-            ? "Denis yupo online kwa sasa na unaweza kuanzisha simu ya sauti (voice call) moja kwa moja kupitia kitufe cha kupiga juu ya chat widget hii. Je, ungependa kupiga simu sasa?"
-            : "Denis is currently online and available to talk. You can place a direct voice call using the call button at the top of this chat widget. Would you like to call now?";
+            ? "Denis yupo online kwa sasa. Unaweza kuanzisha simu ya sauti (voice call) moja kwa moja kupitia kitufe cha kupiga kilichopo chini kushoto (bottom-left) mwa chat widget hii, pembeni ya kitufe cha kuunganisha faili."
+            : "Denis is currently online and available. You can place a direct voice call using the call button located at the bottom-left of this chat widget, right beside the paperclip attachment control.";
         } else if (activePresence === 'busy') {
           responseText = currentLanguage === 'sw'
-            ? "Denis yuko busy kwa sasa akifanyia kazi mifumo ya wateja wetu. Mimi Mary nipo hapa kukusaidia kupata nukuu ya bei au unaweza kuniachia ujumbe naye ataufanyia kazi baadaye."
-            : "Denis is currently busy working on client projects. I am fully briefed to assist you with system info or take a message for him to review later.";
+            ? "Denis yuko busy kwa sasa akifanyia kazi mifumo ya wateja wetu. Mimi Mary nipo hapa kukusaidia kuelewa huduma zetu, kuandaa mahitaji au kupata nukuu ya bei."
+            : "Denis is currently busy working on client projects. I am fully briefed to assist you with system planning, requirement discovery, or quotes.";
         } else if (activePresence === 'meeting') {
           responseText = currentLanguage === 'sw'
-            ? "Denis yuko kwenye mkutano (meeting) kwa sasa. Tafadhali acha ujumbe wako hapa au unaweza kuchagua muda wa mkutano kupitia kitufe cha 'Panga Mkutano'."
-            : "Denis is currently in a strategy meeting with a client. Please leave a message or book a time slot directly using the scheduling tool.";
+            ? "Denis yuko kwenye mkutano kwa sasa. Mimi Mary naweza kukusaidia kufafanua mfumo unaohitaji au kuweka miadi kupitia kitufe cha 'Panga Mkutano'."
+            : "Denis is currently in a strategy meeting. I can help define your system requirements or assist you in scheduling a meeting.";
         } else {
           responseText = currentLanguage === 'sw'
-            ? "Denis hayupo mkondoni (offline) kwa sasa. Unaweza kuniachia ujumbe pamoja na namba yako ya simu na barua pepe ili awasiliane nawe atakaporudi."
-            : "Denis is currently offline. Please leave a message along with your name, phone, and email, and he will get back to you shortly.";
+            ? "Denis hayupo mkondoni kwa sasa. Mimi Mary naweza kukusaidia kupanga mfumo wako, kutoa maelezo ya huduma zetu au kuchukua taarifa zako."
+            : "Denis is currently offline. I am available to guide you through our system capabilities, help define your requirements, or prepare a project overview.";
         }
       } else {
-        const knowledgeDocs = context.knowledge || (context as any).knowledgeItems || [];
-        if (knowledgeDocs.length > 0) {
-          const docsText = knowledgeDocs.slice(0, 2).map((d: any) => `**${d.title}**\n${d.content}`).join('\n\n');
-          responseText = currentLanguage === 'sw'
-            ? `Hapa kuna taarifa kutoka Hifadhi ya Maarifa ya Denis Chamkaga:\n\n${docsText}\n\nJe, una swali la ziada au ungependa kupanga ushauri wa biashara na Denis Chamkaga?`
-            : `Here is relevant information from the Denis Chamkaga Knowledge Base:\n\n${docsText}\n\nWould you like more details or to schedule a business consultation with Denis Chamkaga?`;
-        } else {
-          responseText = currentLanguage === 'sw'
-            ? "Karibu! 👋 Jina langu ni **Mary**, Msaidizi wa Biashara wa Denis Chamkaga. Nipo hapa kukusaidia kufahamu huduma zetu, kujibu maswali yako, au kukuunganisha moja kwa moja na Denis. Je, nawezaje kukusaidia leo?"
-            : "Welcome! 👋 My name is **Mary**, Denis' Business Assistant. I am here to help you learn about our services, answer your questions, provide quotations, or connect you directly with Denis. How can I help you today?";
-        }
+        responseText = synthesizeKnowledgeFallback(
+          sanitizedText,
+          primaryIntent,
+          currentLanguage
+        );
       }
 
-      if (hasStream && onToken) {
-        onToken(responseText);
+      if (hasStream && wrappedOnToken) {
+        wrappedOnToken(responseText);
       }
+      generationMode = 'fallback';
+      providerErrorCode = 'PROVIDER_UNAVAILABLE';
     }
 
-    // 7. Response validation
+    // 7. Apply deterministic business capabilities when generation is degraded.
+    if (generationMode !== 'live' && primaryIntent === 'Pricing Inquiry') {
+      responseText = pricingCapability.explainApprovedRange({
+        facts: context.facts,
+        conversationText: [...contextHistory.map(item => item.content), sanitizedText].join(' '),
+        language: currentLanguage
+      }) || responseText;
+    }
+
+    // 8. Response validation
+    aiGenerationCounter.inc({ provider: providerName, model: modelName, mode: generationMode, error_code: providerErrorCode || 'none' });
+    aiStageDurationHistogram.observe({ stage: 'provider' }, durationMs / 1000);
     const validation = aiResponseValidator.validateResponse(responseText, currentLanguage === 'sw');
-    if (!validation.isValid && validation.replacement) {
+    if (validation.replacement) {
       responseText = validation.replacement;
     }
 
-    const primaryIntent = context.intents[0]?.intent || 'General Inquiry';
-    const primaryConfidence = context.intents[0]?.confidence || 0.4;
+    const grantsVoiceCall = primaryIntent === 'Human Handoff Request'
+      && (context.presenceState || '').trim().toLowerCase() === 'online';
+    const existingSessionMetadata = (session.metadata as Record<string, any> | null) || {};
+    const nextSessionMetadata = grantsVoiceCall
+      ? {
+          ...existingSessionMetadata,
+          maryCallAuthorization: {
+            allowed: true,
+            grantedBy: 'mary',
+            grantedAt: new Date().toISOString(),
+            expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+            consumedAt: null
+          }
+        }
+      : existingSessionMetadata;
 
     // 8. Asynchronous logs saving
-    await prisma.$transaction([
+    const [, , updatedSession] = await prisma.$transaction([
       prisma.aiConversation.create({
         data: {
           sessionId,
@@ -284,7 +372,12 @@ export const aiOrchestrator = {
           metadata: {
             tokensUsed,
             durationMs,
-            provider: 'openai'
+            provider: providerName,
+            model: modelName,
+            generationMode,
+            providerErrorCode,
+            ttftMs: generationMode === 'live' ? ttftMs : null,
+            fallbackFirstTokenMs: generationMode === 'live' ? null : ttftMs
           }
         }
       }),
@@ -292,17 +385,19 @@ export const aiOrchestrator = {
         where: { id: sessionId },
         data: {
           messageCount: { increment: 2 },
-          leadScore: context.lead.score
+          leadScore: context.lead.score,
+          metadata: nextSessionMetadata
         }
       })
     ]);
 
-    // 9. Trigger background facts extraction asynchronously
-    aiExtractor.extractContext({
+    // 9. Persist a durable, versioned memory extraction job.
+    await memoryJobService.enqueue({
       sessionId,
+      conversationVersion: updatedSession.messageCount,
       userMessage: sanitizedText,
       assistantResponse: responseText
-    }).catch(err => logger.error('[AI Orchestrator] Background context extractor failed:', err));
+    });
 
     // Retrieve presence state & contact settings dynamically from DB
     const settingsList = await prisma.siteSetting.findMany({
@@ -349,6 +444,11 @@ export const aiOrchestrator = {
     }
 
     const duration = Date.now() - startTime;
+    const intentMs = context.latencyBreakdown?.intentClassificationMs || 0;
+    const retMs = context.latencyBreakdown?.retrievalMs || 0;
+
+    const firstTokenLabel = generationMode === 'live' ? `LLM TTFT: ${ttftMs}ms` : `Fallback first token: ${ttftMs}ms`;
+    logger.info(`[AI Latency Metrics] Query: "${sanitizedText.substring(0, 40)}" | ${firstTokenLabel} | Total: ${duration}ms | Intent: ${intentMs.toFixed(1)}ms | Retrieval: ${retMs.toFixed(1)}ms (${knowledgeDocs.length} docs) | Prompt: ${promptConstructionMs.toFixed(1)}ms | ResponseLength: ${responseText.length} chars`);
     logger.info(`[AI Orchestrator] Message processed in ${duration}ms. Intent: ${primaryIntent} | Lead Score: ${context.lead.score}%`);
 
     return {
@@ -357,7 +457,12 @@ export const aiOrchestrator = {
       intent: primaryIntent,
       leadScore: context.lead.score,
       temperature: context.lead.temperature,
-      recommendation: channelRecommendation
+      recommendation: channelRecommendation,
+      visitorId: session.visitorId || input.visitorId || 'anonymous_visitor',
+      provider: providerName,
+      model: modelName,
+      generationMode,
+      providerErrorCode
     };
   }
 };

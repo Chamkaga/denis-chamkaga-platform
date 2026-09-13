@@ -5,10 +5,11 @@ import rateLimit from 'express-rate-limit';
 import path from 'path';
 import fs from 'fs';
 import { aiController } from '../controllers/ai.controller';
-import { upload } from '../middleware/upload.middleware';
+import { upload, validateUploadedFile } from '../middleware/upload.middleware';
 import { damService } from '../services/dam.service';
 import { storageProvider } from '../services/storage/storage.adapter';
 import { ApiResponse } from '../types/api';
+import { requireConversationAccess } from '../middleware/conversation-access.middleware';
 
 const router = Router();
 
@@ -43,22 +44,22 @@ const uploadLimiter = rateLimit({
 router.post('/chat', chatLimiter, aiController.chat);
 router.post('/chat/stream', chatLimiter, aiController.chat);
 router.get('/health', aiController.health);
-router.post('/webrtc/session', aiController.webrtcSession);
+router.post('/webrtc/session', requireConversationAccess(), aiController.webrtcSession);
 router.get('/webrtc/session', aiController.webrtcSessionStatus);
-router.post('/webrtc/offer', aiController.postOffer);
-router.get('/webrtc/offer/:sessionId', aiController.getOffer);
-router.post('/webrtc/answer', aiController.postAnswer);
-router.get('/webrtc/answer/:sessionId', aiController.getAnswer);
-router.post('/webrtc/candidate', aiController.postCandidate);
-router.get('/webrtc/candidates/:sessionId', aiController.getCandidates);
-router.post('/webrtc/log', aiController.createCallLog);
-router.get('/sessions/:sessionId/history', aiController.getHistory);
-router.get('/sessions/visitor/:visitorId', aiController.getVisitorSessions);
-router.get('/sessions/:sessionId/download', aiController.downloadSession);
-router.patch('/sessions/:sessionId/rename', aiController.renameSession);
-router.post('/sessions/:sessionId/close', aiController.closeSession);
-router.patch('/sessions/:sessionId/close', aiController.closeSession);
-router.delete('/sessions/:sessionId', aiController.deleteSession);
+router.post('/webrtc/offer', requireConversationAccess(), aiController.postOffer);
+router.get('/webrtc/offer/:sessionId', requireConversationAccess(), aiController.getOffer);
+router.post('/webrtc/answer', requireConversationAccess(), (_req, res) => res.status(403).json({ success: false, error: { code: 'ADMIN_REQUIRED', message: 'Only an authenticated administrator may answer calls' } }));
+router.get('/webrtc/answer/:sessionId', requireConversationAccess(), aiController.getAnswer);
+router.post('/webrtc/candidate', requireConversationAccess(), aiController.postCandidate);
+router.get('/webrtc/candidates/:sessionId', requireConversationAccess(), aiController.getCandidates);
+router.post('/webrtc/log', requireConversationAccess(), aiController.createCallLog);
+router.get('/sessions/:sessionId/history', requireConversationAccess(), aiController.getHistory);
+router.get('/sessions/visitor/:visitorId', requireConversationAccess('visitor'), aiController.getVisitorSessions);
+router.get('/sessions/:sessionId/download', requireConversationAccess(), aiController.downloadSession);
+router.patch('/sessions/:sessionId/rename', requireConversationAccess(), aiController.renameSession);
+router.post('/sessions/:sessionId/close', requireConversationAccess(), aiController.closeSession);
+router.patch('/sessions/:sessionId/close', requireConversationAccess(), aiController.closeSession);
+router.delete('/sessions/:sessionId', requireConversationAccess(), aiController.deleteSession);
 
 // ── Public Chat Attachment Upload (routed via DAM) ────────────────────────────
 // Allows public visitors to upload files in chat context (no admin auth required)
@@ -66,6 +67,8 @@ router.post(
   '/attachments',
   uploadLimiter,
   upload.single('file'),
+  validateUploadedFile,
+  requireConversationAccess(),
   async (req, res, next) => {
     try {
       if (!req.file) {
@@ -94,7 +97,7 @@ router.post(
         folder,
         sizeBytes: req.file.size,
         checksum: storageResult.checksum,
-        uploadedBy: 'ai_chat_visitor',
+        uploadedBy: `ai_chat:${String(req.body.sessionId)}`,
       });
 
       res.status(201).json({ success: true, data: asset } satisfies ApiResponse);

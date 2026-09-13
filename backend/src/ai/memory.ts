@@ -49,6 +49,15 @@ export interface ChatSessionFacts {
   interests?: string;
   previousAnswers?: Record<string, string>;
 
+  // Conversation & AI-First State Tracking
+  aiFirstPreference?: boolean;
+  askedQuestions?: string[];
+  explainedTopics?: string[];
+  identifiedService?: string;
+  requirementsCollected?: Record<string, any>;
+  handoffRequested?: boolean;
+  handoffOfferedCount?: number;
+
   // Progressive Enterprise Memory Domains
   identity?: MemoryIdentityDomain;
   business?: MemoryBusinessDomain;
@@ -160,8 +169,12 @@ export const aiMemory = {
       });
       
       const currentMeta = (session?.metadata as Record<string, any>) || {};
+      const existingFacts = (currentMeta.facts as ChatSessionFacts) || {};
       
-      const normalizedFacts: ChatSessionFacts = { ...facts };
+      const normalizedFacts: ChatSessionFacts = {
+        ...existingFacts,
+        ...facts
+      };
       
       if (normalizedFacts.identity) {
         normalizedFacts.name = normalizedFacts.identity.name || normalizedFacts.name;
@@ -269,21 +282,44 @@ export const aiMemory = {
       }
     }
 
+    // 5. Scan for AI-First Preference & Handoff Deferral Triggers
+    const lowerUser = userMessage.toLowerCase();
+    const aiFirstTriggers = [
+      'help me first', 'help me first before', 'why don\'t you help me first', 
+      'why you not help me first', 'guide me instead', 'guide me instead of denis',
+      'not online you can guide me', 'saidia kwanza', 'badala ya denis', 'haja ya denis',
+      'no need to speak to denis', 'don\'t want to speak to denis yet'
+    ];
+    if (aiFirstTriggers.some(t => lowerUser.includes(t))) {
+      updated.aiFirstPreference = true;
+    }
+
+    // 6. Scan for Explicit Human Handoff Request
+    const handoffTriggers = [
+      'speak to denis', 'talk to denis', 'call denis', 'speak to a person',
+      'human agent', 'ongea na denis', 'chat na denis', 'call denis directly'
+    ];
+    if (handoffTriggers.some(t => lowerUser.includes(t))) {
+      updated.handoffRequested = true;
+    }
+
     return updated;
   },
 
   /**
    * Compresses older messages (exceeding latest 10 messages) into a dynamic contextSummary text block.
    */
-  async summarizeSessionHistory(sessionId: string): Promise<void> {
+  async summarizeSessionHistory(sessionId: string, conversationVersion?: number): Promise<void> {
     try {
-      const conversations = await prisma.aiConversation.findMany({
-        where: { sessionId, role: { not: 'system' } },
-        orderBy: { createdAt: 'asc' }
-      });
+      const conversationCount = await prisma.aiConversation.count({ where: { sessionId, role: { not: 'system' } } });
 
-      if (conversations.length > 10) {
-        const oldest = conversations.slice(0, conversations.length - 10);
+      if (conversationCount > 10) {
+        const oldest = (await prisma.aiConversation.findMany({
+          where: { sessionId, role: { not: 'system' } },
+          orderBy: { createdAt: 'desc' },
+          skip: 10,
+          take: 40
+        })).reverse();
         logger.info(`[AI Memory] Compressing rolling context for session ${sessionId} (${oldest.length} old messages)...`);
 
         const oldestText = oldest
@@ -299,7 +335,8 @@ Summary:`;
 
         const { getAIProvider } = await import('./providers');
         const provider = getAIProvider();
-        const result = await provider.generate([{ role: 'user', content: prompt }]);
+        const result = await provider.generate([{ role: 'user', content: prompt }], { allowFallback: false });
+        if (result.mode !== 'live') return;
         const contextSummary = result.content.trim();
 
         const session = await prisma.chatSession.findUnique({
@@ -309,8 +346,8 @@ Summary:`;
         const meta = (session?.metadata as Record<string, any>) || {};
         meta.contextSummary = contextSummary;
 
-        await prisma.chatSession.update({
-          where: { id: sessionId },
+        await prisma.chatSession.updateMany({
+          where: { id: sessionId, ...(conversationVersion === undefined ? {} : { messageCount: conversationVersion }) },
           data: { metadata: meta }
         });
 

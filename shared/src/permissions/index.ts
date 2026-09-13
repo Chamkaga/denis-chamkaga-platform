@@ -22,6 +22,28 @@ export type Permission =
   | "Reports.READ";
 
 export const RolePermissions: Record<Role, Permission[]> = {
+  [Role.OWNER]: [
+    "Dashboard.READ", "Dashboard.WRITE",
+    "CRM.READ", "CRM.WRITE", "CRM.DELETE", "CRM.EXPORT",
+    "AI.READ", "AI.WRITE",
+    "Support.READ", "Support.WRITE",
+    "Media.READ", "Media.WRITE",
+    "Users.READ", "Users.WRITE",
+    "Settings.READ", "Settings.WRITE",
+    "Ledger.READ", "Ledger.WRITE",
+    "Reports.READ"
+  ],
+  [Role.SUPER_ADMIN]: [
+    "Dashboard.READ", "Dashboard.WRITE",
+    "CRM.READ", "CRM.WRITE", "CRM.DELETE", "CRM.EXPORT",
+    "AI.READ", "AI.WRITE",
+    "Support.READ", "Support.WRITE",
+    "Media.READ", "Media.WRITE",
+    "Users.READ", "Users.WRITE",
+    "Settings.READ", "Settings.WRITE",
+    "Ledger.READ", "Ledger.WRITE",
+    "Reports.READ"
+  ],
   [Role.ADMIN]: [
     "Dashboard.READ", "Dashboard.WRITE",
     "CRM.READ", "CRM.WRITE", "CRM.DELETE", "CRM.EXPORT",
@@ -86,7 +108,9 @@ export function hasAllPermissions(role: Role, permissions: Permission[]): boolea
   return permissions.every(p => userPerms.includes(p));
 }
 
-export function canAccessRoute(role: Role, requiredPermission?: Permission): boolean {
+export function canAccessRoute(role: Role | string, requiredPermission?: Permission): boolean {
   if (!requiredPermission) return true;
-  return hasPermission(role, requiredPermission);
+  const normalized = String(role).toLowerCase();
+  if (normalized === 'owner' || normalized === 'super_admin' || normalized === 'admin') return true;
+  return hasPermission(role as Role, requiredPermission);
 }

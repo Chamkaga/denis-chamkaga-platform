@@ -1,4 +1,6 @@
 export enum Role {
+  OWNER = "OWNER",
+  SUPER_ADMIN = "SUPER_ADMIN",
   ADMIN = "ADMIN",
   EDITOR = "EDITOR",
   MANAGER = "MANAGER",
@@ -7,3 +9,4 @@ export enum Role {
   DEVELOPER = "DEVELOPER",
   CUSTOMER = "CUSTOMER"
 }
+

@@ -4,7 +4,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { publicDocsApi } from '../../services/api';
-import { CreditCard, AlertCircle, RefreshCw, Printer, Download, CheckCircle } from 'lucide-react';
+import { CreditCard, AlertCircle, RefreshCw, Printer, Download, CheckCircle, Smartphone, Building2, ShieldCheck, Lock } from 'lucide-react';
+import { useToast } from '../../components/atoms/Toast';
 
 export const PublicInvoiceView: React.FC = () => {
   const { token } = useParams<{ token: string }>();
@@ -12,6 +13,10 @@ export const PublicInvoiceView: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<any>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<'mobile' | 'bank' | 'card' | 'gateway'>('mobile');
+  const [selectedMethod, setSelectedMethod] = useState<string>('m-pesa');
+  const [mobileNumber, setMobileNumber] = useState<string>('');
+  const { toast } = useToast();
 
   const fetchDoc = async () => {
     if (!token) return;
@@ -44,10 +49,10 @@ export const PublicInvoiceView: React.FC = () => {
         // Redirect to Flutterwave checkout page
         window.location.href = res.checkoutUrl;
       } else {
-        alert('Failed to obtain payment gateway redirect link.');
+        toast.error('Failed to obtain payment gateway redirect link. Please try again.', 'Checkout Error');
       }
     } catch (err: any) {
-      alert(err.response?.data?.error?.message || 'Payment checkout initialization failed.');
+      toast.error(err.response?.data?.error?.message || 'Payment checkout initialization failed.', 'Payment Error');
     } finally {
       setCheckoutLoading(false);
     }
@@ -247,39 +252,229 @@ export const PublicInvoiceView: React.FC = () => {
           </div>
         )}
 
-        {/* Checkout actions */}
-        <div className="mt-12 p-6 bg-zinc-900/80 border border-zinc-800 rounded-2xl print:hidden">
+        {/* Unified Payment Gateway Selection Section */}
+        <div className="mt-12 p-6 sm:p-8 bg-zinc-900/90 border border-zinc-800 rounded-3xl print:hidden shadow-2xl relative overflow-hidden">
           {isPaid ? (
-            <div className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-xl">
-              <CheckCircle className="w-5 h-5 flex-shrink-0" />
+            <div className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-5 rounded-2xl">
+              <CheckCircle className="w-6 h-6 flex-shrink-0" />
               <div>
-                <p className="text-xs font-bold">Billing Settled Successfully</p>
-                <p className="text-[10px] text-emerald-400/80 mt-0.5">This invoice has been fully paid. A copy of the receipt has been emailed to your billing contact.</p>
+                <p className="text-sm font-bold">Billing Settled Successfully</p>
+                <p className="text-xs text-emerald-400/80 mt-0.5">This invoice has been fully paid. A copy of the receipt has been emailed to your billing contact.</p>
               </div>
             </div>
           ) : (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-              <div>
-                <h4 className="text-xs font-bold text-white">Outstanding Balance Pending</h4>
-                <p className="text-[10px] text-zinc-500 mt-0.5">Settle this invoice securely using cards or mobile money via Flutterwave gateway checkout.</p>
+            <div className="space-y-6">
+              {/* Header & Gateway Badge */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800/80 pb-5">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                    <h3 className="text-base font-extrabold text-white tracking-tight">Unified Payment Gateway</h3>
+                  </div>
+                  <p className="text-xs text-zinc-400 mt-1">Select your preferred payment channel to settle {document.currency} {Number(document.balanceDue).toLocaleString()}</p>
+                </div>
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-400 font-semibold self-start sm:self-auto">
+                  <Lock className="w-3.5 h-3.5" /> 256-Bit SSL Encrypted
+                </div>
               </div>
-              <button
-                onClick={handleCheckout}
-                disabled={checkoutLoading}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 text-xs font-bold bg-violet-600 hover:bg-violet-500 text-white px-8 py-3 rounded-xl transition-all shadow-lg shadow-violet-600/20 disabled:opacity-50"
-              >
-                {checkoutLoading ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    Initializing Checkout...
-                  </>
-                ) : (
-                  <>
-                    <CreditCard className="w-4 h-4" />
-                    Pay Invoice Now
-                  </>
+
+              {/* Payment Categories Tabs */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                {[
+                  { id: 'mobile', name: 'Mobile Money', icon: Smartphone, subtitle: 'M-Pesa, Airtel, Tigo' },
+                  { id: 'bank', name: 'Bank Payment', icon: Building2, subtitle: 'Transfer & Wire' },
+                  { id: 'card', name: 'Cards', icon: CreditCard, subtitle: 'Visa, MC, AMEX' },
+                  { id: 'gateway', name: 'DPO Gateway', icon: ShieldCheck, subtitle: 'Mobile, cards & banks' }
+                ].map((cat) => {
+                  const IconComp = cat.icon;
+                  const active = selectedCategory === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCategory(cat.id as any);
+                        if (cat.id === 'mobile') setSelectedMethod('m-pesa');
+                        else if (cat.id === 'bank') setSelectedMethod('bank-transfer');
+                        else if (cat.id === 'card') setSelectedMethod('visa');
+                        else setSelectedMethod('dpo-gateway');
+                      }}
+                      className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                        active
+                          ? 'border-violet-500 bg-violet-600/10 text-white shadow-lg shadow-violet-500/10 ring-1 ring-violet-500/50'
+                          : 'border-zinc-800/80 bg-zinc-950/40 text-zinc-400 hover:border-zinc-700 hover:bg-zinc-800/40'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <IconComp className={`w-4 h-4 ${active ? 'text-violet-400' : 'text-zinc-500'}`} />
+                        {active && <div className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />}
+                      </div>
+                      <div>
+                        <p className={`text-xs font-bold ${active ? 'text-white' : 'text-zinc-300'}`}>{cat.name}</p>
+                        <p className="text-[10px] text-zinc-500 mt-0.5">{cat.subtitle}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Specific Payment Method Channel Cards */}
+              <div className="p-5 rounded-2xl bg-zinc-950/60 border border-zinc-800 space-y-4">
+                <h4 className="text-xs font-bold text-zinc-300 uppercase tracking-wider">
+                  Available {selectedCategory === 'mobile' ? 'Mobile Money Operators' : selectedCategory === 'bank' ? 'Bank Channels' : selectedCategory === 'card' ? 'Accepted Card Networks' : 'Gateway Providers'}
+                </h4>
+
+                {/* Mobile Money Options */}
+                {selectedCategory === 'mobile' && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    {[
+                      { id: 'm-pesa', name: 'Vodacom M-Pesa', badge: 'Popular', color: 'border-red-500/30 text-red-400' },
+                      { id: 'airtel-money', name: 'Airtel Money', badge: 'Instant', color: 'border-red-500/30 text-red-400' },
+                      { id: 'mixx-by-yas', name: 'Mixx by Yas (Tigo Pesa)', badge: 'Instant', color: 'border-blue-500/30 text-blue-400' },
+                      { id: 'halopesa', name: 'HaloPesa (Halotel)', badge: 'Fast', color: 'border-orange-500/30 text-orange-400' },
+                      { id: 't-pesa', name: 'T-Pesa (TTCL)', badge: 'Supported', color: 'border-emerald-500/30 text-emerald-400' }
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setSelectedMethod(opt.id)}
+                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                          selectedMethod === opt.id
+                            ? 'border-violet-500 bg-violet-500/10 text-white font-bold'
+                            : 'border-zinc-800 bg-zinc-900/50 text-zinc-400 hover:border-zinc-700'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span>{opt.name}</span>
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded border bg-zinc-950 ${opt.color}`}>{opt.badge}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 )}
-              </button>
+
+                {/* Bank Options */}
+                {selectedCategory === 'bank' && (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {[
+                      { id: 'bank-transfer', name: 'CRDB / NMB Direct Transfer', detail: 'Acc: 0150998822100' },
+                      { id: 'internet-banking', name: 'Internet Banking / EFT', detail: 'Instant Electronic Transfer' },
+                      { id: 'wire-transfer', name: 'SWIFT Direct Wire', detail: 'Code: CORUTZTZ' }
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setSelectedMethod(opt.id)}
+                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                          selectedMethod === opt.id
+                            ? 'border-violet-500 bg-violet-500/10 text-white font-bold'
+                            : 'border-zinc-800 bg-zinc-900/50 text-zinc-400 hover:border-zinc-700'
+                        }`}
+                      >
+                        <p className="text-xs font-semibold">{opt.name}</p>
+                        <p className="text-[10px] text-zinc-500 mt-1">{opt.detail}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Card Options */}
+                {selectedCategory === 'card' && (
+                  <div className="grid grid-cols-3 gap-2.5">
+                    {[
+                      { id: 'visa', name: 'Visa Credit & Debit', network: 'VISA' },
+                      { id: 'mastercard', name: 'Mastercard', network: 'MASTERCARD' },
+                      { id: 'american-express', name: 'American Express', network: 'AMEX' }
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setSelectedMethod(opt.id)}
+                        className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
+                          selectedMethod === opt.id
+                            ? 'border-violet-500 bg-violet-500/10 text-white font-bold'
+                            : 'border-zinc-800 bg-zinc-900/50 text-zinc-400 hover:border-zinc-700'
+                        }`}
+                      >
+                        <p className="text-xs font-bold">{opt.name}</p>
+                        <p className="text-[9px] text-zinc-500 uppercase mt-0.5 tracking-wider">{opt.network}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Digital Gateway Options */}
+                {selectedCategory === 'gateway' && (
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {[
+                      { id: 'dpo-gateway', name: 'DPO Group Gateway', desc: 'Pan-African Payment Engine' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setSelectedMethod(opt.id)}
+                        className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                          selectedMethod === opt.id
+                            ? 'border-violet-500 bg-violet-500/10 text-white font-bold'
+                            : 'border-zinc-800 bg-zinc-900/50 text-zinc-400 hover:border-zinc-700'
+                        }`}
+                      >
+                        <p className="text-xs font-bold">{opt.name}</p>
+                        <p className="text-[10px] text-zinc-500 mt-1">{opt.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Inputs for Mobile Money phone or Bank Account instructions */}
+                {selectedCategory === 'mobile' && (
+                  <div className="pt-2 border-t border-zinc-800/60">
+                    <label className="text-[11px] font-semibold text-zinc-400 block mb-1">Payer Mobile Number (Optional for Push Prompt)</label>
+                    <input
+                      type="tel"
+                      value={mobileNumber}
+                      onChange={(e) => setMobileNumber(e.target.value)}
+                      placeholder="e.g. +255 713 000 000"
+                      className="w-full text-xs p-2.5 rounded-xl border border-zinc-800 bg-zinc-900 text-white focus:outline-none focus:border-violet-500"
+                    />
+                  </div>
+                )}
+
+                {selectedCategory === 'bank' && (
+                  <div className="pt-2 border-t border-zinc-800/60 text-xs text-zinc-400 space-y-1">
+                    <p className="font-semibold text-zinc-200">Bank Details for Direct Settlement:</p>
+                    <p className="text-[11px]">Bank: CRDB Bank Tanzania | Account Name: Denis Chamkaga Enterprise</p>
+                    <p className="text-[11px]">Account No: <span className="font-mono text-violet-400">0150998822100</span> | SWIFT: CORUTZTZ</p>
+                    <p className="text-[10px] text-zinc-500">Reference: Invoice #{document.invoiceNumber}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Checkout Action Button */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+                <div className="text-xs text-zinc-400">
+                  <span>Selected Method: </span>
+                  <span className="font-bold text-white uppercase">{selectedMethod.replace(/-/g, ' ')}</span>
+                </div>
+
+                <button
+                  onClick={handleCheckout}
+                  disabled={checkoutLoading}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 text-xs font-bold bg-violet-600 hover:bg-violet-500 text-white px-8 py-3.5 rounded-xl transition-all shadow-xl shadow-violet-600/25 disabled:opacity-50 cursor-pointer"
+                >
+                  {checkoutLoading ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Connecting to Gateway...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="w-4 h-4" />
+                      Pay {document.currency} {Number(document.balanceDue).toLocaleString()} via Gateway
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           )}
         </div>

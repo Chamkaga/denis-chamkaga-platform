@@ -13,7 +13,7 @@ const SITE_NAME = 'Denis Chamkaga';
  */
 export const PageTitle: React.FC<PageTitleProps> = ({ title, description }) => {
   useEffect(() => {
-    let pageTitle = title;
+    let pageTitle: string;
     
     // Ensure 'Denis Assistant' page displays exactly 'Denis Assistant' in browser tab
     if (title.toLowerCase().startsWith('denis assistant')) {

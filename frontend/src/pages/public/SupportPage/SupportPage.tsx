@@ -97,7 +97,7 @@ export const SupportPage: React.FC = () => {
     e.preventDefault();
     setErrorMessage('');
     
-    let finalAmount = 0;
+    let finalAmount: number;
     if (isCustomSelected) {
       finalAmount = parseFloat(customAmount);
     } else {

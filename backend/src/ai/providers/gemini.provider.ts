@@ -23,6 +23,11 @@ export class GeminiProvider implements LLMProvider {
         content: "Gemini Provider Stub: API Key not set. Please set GEMINI_API_KEY in your .env variables.",
         tokensUsed: 0,
         durationMs: 10,
+        provider: 'gemini',
+        model: 'gemini-pro',
+        mode: 'fallback',
+        errorCode: 'PROVIDER_NOT_CONFIGURED',
+        errorMessage: 'Gemini API key is missing.',
       };
     }
 
@@ -42,6 +47,11 @@ export class GeminiProvider implements LLMProvider {
         content: "Stub output",
         tokensUsed: 0,
         durationMs: 10,
+        provider: 'gemini',
+        model: 'gemini-pro',
+        mode: 'fallback',
+        errorCode: 'PROVIDER_NOT_CONFIGURED',
+        errorMessage: 'Gemini API key is missing.',
       };
     }
 

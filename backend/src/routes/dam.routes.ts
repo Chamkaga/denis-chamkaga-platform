@@ -2,19 +2,21 @@ import { Router, Request, Response, NextFunction } from 'express';
 import path from 'path';
 import fs from 'fs';
 import https from 'https';
-import http from 'http';
+import dns from 'dns/promises';
+import net from 'net';
 import { PrismaClient } from '@prisma/client';
-import { requireAuth, requireRole } from '../middleware/auth.middleware';
-import { upload } from '../middleware/upload.middleware';
+import { requireAuth, requireRole, requireResourceAccess } from '../middleware/auth.middleware';
+import { upload, validateUploadedFile, assertSafeFileContent } from '../middleware/upload.middleware';
 import { damService } from '../services/dam.service';
 import { storageProvider } from '../services/storage/storage.adapter';
 import { ApiResponse } from '../types/api';
+import { env } from '../config/env';
 
 const router = Router();
 const prisma = new PrismaClient();
 
 router.use(requireAuth);
-router.use(requireRole('admin', 'super_admin'));
+router.use(requireResourceAccess('media'));
 
 // Helper for wrap
 const wrap = (fn: (req: Request, res: Response, next: NextFunction) => Promise<any>) => 
@@ -49,6 +51,7 @@ router.get('/assets/:id/usage', wrap(async (req, res) => {
 router.post(
   '/assets/upload',
   upload.single('file'),
+  validateUploadedFile,
   wrap(async (req, res) => {
     if (!req.file) {
       res.status(400).json({ success: false, error: { code: 'NO_FILE', message: 'No file uploaded' } });
@@ -59,7 +62,7 @@ router.post(
     const ext = path.extname(req.file.originalname).toLowerCase().replace('.', '');
 
     // Strict validation
-    const allowedImages = ['jpg', 'jpeg', 'png', 'webp', 'svg', 'gif', 'ico'];
+    const allowedImages = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'ico'];
     const allowedDocs = ['pdf', 'docx', 'xlsx', 'pptx', 'zip'];
     const allowedVideos = ['mp4', 'webm', 'ogg', 'mov'];
     const allowedAudio = ['mp3', 'wav', 'mpeg'];
@@ -99,28 +102,62 @@ router.post('/assets/import-url', wrap(async (req, res) => {
     return;
   }
 
-  const filename = path.basename(fileUrl) || 'imported_file';
+  const remoteUrl = new URL(fileUrl);
+  if (remoteUrl.protocol !== 'https:' || remoteUrl.username || remoteUrl.password) {
+    res.status(400).json({ success: false, error: { code: 'INVALID_URL', message: 'Only credential-free HTTPS asset URLs are allowed.' } });
+    return;
+  }
+  const resolved = await dns.lookup(remoteUrl.hostname, { all: true });
+  const isPrivate = (address: string) => {
+    if (net.isIPv4(address)) {
+      const [a, b] = address.split('.').map(Number);
+      return a === 10 || a === 127 || a === 0 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
+    }
+    const normalized = address.toLowerCase();
+    return normalized === '::1' || normalized.startsWith('fc') || normalized.startsWith('fd') || normalized.startsWith('fe80:') || normalized.startsWith('::ffff:127.');
+  };
+  if (!resolved.length || resolved.some(item => isPrivate(item.address))) {
+    res.status(400).json({ success: false, error: { code: 'UNSAFE_URL', message: 'Private or local network destinations are prohibited.' } });
+    return;
+  }
+
+  const filename = path.basename(remoteUrl.pathname) || 'imported_file';
   const ext = path.extname(filename).toLowerCase().replace('.', '') || 'png';
+  if (!['jpg', 'jpeg', 'png', 'webp', 'gif', 'ico', 'pdf', 'docx', 'xlsx', 'pptx'].includes(ext)) {
+    res.status(400).json({ success: false, error: { code: 'INVALID_FILE_TYPE', message: 'Remote asset extension is not approved.' } });
+    return;
+  }
   const uploadsTmpDir = path.resolve(process.cwd(), 'uploads', 'tmp');
   fs.mkdirSync(uploadsTmpDir, { recursive: true });
   const destPath = path.resolve(uploadsTmpDir, `${Date.now()}_${filename}`);
 
   // Download logic using Node native https/http client
-  const client = fileUrl.startsWith('https') ? https : http;
-  
   await new Promise<void>((resolve, reject) => {
-    client.get(fileUrl, (response) => {
+    const request = https.get(remoteUrl, { lookup: (_hostname, _options, callback) => callback(null, resolved[0].address, resolved[0].family) }, (response) => {
       if (response.statusCode !== 200) {
         reject(new Error(`Failed to download: status ${response.statusCode}`));
         return;
       }
+      const declaredLength = Number(response.headers['content-length'] || 0);
+      if (declaredLength > env.MAX_FILE_SIZE) {
+        response.destroy();
+        reject(new Error('Remote file exceeds the upload size limit.'));
+        return;
+      }
       const fileStream = fs.createWriteStream(destPath);
+      let received = 0;
+      response.on('data', chunk => {
+        received += chunk.length;
+        if (received > env.MAX_FILE_SIZE) response.destroy(new Error('Remote file exceeds the upload size limit.'));
+      });
       response.pipe(fileStream);
       fileStream.on('finish', () => {
         fileStream.close();
         resolve();
       });
-    }).on('error', (err) => {
+    });
+    request.on('error', (err) => {
+      fs.promises.unlink(destPath).catch(() => undefined);
       reject(err);
     });
   });
@@ -135,6 +172,8 @@ router.post('/assets/import-url', wrap(async (req, res) => {
     size: stats.size,
     filename: path.basename(destPath)
   } as Express.Multer.File;
+
+  await assertSafeFileContent(mockFile);
 
   // Process via storage provider
   const storageResult = await storageProvider.uploadFile(mockFile, folder || 'Images');
@@ -159,6 +198,7 @@ router.post('/assets/import-url', wrap(async (req, res) => {
 router.put(
   '/assets/:id/replace',
   upload.single('file'),
+  validateUploadedFile,
   wrap(async (req, res) => {
     if (!req.file) {
       res.status(400).json({ success: false, error: { code: 'NO_FILE', message: 'Replacement file required' } });

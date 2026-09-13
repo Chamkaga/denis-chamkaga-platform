@@ -5,12 +5,14 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { publicDocsApi } from '../../services/api';
 import { Check, AlertCircle, RefreshCw, Printer, Download, X } from 'lucide-react';
+import { useToast } from '../../components/atoms/Toast';
 
 export const PublicQuotationView: React.FC = () => {
   const { token } = useParams<{ token: string }>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<any>(null);
+  const { toast } = useToast();
 
   // Modals status
   const [showApproveModal, setShowApproveModal] = useState(false);
@@ -59,7 +61,7 @@ export const PublicQuotationView: React.FC = () => {
       // Refresh details
       await fetchDoc();
     } catch (err: any) {
-      alert(err.response?.data?.error?.message || 'Failed to submit response.');
+      toast.error(err.response?.data?.error?.message || 'Failed to submit response. Please try again.', 'Submission Failed');
     } finally {
       setActionLoading(false);
     }

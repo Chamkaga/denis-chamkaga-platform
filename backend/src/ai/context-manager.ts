@@ -10,6 +10,22 @@ import { adminCopilotService, AdminPlatformContext } from './services/admin-copi
 import prisma from '../config/database';
 import { logger } from '../utils/logger';
 
+export interface UIState {
+  denisAvailability: string;
+  callButtonAvailable: boolean;
+  callButtonLocation: string;
+  chatAvailability: 'active';
+  consultationBookingAvailable: boolean;
+}
+
+export interface LatencyBreakdown {
+  intentClassificationMs: number;
+  retrievalMs: number;
+  promptConstructionMs?: number;
+  ttftMs?: number;
+  totalDurationMs?: number;
+}
+
 export interface AIContext {
   history: { role: 'user' | 'assistant' | 'system'; content: string }[];
   facts: ChatSessionFacts;
@@ -24,12 +40,23 @@ export interface AIContext {
   userRole?: 'visitor' | 'admin' | 'super_admin' | 'client';
   adminPlatformContext?: AdminPlatformContext; // Only present for admin role
   contextSummary?: string;
+  conversationState: {
+    currentBusinessType?: string;
+    currentProblem?: string;
+    currentTopic: string;
+    currentIntent: string;
+    previousAssistantQuestion?: string;
+    pendingReference?: string;
+    leadState: string;
+  };
   presenceState?: string;
+  uiState: UIState;
+  latencyBreakdown?: LatencyBreakdown;
 }
 
 export const aiContextManager = {
   /**
-   * Performs dynamic context selection, retrieves relevant memory/knowledge, and builds the aggregated context.
+   * Performs dynamic context selection, retrieves relevant memory/knowledge, and builds the aggregated context with parallelized operations.
    */
   async getContext(params: {
     message: string;
@@ -38,22 +65,21 @@ export const aiContextManager = {
     history: { role: 'user' | 'assistant' | 'system'; content: string }[];
     currentLanguage?: 'sw' | 'en';
     userRole?: 'visitor' | 'admin' | 'super_admin' | 'client';
+    sessionMetadata?: Record<string, any>;
+    presenceState?: string;
   }): Promise<AIContext> {
     const { message, sessionId, history, currentLanguage = 'en', userRole = 'visitor' } = params;
 
-    // Retrieve contextSummary if present in session metadata
-    const sessionRecord = await prisma.chatSession.findUnique({
-      where: { id: sessionId },
-      select: { metadata: true }
-    });
-    const sessionMeta = (sessionRecord?.metadata as Record<string, any>) || {};
+    // Retrieve contextSummary if present in session metadata (or preloaded metadata)
+    let sessionMeta = params.sessionMetadata;
+    if (!sessionMeta) {
+      const sessionRecord = await prisma.chatSession.findUnique({
+        where: { id: sessionId },
+        select: { metadata: true }
+      });
+      sessionMeta = (sessionRecord?.metadata as Record<string, any>) || {};
+    }
     const contextSummary = sessionMeta.contextSummary || undefined;
-
-    // Fetch Live Admin Availability Presence State from DB
-    const presenceRecord = await prisma.siteSetting.findUnique({
-      where: { key: 'presence_state' }
-    });
-    const presenceState = presenceRecord?.value || 'Offline';
 
     // 1. Gather Feature Flags from config/environment
     const featureFlags = {
@@ -64,23 +90,63 @@ export const aiContextManager = {
       WEBRTC_ENABLED: process.env.WEBRTC_ENABLED === 'true',
     };
 
-    // 2. Load facts using memory hierarchy (Session, Visitor, Organization)
-    let facts: ChatSessionFacts = {};
-    if (featureFlags.AI_MEMORY_ENGINE) {
-      facts = await aiMemory.getFacts(sessionId);
-    }
-
-    // 3. Perform continuous intent classification
+    // 2. Perform continuous intent classification (Fast tokenized word boundary classification)
+    const tIntentStart = performance.now();
     const intents = aiIntentClassifier.classify(message);
+    const intentClassificationMs = performance.now() - tIntentStart;
     const primaryIntent = intents[0]?.intent || 'General Inquiry';
+    const previousAssistant = [...history].reverse().find(item => item.role === 'assistant')?.content;
+    const previousAssistantQuestion = previousAssistant?.split(/(?<=[.!?])\s+/).reverse().find(sentence => sentence.includes('?'));
+    const topicText = `${previousAssistant || ''} ${message}`.toLowerCase();
+    const pendingReference = ['pos', 'invoice', 'quotation', 'payment', 'whatsapp', 'excel', 'stock', 'crm', 'erp']
+      .find(entity => topicText.includes(entity));
 
-    // 4. Retrieve context-specific Knowledge documents (RAG)
-    let knowledge: KnowledgeDocument[] = [];
-    if (featureFlags.AI_KNOWLEDGE_ENGINE) {
-      knowledge = await aiKnowledgeEngine.retrieve(message, 3);
+    // 3. Parallelize independent lookups: Memory Facts, Knowledge Retrieval, and Site Settings / Presence
+    const DEFAULT_KNOWLEDGE_RETRIEVAL_LIMIT = 3;
+    const targetAudience = userRole === 'admin' || userRole === 'super_admin' ? 'ADMIN' : 'MARY';
+
+    const tRetrievalStart = performance.now();
+    const [factsResult, knowledgeResult, presenceRecord] = await Promise.all([
+      featureFlags.AI_MEMORY_ENGINE ? aiMemory.getFacts(sessionId) : Promise.resolve({} as ChatSessionFacts),
+      featureFlags.AI_KNOWLEDGE_ENGINE
+        ? aiKnowledgeEngine.retrieve(
+            message.trim().split(/\s+/).length <= 5
+              ? `${message} ${history.slice(-4).map(item => item.content).join(' ')}`
+              : message,
+            DEFAULT_KNOWLEDGE_RETRIEVAL_LIMIT, {
+            audience: targetAudience,
+            userRole,
+            language: currentLanguage
+          })
+        : Promise.resolve([] as KnowledgeDocument[]),
+      params.presenceState
+        ? Promise.resolve({ value: params.presenceState })
+        : prisma.siteSetting.findUnique({ where: { key: 'presence_state' } })
+    ]);
+    const retrievalMs = performance.now() - tRetrievalStart;
+
+    let facts: ChatSessionFacts = factsResult || {};
+    const knowledge: KnowledgeDocument[] = knowledgeResult || [];
+    const presenceState = presenceRecord?.value || 'Offline';
+
+    // Auto-detect AI-first preference from current message or history if not yet set
+    const combinedText = [...history.map(h => h.content), message].join(' ').toLowerCase();
+    const aiFirstPhrases = [
+      'help me first', 'help me first before', 'why don\'t you help me first',
+      'why you not help me first', 'guide me instead', 'guide me instead of denis',
+      'not online you can guide me', 'saidia kwanza', 'badala ya denis', 'haja ya denis',
+      'no need to speak to denis', 'don\'t want to speak to denis yet'
+    ];
+    if (aiFirstPhrases.some(p => combinedText.includes(p))) {
+      if (!facts.aiFirstPreference) {
+        facts.aiFirstPreference = true;
+        if (featureFlags.AI_MEMORY_ENGINE) {
+          aiMemory.saveFacts(sessionId, facts).catch(e => logger.error('Failed to save AI first preference:', e));
+        }
+      }
     }
 
-    // 5. Evaluate Lead grading
+    // 4. Evaluate Lead grading
     const msgCount = history.filter(h => h.role === 'user').length + 1;
     const lead = leadIntelligenceService.evaluate(facts, primaryIntent, msgCount);
 
@@ -107,6 +173,15 @@ export const aiContextManager = {
         else allowedCards.push('confirm-consultation');
       }
     }
+
+    // Build dynamic UI state grounding object
+    const uiState: UIState = {
+      denisAvailability: presenceState,
+      callButtonAvailable: true,
+      callButtonLocation: 'bottom-left of the chat widget, beside the paperclip attachment control',
+      chatAvailability: 'active',
+      consultationBookingAvailable: true
+    };
 
     // 9. Load business rules config
     const businessRules = userRole === 'admin'
@@ -145,7 +220,21 @@ export const aiContextManager = {
       userRole,
       adminPlatformContext,
       contextSummary,
-      presenceState
+      conversationState: {
+        currentBusinessType: facts.industry,
+        currentProblem: facts.challenges,
+        currentTopic: pendingReference || primaryIntent,
+        currentIntent: primaryIntent,
+        previousAssistantQuestion,
+        pendingReference,
+        leadState: lead.temperature
+      },
+      presenceState,
+      uiState,
+      latencyBreakdown: {
+        intentClassificationMs,
+        retrievalMs
+      }
     };
   }
 };

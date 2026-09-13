@@ -74,6 +74,14 @@ const generateRefreshToken = (payload: TokenPayload): string => {
 const eventBus = new LocalEventBus();
 
 export const authService = {
+  async logoutByRefreshToken(refreshTokenStr: string): Promise<void> {
+    const tokenHashStr = hashToken(refreshTokenStr);
+    await prisma.$transaction([
+      prisma.refreshToken.updateMany({ where: { tokenHash: tokenHashStr }, data: { isRevoked: true } }),
+      prisma.session.deleteMany({ where: { token: tokenHashStr } })
+    ]);
+  },
+
   async verifyPassword(plain: string, hash: string): Promise<boolean> {
     return bcrypt.compare(plain, hash);
   },

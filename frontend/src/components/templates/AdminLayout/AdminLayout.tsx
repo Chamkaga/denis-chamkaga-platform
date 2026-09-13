@@ -6,23 +6,27 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Shield,
   Menu,
   Bell,
   Send,
   Sparkles,
   Trash2,
   X,
-  RefreshCw
+  RefreshCw,
+  Search
 } from 'lucide-react';
 import { Logo } from '../../atoms/Logo';
 import { cn } from '../../../lib/cn';
 import { ROUTES } from '../../../config/routes';
-import { useAuthStore } from '../../../store/useAuthStore';
-import { adminApi } from '../../../services/api';
+import { useAuthStore } from '../../../stores/useAuthStore';
+import { adminApi, authApi } from '../../../services/api';
 import { ADMIN_NAVIGATION } from '../../../config/navigation';
 import { IconRegistry } from '../../atoms/IconRegistry';
 import { canAccessRoute, Role } from '@dc/shared';
+import { CommandPalette } from '../../organisms/CommandPalette/CommandPalette';
+import { NotificationCenter } from '../../organisms/NotificationCenter/NotificationCenter';
+import { Breadcrumbs } from '../../molecules/Breadcrumbs/Breadcrumbs';
+import { CallNotebookModal } from '../../admin/CallNotebookModal';
 
 export const AdminLayout: React.FC = () => {
   const { t } = useTranslation();
@@ -39,6 +43,21 @@ export const AdminLayout: React.FC = () => {
   
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [isCallNotebookOpen, setIsCallNotebookOpen] = useState(false);
+  const [notebookMode] = useState<'voice' | 'website_chat'>('voice');
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const [presence, setPresence] = useState('Offline');
 
@@ -196,7 +215,9 @@ export const AdminLayout: React.FC = () => {
               setCopilotSessionId(data.sessionId);
               localStorage.setItem('dc_copilot_session_id', data.sessionId);
             }
-          } catch {}
+          } catch {
+            /* Ignore JSON parse errors for non-JSON stream chunks */
+          }
         }
       }
     } catch (err) {
@@ -227,9 +248,29 @@ export const AdminLayout: React.FC = () => {
 
   const authUser = useAuthStore((state) => state.user);
   const userRole = authUser?.role as Role;
+  const technicalAdminModules = new Set([
+    'operations',
+    'documentation',
+    'settings',
+    'calendar',
+    'ai',
+  ]);
+
+  useEffect(() => {
+    if (String(userRole) === 'admin' && location.pathname === ROUTES.ADMIN_DASHBOARD) {
+      navigate('/admin/operations', { replace: true });
+    }
+  }, [location.pathname, navigate, userRole]);
 
   const allowedNavItems = ADMIN_NAVIGATION.filter((item) => {
     if (!item.isVisible) return false;
+
+    // The V1 administrator is a technical operator. Keep finance, CRM and
+    // business-owner modules out of its navigation; APIs enforce the same
+    // boundary through database-backed resource permissions.
+    if (String(userRole) === 'admin' && !technicalAdminModules.has(item.module)) {
+      return false;
+    }
 
     if (item.requiredPermission && userRole) {
       if (!canAccessRoute(userRole, item.requiredPermission)) {
@@ -245,177 +286,302 @@ export const AdminLayout: React.FC = () => {
     return true;
   }).sort((a, b) => a.sortOrder - b.sortOrder);
 
-  const handleLogout = () => {
-    logout();
-    navigate(ROUTES.ADMIN_LOGIN);
+  const handleLogout = async () => {
+    try {
+      await authApi.logout();
+    } finally {
+      logout();
+      navigate(ROUTES.ADMIN_LOGIN);
+    }
+  };
+
+  const formatNavLabel = (labelKey: string) => {
+    const translated = t(labelKey);
+    if (translated && translated !== labelKey && !translated.startsWith('nav.')) {
+      return translated;
+    }
+    const map: Record<string, string> = {
+      // Dashboard
+      'nav.dashboard':      'Dashboard',
+      // Website & Content
+      'nav.portfolioCms':   'Portfolio & About CMS',
+      'nav.services':       'Services CMS',
+      'nav.projectsCms':    'Projects CMS',
+      'nav.knowledge':      'Knowledge Base',
+      'nav.media':          'Media Manager',
+      'nav.content':        'Website CMS',
+      // CRM & Sales
+      'nav.leads':          'Leads Pipeline',
+      'nav.contacts':       'Contacts',
+      'nav.organizations':  'Organizations',
+      'nav.consultations':  'Consultations',
+      'nav.business':       'CRM & Business',
+      // Finance & Accounting
+      'nav.quotations':     'Quotations',
+      'nav.invoices':       'Invoices',
+      'nav.payments':       'Payments',
+      'nav.tenantConfig':   'Business Profile',
+      'nav.finance':        'Finance',
+      // Community & Network
+      'nav.supporters':     'Supporters & Backers',
+      'nav.collaborators':  'Collaborators',
+      'nav.partnerships':   'Partnerships Board',
+      // Communication
+      'nav.communication':  'Communication Center',
+      // AI Platform
+      'nav.knowledgeBase':  'Knowledge Base CMS',
+      'nav.aiAssistant':    'AI Copilot Operations',
+      // Marketing & Growth
+      'nav.marketing':      'Marketing & Growth',
+      'nav.creator':        'Creator Studio',
+      // Brand & Strategy
+      'nav.innovation':     'Innovation Lab',
+      'nav.futureVision':   'Future Vision',
+      // Analytics & Reports
+      'nav.analytics':      'Visual Analytics',
+      'nav.reportsCenter':  'Reports Center',
+      // System Administration
+      'nav.operations':     'Platform Operations',
+      'nav.documentation':  'Documentation Center',
+      'nav.system':         'System Settings',
+      'nav.logout':         'Log Out'
+    };
+    return map[labelKey] || labelKey.replace('nav.', '').replace(/([A-Z])/g, ' $1').trim();
   };
 
   return (
-    <div className="min-h-screen flex dark:bg-primary-bg light:bg-light-bg transition-colors duration-300">
+    <div className="min-h-screen flex flex-col dark:bg-primary-bg light:bg-light-bg transition-colors duration-300">
       
-      {/* Sidebar - Desktop */}
-      <aside className={cn(
-        "hidden md:flex flex-col border-r transition-all duration-300 z-30",
-        "dark:border-zinc-800/80 dark:bg-[#09090b] light:border-slate-200 light:bg-slate-50",
-        isSidebarCollapsed ? "w-20" : "w-64"
-      )}>
-        
-        {/* Brand Header */}
-        <div className="h-16 flex items-center justify-between px-4 border-b dark:border-zinc-800/80 light:border-slate-200">
+      {/* Top Header - Full Width */}
+      <header className="h-16 border-b dark:border-zinc-800/80 dark:bg-[#09090b] light:border-slate-200 light:bg-slate-50 flex items-center justify-between px-4 sm:px-6 shrink-0 z-30">
+        <div className="flex items-center gap-4">
           <Link to={ROUTES.HOME} className="flex items-center">
-            {isSidebarCollapsed ? (
-              <div className="w-8 h-8 rounded-lg bg-accent-violet flex items-center justify-center font-bold text-white text-xs">DC</div>
-            ) : (
-              <Logo size="sm" />
-            )}
+            <Logo size="sm" />
           </Link>
           <button
-            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            className="p-1 rounded-lg hover:bg-zinc-800/40 cursor-pointer dark:text-zinc-400 light:text-slate-600"
+            onClick={() => setIsMobileSidebarOpen(true)}
+            className="p-1.5 rounded-lg hover:bg-zinc-800/40 cursor-pointer dark:text-zinc-400 light:text-slate-600 md:hidden"
           >
-            {isSidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+            <Menu size={20} />
           </button>
+          <div className="hidden sm:block">
+            <Breadcrumbs />
+          </div>
         </div>
 
-        {/* Navigation Menu */}
-        <nav className="flex-1 py-4 px-3 space-y-4 flex flex-col justify-start overflow-y-auto max-h-[calc(100vh-8rem)]">
-          {Object.entries(
-            allowedNavItems.reduce((acc, item) => {
-              const grp = item.group || 'Dashboard';
-              if (!acc[grp]) acc[grp] = [];
-              acc[grp].push(item);
-              return acc;
-            }, {} as Record<string, typeof allowedNavItems>)
-          ).map(([groupName, items]) => (
-            <div key={groupName} className="space-y-1">
-              {!isSidebarCollapsed && (
-                <div className="px-3 pt-2 pb-1 text-[9.5px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-500">
-                  {groupName}
-                </div>
-              )}
-              {items.map((item) => {
-                const isActive = location.pathname === item.path;
-                const IconComponent = IconRegistry[item.iconKey];
-                return (
-                  <button
-                    key={item.path}
-                    onClick={() => navigate(item.path)}
-                    className={cn(
-                      "flex items-center gap-3 py-2 px-3 rounded-lg font-medium text-xs transition-all cursor-pointer text-left w-full",
-                      isActive
-                        ? "dark:bg-accent-violet dark:text-white light:bg-light-accent light:text-white font-semibold shadow-xs"
-                        : "dark:text-zinc-400 dark:hover:bg-zinc-900/60 light:text-slate-600 light:hover:bg-slate-200",
-                      isSidebarCollapsed ? "justify-center tooltip" : ""
-                    )}
-                    title={isSidebarCollapsed ? t(item.labelKey) : undefined}
-                  >
-                    {IconComponent && <IconComponent size={16} />}
-                    {!isSidebarCollapsed && <span className="truncate">{t(item.labelKey)}</span>}
-                  </button>
-                );
-              })}
-            </div>
-          ))}
-        </nav>
-
-        {/* Footer Actions */}
-        <div className="p-3 border-t dark:border-zinc-800/80 light:border-slate-200">
+        <div className="flex items-center gap-3">
+          {/* Command Palette Trigger */}
           <button
-            onClick={handleLogout}
+            onClick={() => setIsCommandPaletteOpen(true)}
+            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-xs text-zinc-400 hover:text-zinc-200 cursor-pointer transition-all"
+          >
+            <Search size={14} className="text-accent-violet" />
+            <span>Search platform...</span>
+            <kbd className="px-1.5 py-0.5 text-[9px] font-mono border border-zinc-300 dark:border-zinc-800 rounded bg-white dark:bg-zinc-900 text-zinc-400">
+              Ctrl K
+            </kbd>
+          </button>
+
+          {/* Mobile Search Button */}
+          <button
+            onClick={() => setIsCommandPaletteOpen(true)}
+            className="p-2 rounded-full sm:hidden dark:hover:bg-zinc-800 light:hover:bg-slate-200 dark:text-zinc-300 light:text-slate-600"
+          >
+            <Search size={18} />
+          </button>
+
+          {/* Presence Selector */}
+          <div className="flex items-center gap-1.5 border dark:border-zinc-800 light:border-slate-200 rounded-lg px-2.5 py-1 bg-zinc-950/20 light:bg-slate-100">
+            <span className={cn(
+              "w-2 h-2 rounded-full",
+              presence === 'Online' ? 'bg-green-500 animate-pulse' :
+              presence === 'Busy' ? 'bg-red-500 animate-pulse' :
+              presence === 'Meeting' ? 'bg-amber-500 animate-pulse' :
+              'bg-zinc-500'
+            )} />
+            <select
+              value={presence}
+              onChange={(e) => handlePresenceChange(e.target.value)}
+              className="bg-transparent border-none text-[11px] font-bold dark:text-zinc-350 light:text-slate-600 focus:outline-none cursor-pointer"
+            >
+              <option value="Online" className="dark:bg-zinc-950 dark:text-white">Online</option>
+              <option value="Busy" className="dark:bg-zinc-950 dark:text-white">Busy</option>
+              <option value="Meeting" className="dark:bg-zinc-950 dark:text-white">Meeting</option>
+              <option value="Offline" className="dark:bg-zinc-950 dark:text-white">Offline</option>
+            </select>
+          </div>
+
+          {/* Unified Master Executive Notebook Trigger */}
+          <button
+            onClick={() => setIsCallNotebookOpen(true)}
+            title="Open Executive Notebook (Voice Calls & Website Live Chats)"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent-violet/10 hover:bg-accent-violet/20 text-accent-violet border border-accent-violet/30 text-xs font-bold transition-all cursor-pointer shadow-2xs relative"
+          >
+            <Sparkles size={14} className="text-amber-400 animate-pulse" />
+            <span className="hidden lg:inline">Notebook</span>
+            <span className="w-2 h-2 rounded-full bg-accent-violet animate-pulse" />
+          </button>
+
+          {/* AI Copilot Toggle */}
+          <button
+            onClick={() => setIsCopilotOpen(!isCopilotOpen)}
+            title="Toggle Admin AI Copilot"
             className={cn(
-              "flex items-center gap-3 py-2.5 px-3.5 rounded-lg font-medium text-sm text-red-500 hover:bg-red-500/10 transition-all cursor-pointer text-left w-full",
-              isSidebarCollapsed ? "justify-center" : ""
+              "p-2 rounded-full cursor-pointer transition-colors relative",
+              isCopilotOpen ? "bg-accent-violet/20 text-accent-violet animate-pulse" : "dark:hover:bg-zinc-800/80 light:hover:bg-slate-200/80 dark:text-zinc-300 light:text-slate-600"
             )}
           >
-            <LogOut size={18} />
-            {!isSidebarCollapsed && <span>{t('nav.logout')}</span>}
+            <Bot size={18} />
+            {!isCopilotOpen && (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-accent-violet animate-pulse" />
+            )}
           </button>
-        </div>
-      </aside>
 
-      {/* Main Body */}
-      <div className="flex-1 flex flex-col overflow-x-hidden min-h-screen">
-        
-        {/* Top Header */}
-        <header className="h-16 border-b dark:border-zinc-800/80 dark:bg-[#09090b] light:border-slate-200 light:bg-slate-50 flex items-center justify-between px-4 sm:px-6">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setIsMobileSidebarOpen(true)}
-              className="p-1.5 rounded-lg hover:bg-zinc-800/40 cursor-pointer dark:text-zinc-400 light:text-slate-600 md:hidden"
-            >
-              <Menu size={20} />
-            </button>
-            <div className="flex items-center gap-2">
-              <Shield size={18} className="text-accent-violet" />
-              <span className="text-xs font-semibold uppercase tracking-wider dark:text-zinc-400 light:text-slate-500">
-                Security Level: Admin Console
+          {/* Notification Indicator Trigger */}
+          <button
+            onClick={() => setIsNotificationOpen(true)}
+            className="p-2 rounded-full cursor-pointer transition-colors dark:hover:bg-zinc-800/80 light:hover:bg-slate-200/80 dark:text-zinc-300 light:text-slate-600 relative"
+          >
+            <Bell size={18} />
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-accent-violet animate-pulse" />
+          </button>
+
+          {/* Admin Profile */}
+          <div className="flex items-center gap-2 border-l border-zinc-200 dark:border-zinc-800 pl-3">
+            <div className="w-8 h-8 rounded-full bg-accent-violet flex items-center justify-center font-bold text-xs text-white shadow-sm">
+              {authUser?.firstName ? authUser.firstName.charAt(0) : 'D'}{authUser?.lastName ? authUser.lastName.charAt(0) : 'C'}
+            </div>
+            <div className="hidden sm:block text-left">
+              <p className="text-xs font-bold dark:text-white light:text-slate-800">
+                {authUser?.firstName ? `${authUser.firstName} ${authUser.lastName}` : 'Denis Chamkaga'}
+              </p>
+              <span className="text-[10px] text-accent-violet font-semibold uppercase tracking-wider block">
+                {String(authUser?.role) === 'owner' || String(userRole) === 'owner' ? 'Platform Owner' : 'Administrator'}
               </span>
             </div>
           </div>
+        </div>
+      </header>
 
-          <div className="flex items-center gap-4">
-            {/* Presence Selector */}
-            <div className="flex items-center gap-1.5 border dark:border-zinc-800 light:border-slate-200 rounded-lg px-2.5 py-1 bg-zinc-950/20 light:bg-slate-100">
-              <span className={cn(
-                "w-2 h-2 rounded-full",
-                presence === 'Online' ? 'bg-green-500 animate-pulse' :
-                presence === 'Busy' ? 'bg-red-500 animate-pulse' :
-                presence === 'Meeting' ? 'bg-amber-500 animate-pulse' :
-                'bg-zinc-500'
-              )} />
-              <select
-                value={presence}
-                onChange={(e) => handlePresenceChange(e.target.value)}
-                className="bg-transparent border-none text-[11px] font-bold dark:text-zinc-350 light:text-slate-600 focus:outline-none cursor-pointer"
-              >
-                <option value="Online" className="dark:bg-zinc-950 dark:text-white">Online</option>
-                <option value="Busy" className="dark:bg-zinc-950 dark:text-white">Busy</option>
-                <option value="Meeting" className="dark:bg-zinc-950 dark:text-white">Meeting</option>
-                <option value="Offline" className="dark:bg-zinc-950 dark:text-white">Offline</option>
-              </select>
-            </div>
-
-            {/* AI Copilot Toggle */}
+      {/* Middle Content Area (Sidebar + Main Content) */}
+      <div className="flex-1 flex overflow-hidden">
+        
+        {/* Sidebar - Desktop */}
+        <aside className={cn(
+          "hidden md:flex flex-col h-full border-r transition-all duration-300 z-30 shrink-0 justify-between",
+          "dark:border-zinc-800/80 dark:bg-[#09090b] light:border-slate-200 light:bg-slate-50",
+          isSidebarCollapsed ? "w-20" : "w-64"
+        )}>
+          {/* Top Section: Control & Workspace Info */}
+          <div className="h-10 flex items-center justify-between px-3 border-b dark:border-zinc-800/40 light:border-slate-200/60 shrink-0">
+            {!isSidebarCollapsed && (
+              <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider pl-1">
+                Workspace
+              </span>
+            )}
             <button
-              onClick={() => setIsCopilotOpen(!isCopilotOpen)}
-              title="Toggle Admin AI Copilot"
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              className="p-1 rounded-lg hover:bg-zinc-800/40 cursor-pointer dark:text-zinc-400 light:text-slate-600 ml-auto"
+              title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            >
+              {isSidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+            </button>
+          </div>
+
+          {/* Middle Section: Navigation Menu (flex-1 min-h-0 overflow-y-auto) */}
+          <nav className="flex-1 min-h-0 overflow-y-auto py-3 px-3 space-y-4 flex flex-col justify-start">
+            {Object.entries(
+              allowedNavItems.reduce((acc, item) => {
+                const grp = item.group || 'Dashboard';
+                if (!acc[grp]) acc[grp] = [];
+                acc[grp].push(item);
+                return acc;
+              }, {} as Record<string, typeof allowedNavItems>)
+            ).map(([groupName, items]) => (
+              <div key={groupName} className="space-y-1">
+                {!isSidebarCollapsed && (
+                  <div className="px-3 pt-2 pb-1 text-[9.5px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-500">
+                    {groupName}
+                  </div>
+                )}
+                {items.map((item) => {
+                  const isActive = location.pathname === item.path;
+                  const IconComponent = IconRegistry[item.iconKey];
+                  const labelText = formatNavLabel(item.labelKey);
+                  return (
+                    <button
+                      key={item.path}
+                      onClick={() => navigate(item.path)}
+                      className={cn(
+                        "flex items-center gap-3 py-2 px-3 rounded-lg font-medium text-xs transition-all cursor-pointer text-left w-full",
+                        isActive
+                          ? "dark:bg-accent-violet dark:text-white bg-accent-violet text-white font-semibold shadow-xs"
+                          : "dark:text-zinc-400 dark:hover:bg-zinc-900/60 text-slate-700 hover:bg-slate-200 dark:hover:text-white",
+                        isSidebarCollapsed ? "justify-center tooltip" : ""
+                      )}
+                      title={isSidebarCollapsed ? labelText : undefined}
+                    >
+                      {IconComponent && <IconComponent size={16} />}
+                      {!isSidebarCollapsed && <span className="truncate">{labelText}</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </nav>
+
+          {/* Bottom Section: Logout Action (shrink-0 pinned to bottom) */}
+          <div className="p-3 border-t dark:border-zinc-800/80 light:border-slate-200 shrink-0">
+            <button
+              onClick={handleLogout}
               className={cn(
-                "p-2 rounded-full cursor-pointer transition-colors relative",
-                isCopilotOpen ? "bg-accent-violet/20 text-accent-violet animate-pulse" : "dark:hover:bg-zinc-800/80 light:hover:bg-slate-200/80 dark:text-zinc-300 light:text-slate-600"
+                "flex items-center gap-3 py-2.5 px-3.5 rounded-lg font-medium text-sm text-red-500 hover:bg-red-500/10 transition-all cursor-pointer text-left w-full",
+                isSidebarCollapsed ? "justify-center" : ""
               )}
             >
-              <Bot size={18} />
-              {!isCopilotOpen && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-accent-violet animate-pulse" />
-              )}
+              <LogOut size={18} />
+              {!isSidebarCollapsed && <span>{formatNavLabel('nav.logout')}</span>}
             </button>
-
-            {/* Notification Indicator */}
-            <button className="p-2 rounded-full cursor-pointer transition-colors dark:hover:bg-zinc-800/80 light:hover:bg-slate-200/80 dark:text-zinc-300 light:text-slate-600 relative">
-              <Bell size={18} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-accent-violet animate-pulse" />
-            </button>
-
-            {/* Admin Profile */}
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center font-bold text-sm text-white">
-                DC
-              </div>
-              <div className="hidden sm:block text-left">
-                <p className="text-xs font-semibold dark:text-white light:text-slate-800">Denis Chamkaga</p>
-                <span className="text-[10px] dark:text-zinc-500 light:text-slate-400">Super Admin</span>
-              </div>
-            </div>
           </div>
-        </header>
+        </aside>
+
+        {/* Command Palette Modal */}
+        <CommandPalette isOpen={isCommandPaletteOpen} onClose={() => setIsCommandPaletteOpen(false)} />
+
+        {/* Notification Center Drawer */}
+        <NotificationCenter isOpen={isNotificationOpen} onClose={() => setIsNotificationOpen(false)} />
 
         {/* Content Frame */}
-        <main className="flex-1 p-6 md:p-8">
+        <main className="flex-1 flex flex-col min-h-full overflow-y-auto p-6 md:p-8">
           <React.Suspense fallback={<div className="text-center py-12 dark:text-zinc-400">Loading module...</div>}>
-            <Outlet />
+            <div className="flex-1 flex flex-col">
+              <Outlet />
+            </div>
           </React.Suspense>
         </main>
       </div>
+
+      {/* Persistent Minimal Enterprise Admin Console Footer */}
+      <footer className="border-t dark:border-zinc-800/80 dark:bg-[#09090b] light:border-slate-200 light:bg-slate-50 backdrop-blur-md px-4 sm:px-6 py-3 text-[11px] dark:text-zinc-400 light:text-slate-600 transition-colors shrink-0 z-30 font-body">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
+          
+          {/* Left */}
+          <div className="font-semibold text-slate-800 dark:text-zinc-300">
+            © 2026 Denis Chamkaga Business Operating System
+          </div>
+
+          {/* Center */}
+          <div className="text-zinc-500 dark:text-zinc-400 font-medium">
+            Internal Enterprise Platform
+          </div>
+
+          {/* Right */}
+          <div className="font-mono text-zinc-500 dark:text-zinc-400 font-medium">
+            Version 1.0.0
+          </div>
+
+        </div>
+      </footer>
 
       {/* Mobile Drawer Navigation Backdrop */}
       {isMobileSidebarOpen && (
@@ -630,6 +796,13 @@ export const AdminLayout: React.FC = () => {
           </aside>
         </>
       )}
+
+      {/* Global Executive Call Notebook & Website Chat Modal */}
+      <CallNotebookModal
+        isOpen={isCallNotebookOpen}
+        onClose={() => setIsCallNotebookOpen(false)}
+        initialMode={notebookMode}
+      />
 
     </div>
   );

@@ -1,2 +1,2 @@
-export { DashboardPage } from './DashboardPage';
-export { default } from './DashboardPage';
+export { OwnerDashboardView as DashboardPage } from './OwnerDashboardView';
+export { OwnerDashboardView as default } from './OwnerDashboardView';

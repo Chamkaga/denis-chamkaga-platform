@@ -23,6 +23,28 @@ export type Permission =
   | "Reports.READ";
 
 export const RolePermissions: Record<Role, Permission[]> = {
+  [Role.OWNER]: [
+    "Dashboard.READ", "Dashboard.WRITE",
+    "CRM.READ", "CRM.WRITE", "CRM.DELETE", "CRM.EXPORT",
+    "AI.READ", "AI.WRITE",
+    "Support.READ", "Support.WRITE",
+    "Media.READ", "Media.WRITE",
+    "Users.READ", "Users.WRITE",
+    "Settings.READ", "Settings.WRITE",
+    "Ledger.READ", "Ledger.WRITE",
+    "Reports.READ"
+  ],
+  [Role.SUPER_ADMIN]: [
+    "Dashboard.READ", "Dashboard.WRITE",
+    "CRM.READ", "CRM.WRITE", "CRM.DELETE", "CRM.EXPORT",
+    "AI.READ", "AI.WRITE",
+    "Support.READ", "Support.WRITE",
+    "Media.READ", "Media.WRITE",
+    "Users.READ", "Users.WRITE",
+    "Settings.READ", "Settings.WRITE",
+    "Ledger.READ", "Ledger.WRITE",
+    "Reports.READ"
+  ],
   [Role.ADMIN]: [
     "Dashboard.READ", "Dashboard.WRITE",
     "CRM.READ", "CRM.WRITE", "CRM.DELETE", "CRM.EXPORT",

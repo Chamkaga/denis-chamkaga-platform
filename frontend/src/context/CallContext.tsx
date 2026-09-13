@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import { Phone, PhoneOff, Mic, MicOff, Play, Pause, Edit3, User, Sparkles, Check } from 'lucide-react';
 import { audioSynth } from '../lib/audio-synth';
 import { adminApi } from '../services/api';
+import { useToast } from '../components/atoms/Toast';
 
 export type CallState = 
   | 'idle' 
@@ -61,6 +62,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [liveNotes, setLiveNotes] = useState('');
   const [crmSummary, setCrmSummary] = useState<any>(null);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+  const { toast } = useToast();
 
   const adminPcRef = useRef<RTCPeerConnection | null>(null);
   const adminStreamRef = useRef<MediaStream | null>(null);
@@ -292,7 +294,10 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Post missed call log
       fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/ai/webrtc/log`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+        },
         body: JSON.stringify({
           sessionId: activeCall.sessionId,
           status: 'declined',
@@ -313,7 +318,10 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Post call log with live notes to backend!
       fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/ai/webrtc/log`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+        },
         body: JSON.stringify({
           sessionId: activeCall.sessionId,
           status: 'completed',
@@ -351,7 +359,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCrmSummary(summary);
     } catch (err) {
       console.error('Failed to generate CRM summary:', err);
-      alert('Failed to generate CRM summary. Please try again.');
+      toast.error('Failed to generate CRM summary. Please try again.', 'Summary Error');
     } finally {
       setIsGeneratingSummary(false);
     }
@@ -367,7 +375,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       cleanupCall();
     } catch (err) {
       console.error('Failed to sync CRM summary:', err);
-      alert('Failed to sync CRM summary. Please try again.');
+      toast.error('Failed to sync CRM summary. Please try again.', 'Sync Error');
     } finally {
       setIsSyncingSummary(false);
     }
