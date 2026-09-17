@@ -42,6 +42,10 @@ jobs:
       - name: Shared Package Build
         run: npm run build --workspace=shared
 
+      - name: Generate Prisma Client
+        working-directory: backend
+        run: npx prisma generate
+
       - name: Database Migration & Seed
         env:
           DATABASE_URL: "postgresql://postgres:password@localhost:5432/denis_platform?schema=public"
