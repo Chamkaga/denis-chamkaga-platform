@@ -6,10 +6,10 @@ services:
     region: frankfurt
     branch: main
     buildCommand: >-
-      npm ci &&
+      npm ci --include=dev &&
       npm run build --workspace=shared &&
-      npm run build --workspace=backend &&
       npx prisma generate --schema=backend/prisma/schema.prisma &&
+      npm run build --workspace=backend &&
       npx prisma migrate deploy --schema=backend/prisma/schema.prisma
     startCommand: node backend/dist/server.js
     healthCheckPath: /api/health
