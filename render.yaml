@@ -1,0 +1,105 @@
+services:
+  - type: web
+    name: denis-chamkaga-backend
+    runtime: node
+    plan: free
+    region: frankfurt
+    branch: main
+    buildCommand: >-
+      npm ci &&
+      npm run build --workspace=shared &&
+      npm run build --workspace=backend &&
+      npx prisma generate --schema=backend/prisma/schema.prisma &&
+      npx prisma migrate deploy --schema=backend/prisma/schema.prisma
+    startCommand: node backend/dist/server.js
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      # Database (Neon connection string — use the "pooled" connection string)
+      - key: DATABASE_URL
+        sync: false
+
+      # JWT / session secrets — generated automatically by Render, no input needed
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: SESSION_CAPABILITY_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_EXPIRY
+        value: 15m
+      - key: JWT_REFRESH_EXPIRY
+        value: 7d
+
+      # CORS — must equal the exact Vercel frontend URL (no trailing slash)
+      - key: FRONTEND_URL
+        sync: false
+
+      # AI — OpenAI only, no Gemini
+      - key: AI_PROVIDER
+        value: openai
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        sync: false
+
+      # Admin bootstrap account
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_INITIAL_PASSWORD
+        sync: false
+
+      # Email (Resend is the active default driver)
+      - key: NOTIFICATION_PROVIDER
+        value: resend
+      - key: EMAIL_FROM
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: SENDGRID_API_KEY
+        sync: false
+
+      # Payments — disabled by default for staging until real, non-sandbox
+      # credentials are supplied. See deployment notes before enabling.
+      - key: PAYMENT_PROVIDER
+        value: dpo
+      - key: PAYMENT_DPO_ENABLED
+        value: 'false'
+      - key: PAYMENT_DPO_SANDBOX
+        value: 'false'
+      - key: DPO_COMPANY_TOKEN
+        sync: false
+      - key: DPO_SERVICE_TYPE
+        sync: false
+      - key: FLW_PUBLIC_KEY
+        sync: false
+      - key: FLW_SECRET_KEY
+        sync: false
+      - key: FLW_ENCRYPTION_KEY
+        sync: false
+      - key: FLW_WEBHOOK_SECRET
+        sync: false
+
+      # Feature flags
+      - key: AI_VISITOR_INTELLIGENCE
+        value: 'true'
+      - key: AI_MEMORY_ENGINE
+        value: 'true'
+      - key: AI_KNOWLEDGE_ENGINE
+        value: 'true'
+      - key: AI_LEAD_INTELLIGENCE
+        value: 'true'
+      - key: AI_ADMIN_COPILOT
+        value: 'false'
+      - key: WEBRTC_ENABLED
+        value: 'false'
+      - key: BYPASS_RATE_LIMIT
+        value: 'false'
+
+      - key: CALENDLY_REDIRECT_URL
+        sync: false
+      - key: WHATSAPP_HANDOFF_PHONE
+        sync: false

@@ -50,7 +50,7 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
       fontSrc: ["'self'", 'https://fonts.gstatic.com'],
       imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
-      connectSrc: ["'self'", 'https://api.flutterwave.com', 'https://generativelanguage.googleapis.com'],
+      connectSrc: ["'self'", 'https://api.flutterwave.com', 'https://api.openai.com'],
       frameSrc: ["'self'", 'https://checkout.flutterwave.com', 'https://www.youtube.com'],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null,
