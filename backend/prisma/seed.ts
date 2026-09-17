@@ -171,9 +171,16 @@ async function main() {
   const ownerPassword = process.env.OWNER_INITIAL_PASSWORD || 'Denis@Platform2025';
   const passwordHash = await bcrypt.hash(ownerPassword, BCRYPT_ROUNDS);
 
+  // Only resync passwordHash for an existing account if it's still in its
+  // untouched bootstrap state (mustChangePassword: true). Once someone has
+  // logged in and changed their password, re-seeding must never overwrite it.
+  const existingOwner = await prisma.user.findUnique({ where: { email: 'denis@denischamkaga.com' } });
   await prisma.user.upsert({
     where: { email: 'denis@denischamkaga.com' },
-    update: { username: 'denis', firstName: 'Denis', lastName: 'Chamkaga', roleId: ownerRole.id, isActive: true },
+    update: {
+      username: 'denis', firstName: 'Denis', lastName: 'Chamkaga', roleId: ownerRole.id, isActive: true,
+      ...(existingOwner?.mustChangePassword !== false ? { passwordHash } : {}),
+    },
     create: {
       email: 'denis@denischamkaga.com',
       username: 'denis',
@@ -188,9 +195,13 @@ async function main() {
   console.log('  ✓ Owner user: denis@denischamkaga.com (mustChangePassword: true)');
 
   const adminPasswordHash = await bcrypt.hash(process.env.ADMIN_INITIAL_PASSWORD || 'Admin@Platform2025', BCRYPT_ROUNDS);
+  const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
   await prisma.user.upsert({
     where: { email: adminEmail },
-    update: { username: 'admin', firstName: 'System', lastName: 'Administrator', roleId: adminRole.id, isActive: true },
+    update: {
+      username: 'admin', firstName: 'System', lastName: 'Administrator', roleId: adminRole.id, isActive: true,
+      ...(existingAdmin?.mustChangePassword !== false ? { passwordHash: adminPasswordHash } : {}),
+    },
     create: {
       email: adminEmail,
       username: 'admin',
