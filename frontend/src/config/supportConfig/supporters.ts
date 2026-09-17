@@ -11,7 +11,7 @@ export const supporterTiers: SupporterTier[] = [
   {
     id: 'seed',
     name: 'Seed Supporter',
-    impact: 'Helps keep learning resources freely available for local builders.',
+    impact: 'Helps prepare practical learning resources and community guidance.',
     amountTzs: 5000,
     amountUsd: 2,
     badge: '🌱'
@@ -19,7 +19,7 @@ export const supporterTiers: SupporterTier[] = [
   {
     id: 'growth',
     name: 'Growth Supporter',
-    impact: 'Supports open-source software development and platform infrastructure.',
+    impact: 'Supports portfolio hosting, product demonstrations, and platform infrastructure.',
     amountTzs: 20000,
     amountUsd: 8,
     badge: '🚀'
@@ -27,7 +27,7 @@ export const supporterTiers: SupporterTier[] = [
   {
     id: 'vision',
     name: 'Vision Builder',
-    impact: 'Accelerates Terrasafi development and artificial intelligence innovation.',
+    impact: 'Supports Terrasafi service preparation, customer research, and business tools.',
     amountTzs: 50000,
     amountUsd: 20,
     badge: '⭐'
@@ -35,7 +35,7 @@ export const supporterTiers: SupporterTier[] = [
   {
     id: 'champion',
     name: 'Mission Champion',
-    impact: 'Helps build long-term technology that creates lasting community impact.',
+    impact: 'Helps expand practical training, partnerships, and locally useful technology.',
     amountTzs: 100000,
     amountUsd: 40,
     badge: '❤️'

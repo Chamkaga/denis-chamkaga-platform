@@ -29,8 +29,7 @@ async function verifyPublicAIChat() {
     // Check 1: API Keys Loading
     console.log('1. Checking API keys loading...');
     const openaiKey = env.OPENAI_API_KEY || process.env.OPENAI_API_KEY;
-    const geminiKey = process.env.GEMINI_API_KEY;
-    assert(!!openaiKey || !!geminiKey, 'At least one valid API Key (OPENAI_API_KEY or GEMINI_API_KEY) is present');
+    assert(!!openaiKey, 'A valid OPENAI_API_KEY is present');
 
     // Check 2: LLM Provider Initialization
     console.log('\n2. Initializing LLM Provider...');
@@ -46,7 +45,8 @@ async function verifyPublicAIChat() {
         streamedTokens += token;
       }
     );
-    assert(streamedTokens.length > 0 || llmRes.content.length > 0, `LLM Stream returned response (${streamedTokens.length || llmRes.content.length} chars)`);
+    assert(llmRes.mode === 'live', `OpenAI returned a live provider response (mode: ${llmRes.mode})`);
+    assert(streamedTokens.length > 0 || llmRes.content.length > 0, `Live LLM stream returned response (${streamedTokens.length || llmRes.content.length} chars)`);
 
     // Check 4: Test AI Orchestrator Integration
     console.log('\n4. Testing AI Orchestrator processMessage pipeline...');

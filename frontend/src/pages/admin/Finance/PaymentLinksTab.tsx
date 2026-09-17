@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import type { ColumnDef } from '../../../components/admin/EnterpriseDataGrid';
 import { EnterpriseDataGrid } from '../../../components/admin/EnterpriseDataGrid';
-import { Link as LinkIcon, Copy, ExternalLink, Plus } from 'lucide-react';
+import { Link as LinkIcon } from 'lucide-react';
 import { Button } from '../../../components/atoms/Button';
-import { useToast } from '../../../components/atoms/Toast';
 import { PaymentLinkModal } from '../../../components/admin/PaymentLinkModal';
 
 interface PaymentLinkItem {
@@ -17,66 +16,35 @@ interface PaymentLinkItem {
   paymentMethod?: string;
   expiresAt: string;
   createdAt: string;
-  url: string;
+  source: any;
 }
 
-const mockPaymentLinks: PaymentLinkItem[] = [
-  {
-    id: 'link-1',
-    code: '8X4K-21KD',
-    invoiceNumber: 'INV-2026-015',
-    clientName: 'Azam Media Ltd',
-    amount: 850000,
-    currency: 'TZS',
-    status: 'paid',
-    paymentMethod: 'M-Pesa',
-    expiresAt: '2026-08-15',
-    createdAt: '2026-07-28',
-    url: 'http://localhost:5173/pay/INV-2026-015',
-  },
-  {
-    id: 'link-2',
-    code: 'INV-2026-016',
-    invoiceNumber: 'INV-2026-016',
-    clientName: 'CRDB Bank Plc',
-    amount: 3500000,
-    currency: 'TZS',
-    status: 'active',
-    expiresAt: '2026-08-07',
-    createdAt: '2026-07-30',
-    url: 'http://localhost:5173/pay/INV-2026-016',
-  },
-  {
-    id: 'link-3',
-    code: 'PL-9921',
-    invoiceNumber: 'INV-2026-012',
-    clientName: 'Vodacom Tanzania',
-    amount: 1200000,
-    currency: 'TZS',
-    status: 'active',
-    expiresAt: '2026-08-05',
-    createdAt: '2026-07-25',
-    url: 'http://localhost:5173/pay/PL-9921',
-  },
-];
-
-export const PaymentLinksTab: React.FC = () => {
-  const { toast } = useToast();
+export const PaymentLinksTab: React.FC<{ invoices?: any[] }> = ({ invoices = [] }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<any>(null);
 
-  const handleCopy = (url: string) => {
-    navigator.clipboard.writeText(url);
-    toast.success('Payment Link copied to clipboard!', 'Copied');
-  };
+  const paymentLinks: PaymentLinkItem[] = invoices.map((invoice) => ({
+    id: invoice.id,
+    code: invoice.invoiceNumber,
+    invoiceNumber: invoice.invoiceNumber,
+    clientName: invoice.organization?.name || invoice.clientName || 'Customer',
+    amount: Number(invoice.balanceDue ?? invoice.totalAmount ?? 0),
+    currency: invoice.currency || 'TZS',
+    status: Number(invoice.balanceDue ?? 0) <= 0 ? 'paid' : 'active',
+    expiresAt: invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : '—',
+    createdAt: invoice.createdAt,
+    source: invoice,
+  }));
 
-  const openGenerateModal = () => {
+  const openGenerateModal = (invoice: any) => {
     setSelectedDoc({
-      id: 'inv-new',
-      number: 'INV-2026-020',
-      clientName: 'Azam Media Ltd',
-      amount: 1500000,
-      currency: 'TZS'
+      id: invoice.id,
+      number: invoice.invoiceNumber,
+      clientName: invoice.organization?.name || invoice.clientName,
+      clientEmail: invoice.organization?.email || invoice.clientEmail,
+      clientPhone: invoice.organization?.phone || invoice.clientPhone,
+      amount: Number(invoice.balanceDue ?? invoice.totalAmount ?? 0),
+      currency: invoice.currency || 'TZS'
     });
     setIsModalOpen(true);
   };
@@ -149,22 +117,9 @@ export const PaymentLinksTab: React.FC = () => {
       sortable: false,
       cell: (row) => (
         <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-          <button
-            onClick={() => handleCopy(row.url)}
-            className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:text-accent-violet hover:border-accent-violet transition-colors"
-            title="Copy Link"
-          >
-            <Copy size={13} />
-          </button>
-          <a
-            href={row.url}
-            target="_blank"
-            rel="noreferrer"
-            className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:text-white hover:border-zinc-500 transition-colors"
-            title="Preview Link"
-          >
-            <ExternalLink size={13} />
-          </a>
+          <Button variant="outline" size="xs" onClick={() => openGenerateModal(row.source)} disabled={row.status === 'paid'}>
+            {row.status === 'paid' ? 'Paid' : 'Generate secure link'}
+          </Button>
         </div>
       ),
     },
@@ -176,12 +131,7 @@ export const PaymentLinksTab: React.FC = () => {
         title="Payment Links Directory"
         subtitle="Manage and track generated customer checkout links"
         columns={columns}
-        data={mockPaymentLinks}
-        actions={
-          <Button variant="primary" size="sm" onClick={openGenerateModal} leftIcon={<Plus size={14} />}>
-            Generate Payment Link
-          </Button>
-        }
+        data={paymentLinks}
         exportFilename="payment_links"
       />
 
@@ -193,4 +143,3 @@ export const PaymentLinksTab: React.FC = () => {
     </div>
   );
 };
-

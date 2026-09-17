@@ -56,10 +56,10 @@ export const InnovationLabSection: React.FC<InnovationLabSectionProps> = ({ isSw
       {/* Focus areas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
         {focusAreas.map((f, idx) => (
-          <div key={idx} className="p-6 rounded-2xl border dark:border-zinc-800 bg-zinc-950/20 space-y-3 hover:border-accent-violet/40 transition-colors">
-            <div className="p-2.5 rounded-lg bg-accent-violet/10 text-accent-violet w-fit">{f.icon}</div>
-            <h3 className="font-bold text-sm dark:text-white leading-tight font-display">{f.title}</h3>
-            <p className="text-xs text-zinc-500 leading-normal font-body">{f.desc}</p>
+          <div key={idx} className="p-6 rounded-2xl border dark:border-zinc-800 light:border-slate-200 dark:bg-zinc-950/20 light:bg-white space-y-3 hover:border-accent-violet/40 light:shadow-sm transition-colors">
+            <div className="p-2.5 rounded-lg bg-accent-violet/10 text-accent-violet w-fit ring-1 ring-accent-violet/10">{f.icon}</div>
+            <h3 className="font-bold text-sm dark:text-white light:text-slate-900 leading-tight font-display">{f.title}</h3>
+            <p className="text-xs dark:text-zinc-500 light:text-slate-600 leading-normal font-body">{f.desc}</p>
           </div>
         ))}
       </div>
@@ -68,20 +68,20 @@ export const InnovationLabSection: React.FC<InnovationLabSectionProps> = ({ isSw
       <div className="p-5 rounded-2xl border border-amber-500/20 bg-amber-500/5 flex gap-3 text-left">
         <ShieldAlert size={20} className="text-amber-500 shrink-0 mt-0.5" />
         <div className="space-y-1">
-          <h4 className="text-xs font-extrabold dark:text-white font-display">
-            {isSwahili ? "Ilani ya Majaribio" : "Sandboxed Environment Disclaimer"}
+          <h4 className="text-xs font-extrabold dark:text-white light:text-slate-900 font-display">
+            {isSwahili ? "Taarifa ya Innovation Lab" : "Innovation Lab Notice"}
           </h4>
-          <p className="text-[10px] sm:text-xs text-zinc-500 leading-normal font-body">
+          <p className="text-[10px] sm:text-xs dark:text-zinc-500 light:text-slate-600 leading-normal font-body">
             {isSwahili
-              ? "Mifumo hii ni kwa ajili ya majaribio ya ndani pekee na inaweza kubadilika wakati wowote. Si kwa matumizi ya uzalishaji wa kibiashara bado."
-              : "These setups run in sandboxed docker volumes. Features may be modified, reset, or updated without notice. For internal evaluation only."}
+              ? "Hapa ninajaribu prototypes katika mazingira yaliyotengwa kabla ya kuzitumia kwa wateja au kwenye bidhaa za Terrasafi. Vipengele vinaweza kubadilika kadiri usalama, utendaji na matumizi vinavyothibitishwa."
+              : "Prototypes are evaluated in isolated environments before they are introduced into client work or Terrasafi products. Features may evolve as security, performance and usability are validated."}
           </p>
         </div>
       </div>
 
       {/* Current experiments */}
       <div className="space-y-6 text-left">
-        <h3 className="text-lg font-bold dark:text-white font-display">
+        <h3 className="text-lg font-bold dark:text-white light:text-slate-900 font-display">
           {isSwahili ? "Majaribio ya Sasa ya Mifumo (MVPs)" : "Active Experiments & Prototypes"}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -89,14 +89,14 @@ export const InnovationLabSection: React.FC<InnovationLabSectionProps> = ({ isSw
             <MotionCard 
               key={idx} 
               delay={idx * 0.08}
-              className="p-6 flex flex-col justify-between border dark:border-zinc-800/80 bg-zinc-950/40 shadow-md hover:border-accent-violet/50 transition-colors"
+              className="p-6 flex flex-col justify-between border dark:border-zinc-800/80 light:border-slate-200 dark:bg-zinc-950/40 light:bg-white shadow-md hover:border-accent-violet/50 transition-colors"
             >
               <div className="space-y-3">
                 <span className="inline-block px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-accent-violet/10 text-accent-violet border border-accent-violet/20 font-display">
                   {exp.status}
                 </span>
-                <h3 className="font-bold text-sm dark:text-white pt-1 font-display">{exp.title}</h3>
-                <p className="text-xs text-zinc-500 leading-relaxed font-body">{exp.desc}</p>
+                <h3 className="font-bold text-sm dark:text-white light:text-slate-900 pt-1 font-display">{exp.title}</h3>
+                <p className="text-xs dark:text-zinc-500 light:text-slate-600 leading-relaxed font-body">{exp.desc}</p>
               </div>
               <div className="flex items-center gap-1 text-[10px] font-bold text-accent-violet uppercase tracking-wider pt-6 cursor-pointer">
                 <span>{isSwahili ? "Kagua Msimbo" : "Review Code Architecture"}</span>

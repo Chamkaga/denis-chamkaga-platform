@@ -14,14 +14,11 @@ export const Customer360Drawer: React.FC<Customer360DrawerProps> = ({ isOpen, on
 
   if (!isOpen || !customer) return null;
 
-  const journeySteps = [
-    { label: 'Lead Captured', date: customer.createdAt ? new Date(customer.createdAt).toLocaleDateString() : '2026-07-01', done: true },
-    { label: 'Consultation Scheduled', date: '2026-07-05', done: true },
-    { label: 'Quotation Sent', date: '2026-07-10', done: true },
-    { label: 'Invoice Generated', date: '2026-07-15', done: true },
-    { label: 'Payment Completed', date: '2026-07-18', done: true },
-    { label: 'Project Started', date: '2026-07-20', done: true },
-  ];
+  const journeySteps: Array<{ label: string; date: string; done?: boolean }> = customer.journey || (customer.createdAt ? [
+    { label: 'Lead Captured', date: new Date(customer.createdAt).toLocaleDateString(), done: true },
+  ] : []);
+  const activities = customer.activities || [];
+  const invoices = customer.invoices || customer.organization?.invoices || [];
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden bg-black/50 backdrop-blur-xs animate-in fade-in">
@@ -86,7 +83,7 @@ export const Customer360Drawer: React.FC<Customer360DrawerProps> = ({ isOpen, on
             <div className="space-y-4">
               <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-400">Lifecycle Progress</h4>
               <div className="relative pl-6 space-y-6 border-l-2 border-accent-violet/30 ml-2">
-                {journeySteps.map((step, idx) => (
+                {journeySteps.map((step: { label: string; date: string }, idx: number) => (
                   <div key={idx} className="relative">
                     <div className="absolute -left-[31px] top-0.5 w-4 h-4 rounded-full bg-accent-violet text-white flex items-center justify-center text-[10px]">
                       <CheckCircle2 size={12} />
@@ -104,32 +101,32 @@ export const Customer360Drawer: React.FC<Customer360DrawerProps> = ({ isOpen, on
           {/* Tab 2: Activity Timeline */}
           {activeTab === 'timeline' && (
             <div className="space-y-3 text-xs">
-              {[
-                { title: 'Payment received for Invoice #INV-2026-015', time: 'Yesterday at 14:22', type: 'payment' },
-                { title: 'Quotation #QT-2026-088 approved by client', time: '3 days ago', type: 'quote' },
-                { title: 'Consultation call completed with Denis Chamkaga', time: '1 week ago', type: 'meeting' },
-              ].map((act, i) => (
+              {activities.map((act: any, i: number) => (
                 <div key={i} className="p-3 rounded-xl bg-slate-50 dark:bg-zinc-950/60 border border-zinc-200/50 dark:border-zinc-850">
-                  <div className="font-semibold text-slate-800 dark:text-white">{act.title}</div>
-                  <div className="text-[10px] text-zinc-500 font-mono mt-1">{act.time}</div>
+                  <div className="font-semibold text-slate-800 dark:text-white">{act.title || act.description}</div>
+                  <div className="text-[10px] text-zinc-500 font-mono mt-1">{act.time || (act.createdAt ? new Date(act.createdAt).toLocaleString() : '—')}</div>
                 </div>
               ))}
+              {activities.length === 0 && <p className="text-zinc-500">No recorded customer activities.</p>}
             </div>
           )}
 
           {/* Tab 3: Billing */}
           {activeTab === 'invoices' && (
             <div className="space-y-3 text-xs">
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-zinc-950/60 border border-zinc-200/50 dark:border-zinc-850 flex items-center justify-between">
-                <div>
-                  <div className="font-mono font-bold text-slate-800 dark:text-white">INV-2026-015</div>
-                  <div className="text-[10px] text-zinc-400">Website Development Phase 1</div>
+              {invoices.map((invoice: any) => (
+                <div key={invoice.id} className="p-3 rounded-xl bg-slate-50 dark:bg-zinc-950/60 border border-zinc-200/50 dark:border-zinc-850 flex items-center justify-between">
+                  <div>
+                    <div className="font-mono font-bold text-slate-800 dark:text-white">{invoice.invoiceNumber}</div>
+                    <div className="text-[10px] text-zinc-400">{invoice.description || invoice.title || 'Invoice'}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-mono font-bold text-emerald-500">{invoice.currency || 'TZS'} {Number(invoice.totalAmount || invoice.total || 0).toLocaleString()}</div>
+                    <span className="text-[10px] uppercase font-bold text-emerald-500">{invoice.status}</span>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <div className="font-mono font-bold text-emerald-500">TZS 850,000</div>
-                  <span className="text-[10px] uppercase font-bold text-emerald-500">PAID</span>
-                </div>
-              </div>
+              ))}
+              {invoices.length === 0 && <p className="text-zinc-500">No billing records for this customer.</p>}
             </div>
           )}
         </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Bell,
   X,
@@ -16,45 +16,10 @@ export interface NotificationItem {
   isRead: boolean;
 }
 
-export const NotificationCenter: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
-  const [notifications, setNotifications] = useState<NotificationItem[]>([
-    {
-      id: 'n-1',
-      title: 'Hot Corporate Lead Registered',
-      message: 'Acme Corp submitted high-intent consultation request ($45,000 potential value).',
-      category: 'Lead',
-      priority: 'High',
-      timestamp: '10 minutes ago',
-      isRead: false
-    },
-    {
-      id: 'n-2',
-      title: 'Quotation Approved',
-      message: 'Quotation #QT-2026-089 has been accepted by client.',
-      category: 'Finance',
-      priority: 'Medium',
-      timestamp: '1 hour ago',
-      isRead: false
-    },
-    {
-      id: 'n-3',
-      title: 'Automated Database Backup Successful',
-      message: 'PostgreSQL daily snapshot backed up to encrypted cold storage.',
-      category: 'Backup',
-      priority: 'Low',
-      timestamp: '3 hours ago',
-      isRead: true
-    },
-    {
-      id: 'n-4',
-      title: 'SOC Security Alert: Failed Auth Spikes',
-      message: '5 failed login attempts detected from IP 197.234.12.90. Rate limit active.',
-      category: 'Security',
-      priority: 'Critical',
-      timestamp: '5 hours ago',
-      isRead: false
-    }
-  ]);
+export const NotificationCenter: React.FC<{ isOpen: boolean; onClose: () => void; items?: NotificationItem[] }> = ({ isOpen, onClose, items = [] }) => {
+  const [notifications, setNotifications] = useState<NotificationItem[]>(items);
+
+  useEffect(() => setNotifications(items), [items]);
 
   const [activeFilter, setActiveFilter] = useState<'All' | 'Unread' | 'Critical'>('All');
 

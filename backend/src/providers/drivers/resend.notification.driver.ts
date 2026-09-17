@@ -33,8 +33,8 @@ export class ResendNotificationDriver implements INotificationProvider {
 
   async sendEmail(to: string, subject: string, body: string): Promise<{ success: boolean; messageId?: string }> {
     if (!this.apiKey) {
-      console.log(`[Resend Mock Email Log] To: ${to} | Subject: ${subject} | Body: ${body.substring(0, 100)}...`);
-      return { success: true, messageId: `resend-mock-${Date.now()}` };
+      console.warn(`[Resend] Email not sent because credentials are unavailable. Recipient: ${to}; subject: ${subject}`);
+      return { success: false };
     }
     try {
       const response = await fetch('https://api.resend.com/emails', {

@@ -34,149 +34,75 @@ import { useScrollReveal } from '../../../hooks/useScrollReveal';
 import { 
   heroStaggerContainer, 
   fadeUpVariants, 
-  slideLeftVariants, 
-  slideRightVariants, 
-  lineGrowVariants, 
   skillBarVariants
 } from '../../../lib/motion';
 
-// ── Timeline section component to manage line growth and alternating children reveal ──
+// ── Accessible horizontal career journey ──
 const TimelineSection: React.FC<{ journeyMilestones: any[]; isSwahili: boolean }> = ({ journeyMilestones, isSwahili }) => {
-  const { ref: containerRef, isInView } = useScrollReveal({ threshold: 0.05 });
+  const [activeIndex, setActiveIndex] = React.useState(0);
+  const [paused, setPaused] = React.useState(false);
+  const activeNode = journeyMilestones[activeIndex];
+
+  React.useEffect(() => {
+    if (paused || journeyMilestones.length < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const timer = window.setInterval(() => {
+      setActiveIndex((current) => (current + 1) % journeyMilestones.length);
+    }, 7000);
+    return () => window.clearInterval(timer);
+  }, [paused, journeyMilestones.length]);
+
+  const goTo = (index: number) => setActiveIndex((index + journeyMilestones.length) % journeyMilestones.length);
 
   return (
-    <div ref={containerRef as React.RefObject<HTMLDivElement>} className="relative ml-4 sm:ml-6 lg:ml-10 space-y-16">
-      
-      {/* Animated Vertical Line */}
-      <motion.div
-        variants={lineGrowVariants}
-        initial="hidden"
-        animate={isInView ? 'visible' : 'hidden'}
-        className="absolute -left-[1px] top-2 bottom-2 w-0.5 bg-accent-violet origin-top"
-      />
+    <div
+      className="space-y-5"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocusCapture={() => setPaused(true)}
+      onBlurCapture={() => setPaused(false)}
+    >
+      <div className="relative px-2 sm:px-10">
+        <div className="absolute left-6 right-6 sm:left-14 sm:right-14 top-5 h-px bg-gradient-to-r from-transparent via-accent-violet/45 to-transparent" />
+        <div className="relative flex items-start justify-between gap-2">
+          {journeyMilestones.map((node, index) => (
+            <button key={node.organization} onClick={() => goTo(index)} className="group flex min-w-0 flex-1 flex-col items-center gap-2 focus:outline-none" aria-label={`${node.years}: ${node.organization}`} aria-current={index === activeIndex ? 'step' : undefined}>
+              <span className={`grid h-10 w-10 place-items-center rounded-full border-2 bg-white dark:bg-zinc-950 transition-all ${index === activeIndex ? 'border-accent-violet text-accent-violet shadow-lg shadow-accent-violet/20 scale-110' : 'border-slate-300 dark:border-zinc-700 text-slate-400'}`}>{node.logo}</span>
+              <span className={`hidden sm:block truncate max-w-full text-[9px] font-bold uppercase tracking-wider ${index === activeIndex ? 'text-accent-violet' : 'text-slate-400 dark:text-zinc-500'}`}>{node.years}</span>
+            </button>
+          ))}
+        </div>
+      </div>
 
-      {journeyMilestones.map((node, idx) => {
-        const isEven = idx % 2 === 0;
-        const slideVariants = isEven ? slideLeftVariants : slideRightVariants;
-
-        return (
-          <motion.div 
-            key={idx} 
-            variants={slideVariants}
-            initial="hidden"
-            animate={isInView ? 'visible' : 'hidden'}
-            custom={idx * 0.1}
-            className="relative pl-8 sm:pl-10 lg:pl-12 text-left"
-          >
-            
-            {/* Connector Dot */}
-            <div className="absolute -left-[13px] top-2 w-6 h-6 rounded-full border-4 border-accent-violet bg-white dark:bg-zinc-950 flex items-center justify-center text-[10px] text-accent-violet font-bold z-10">
-              {idx + 1}
+      <div className="relative overflow-hidden rounded-3xl border dark:border-zinc-800/80 light:border-slate-200 dark:bg-zinc-900/40 light:bg-white shadow-xl min-h-[470px] md:min-h-[330px]">
+        <motion.div key={activeIndex} initial={{ opacity: 0, x: 80 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -80 }} transition={{ duration: 0.55, ease: 'easeOut' }} className="flex flex-col md:flex-row">
+          <div className="relative h-[210px] md:h-auto md:min-h-[330px] md:w-[38%] flex-shrink-0 border-b md:border-b-0 md:border-r dark:border-zinc-800 light:border-slate-200 dark:bg-zinc-950 light:bg-slate-50 p-4">
+            <AnimatedImage src={activeNode.image} alt={activeNode.role} className="h-full w-full" objectFit="contain" hoverZoom={false} />
+            <div className="absolute left-4 top-4 rounded-lg border bg-white/95 p-1 shadow-sm w-9 h-9">{activeNode.logo}</div>
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col justify-between gap-4 p-5 sm:p-7">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-accent-violet">{activeNode.icon}<span>{activeNode.years}</span></div>
+              <h3 className="text-xl font-extrabold dark:text-white light:text-slate-900">{activeNode.organization}</h3>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-accent-violet">{activeNode.role}</p>
+              <p className="pt-2 text-sm leading-relaxed dark:text-zinc-300 light:text-slate-700">{activeNode.story}</p>
             </div>
-
-            {/* Step Card Container */}
-            <motion.div 
-              whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(139,92,246,0.06)' }}
-              transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="rounded-3xl border dark:border-zinc-800/80 light:border-slate-200 dark:bg-zinc-900/40 light:bg-white hover:border-accent-violet shadow-xl max-w-5xl group overflow-hidden"
-            >
-              <div className="flex flex-col md:flex-row">
-
-                {/* LEFT — 3D Illustration: 42% desktop width, min-h-[300px], 220px height mobile */}
-                <div className="relative flex-shrink-0 dark:bg-zinc-950 light:bg-slate-50 w-full h-[220px] md:w-[42%] md:h-auto md:min-h-[300px] border-b md:border-b-0 md:border-r dark:border-zinc-800 light:border-slate-200">
-                  <motion.div
-                    animate={{ y: [0, -6, 0] }}
-                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                    className="absolute inset-0 w-full h-full p-4"
-                  >
-                    <AnimatedImage 
-                      src={node.image} 
-                      alt={node.role} 
-                      className="w-full h-full"
-                      objectFit="contain"
-                      hoverZoom={false}
-                    />
-                  </motion.div>
-                  {/* Company Logo badge */}
-                  <div className="absolute top-3 left-3 w-7 h-7 rounded-lg overflow-hidden bg-white/95 p-0.5 flex items-center justify-center border shadow-sm text-zinc-900 z-10">
-                    {node.logo}
-                  </div>
-                  {/* Type badge overlay */}
-                  <div className="absolute bottom-3 right-3 z-10">
-                    <span className="text-[9px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider backdrop-blur-sm bg-accent-violet/20 text-accent-violet border border-accent-violet/30">
-                      {isSwahili ? 'milestone' : 'milestone'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* RIGHT — Content column: 58% desktop width */}
-                <div className="flex-1 min-w-0 p-5 sm:p-6 flex flex-col justify-between gap-4">
-                  {/* Top Header */}
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-1.5 text-[10px] font-semibold text-accent-violet/70 uppercase tracking-wider font-display">
-                      {node.icon}
-                      <span>{node.years}</span>
-                    </div>
-                    <h3 className="text-lg sm:text-xl font-extrabold dark:text-white light:text-slate-900 leading-tight tracking-tight">
-                      {node.organization}
-                    </h3>
-                    <p className="text-[11px] font-bold uppercase tracking-wider font-body text-accent-violet">
-                      {node.role}
-                    </p>
-                  </div>
-
-                  {/* Story */}
-                  <p className="text-sm dark:text-zinc-300 light:text-slate-700 leading-relaxed font-body">
-                    {node.story}
-                  </p>
-
-                  {/* Lesson */}
-                  <div className="flex items-start gap-2 border-l-2 border-accent-violet/40 pl-3 py-0.5">
-                    <BookOpen size={11} className="text-accent-violet shrink-0 mt-0.5" />
-                    <p className="text-[11px] italic dark:text-zinc-400 light:text-slate-500 leading-relaxed font-body">
-                      &ldquo;{node.lesson}&rdquo;
-                    </p>
-                  </div>
-
-                  {/* Skills chips */}
-                  <div className="flex flex-wrap gap-1.5">
-                    {node.skills.map((sk: string) => (
-                      <motion.span
-                        key={sk}
-                        whileHover={{ scale: 1.05 }}
-                        transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-                        className="text-[10px] font-semibold py-0.5 px-2 rounded-lg dark:bg-zinc-800 dark:text-zinc-300 light:bg-slate-100 light:text-slate-600 border dark:border-zinc-700/50 light:border-slate-200 transition-colors hover:border-accent-violet hover:text-accent-violet cursor-default inline-block"
-                      >
-                        {sk}
-                      </motion.span>
-                    ))}
-                  </div>
-
-                  {/* Website Button */}
-                  {node.website && (
-                    <div>
-                      <motion.a 
-                        whileHover={{ scale: 1.03 }}
-                        whileTap={{ scale: 0.97 }}
-                        href={node.website}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 py-1.5 px-3.5 rounded-xl border dark:border-zinc-800 light:border-slate-200 dark:bg-zinc-950/30 light:bg-white dark:text-zinc-300 light:text-slate-700 hover:border-accent-violet hover:text-accent-violet transition-colors focus:outline-none focus:ring-2 focus:ring-accent-violet font-semibold text-[11px] shadow-sm cursor-pointer"
-                        aria-label={`Visit official portal for ${node.organization}`}
-                      >
-                        <span>{node.btnText}</span>
-                        <ExternalLink size={11} />
-                      </motion.a>
-                    </div>
-                  )}
-                </div>
-
+            <div className="space-y-3">
+              <div className="flex items-start gap-2 border-l-2 border-accent-violet/40 pl-3">
+                <BookOpen size={12} className="mt-0.5 shrink-0 text-accent-violet" />
+                <p className="text-[11px] italic dark:text-zinc-400 light:text-slate-500">&ldquo;{activeNode.lesson}&rdquo;</p>
               </div>
-            </motion.div>
+              <div className="flex flex-wrap gap-1.5">{activeNode.skills.map((skill: string) => <span key={skill} className="rounded-lg border dark:border-zinc-700 light:border-slate-200 dark:bg-zinc-800 light:bg-slate-100 px-2 py-0.5 text-[10px] font-semibold dark:text-zinc-300 light:text-slate-600">{skill}</span>)}</div>
+              {activeNode.website && <a href={activeNode.website} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-xl border dark:border-zinc-800 light:border-slate-200 px-3.5 py-1.5 text-[11px] font-semibold hover:border-accent-violet hover:text-accent-violet"><span>{activeNode.btnText}</span><ExternalLink size={11} /></a>}
+            </div>
+          </div>
+        </motion.div>
+      </div>
 
-          </motion.div>
-        );
-      })}
+      <div className="flex items-center justify-between gap-4">
+        <button onClick={() => goTo(activeIndex - 1)} className="rounded-xl border dark:border-zinc-800 light:border-slate-200 px-4 py-2 text-xs font-bold hover:border-accent-violet hover:text-accent-violet" aria-label={isSwahili ? 'Hatua iliyopita' : 'Previous milestone'}>← {isSwahili ? 'Nyuma' : 'Previous'}</button>
+        <div className="flex gap-2">{journeyMilestones.map((node, index) => <button key={node.organization} onClick={() => goTo(index)} className={`h-2 rounded-full transition-all ${index === activeIndex ? 'w-7 bg-accent-violet' : 'w-2 bg-slate-300 dark:bg-zinc-700'}`} aria-label={`Go to ${node.organization}`} />)}</div>
+        <button onClick={() => goTo(activeIndex + 1)} className="rounded-xl border dark:border-zinc-800 light:border-slate-200 px-4 py-2 text-xs font-bold hover:border-accent-violet hover:text-accent-violet" aria-label={isSwahili ? 'Hatua inayofuata' : 'Next milestone'}>{isSwahili ? 'Mbele' : 'Next'} →</button>
+      </div>
     </div>
   );
 };
@@ -187,22 +113,22 @@ const SkillsCard: React.FC<{ category: string; skills: any[] }> = ({ category, s
   return (
     <div 
       ref={ref as React.RefObject<HTMLDivElement>}
-      className="p-6 rounded-3xl border dark:border-zinc-800/80 light:border-slate-200 dark:bg-zinc-950/40 light:bg-white shadow-lg space-y-6"
+      className="p-4 rounded-2xl border dark:border-zinc-800/80 light:border-slate-200 dark:bg-zinc-950/40 light:bg-white shadow-sm space-y-4"
     >
-      <h3 className="font-extrabold text-base dark:text-white light:text-slate-800 flex items-center gap-2 border-b dark:border-zinc-850/60 light:border-slate-100 pb-3">
-        <Briefcase size={16} className="text-accent-violet" />
+      <h3 className="font-extrabold text-sm dark:text-white light:text-slate-800 flex items-center gap-2 border-b dark:border-zinc-850/60 light:border-slate-100 pb-2.5">
+        <Briefcase size={14} className="text-accent-violet" />
         {category}
       </h3>
 
-      <div className="space-y-4 font-body">
+      <div className="space-y-3 font-body">
         {skills.map((sk) => (
-          <div key={sk.name} className="space-y-1.5 text-xs text-left">
+          <div key={sk.name} className="space-y-1 text-xs text-left">
             <div className="flex justify-between items-center text-[11px] font-medium dark:text-zinc-400 light:text-slate-700">
               <span>{sk.name}</span>
               <span className="font-bold text-accent-violet font-mono">{sk.val}%</span>
             </div>
             {/* Progress track */}
-            <div className="w-full bg-zinc-900/50 light:bg-slate-150 h-2.5 rounded-full overflow-hidden border dark:border-zinc-850 light:border-slate-200">
+            <div className="w-full bg-zinc-900/50 light:bg-slate-100 h-1.5 rounded-full overflow-hidden">
               <motion.div 
                 className="bg-accent-violet h-full rounded-full" 
                 variants={skillBarVariants(sk.val)}
@@ -644,6 +570,10 @@ export const AboutPage: React.FC = () => {
               hoverZoom={true}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/80 via-transparent to-transparent pointer-events-none" />
+            <div className="absolute inset-x-4 bottom-4 z-10 text-left">
+              <p className="text-sm font-extrabold text-white tracking-tight">Denis Chamkaga</p>
+              <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-violet-200">{isSwahili ? 'Teknolojia ya Habari za Biashara · Systems Developer' : 'Business Information Technology · Systems Developer'}</p>
+            </div>
           </div>
 
           {/* Floating Metric Badge 1 */}
@@ -708,10 +638,10 @@ export const AboutPage: React.FC = () => {
       </section>
 
       {/* SECTION 3 — WHAT I LEARNED (Premium Competency Cards) */}
-      <section className="space-y-8 pt-8 border-t dark:border-zinc-800/60 light:border-slate-100">
+      <section className="space-y-6 pt-8 border-t dark:border-zinc-800/60 light:border-slate-100">
         
         {/* Section Header */}
-        <div className="space-y-4 max-w-3xl">
+        <div className="space-y-2 max-w-3xl">
           <span className="text-xs font-semibold text-accent-violet uppercase tracking-wider font-display">
             {isSwahili ? "Uwezo" : "Competencies"}
           </span>
@@ -826,7 +756,7 @@ export const AboutPage: React.FC = () => {
           <span className="text-xs font-semibold text-accent-violet uppercase tracking-wider font-display">
             {isSwahili ? "Tathmini ya Ujuzi" : "Skills Assessment"}
           </span>
-          <h2 className="text-3xl font-bold dark:text-white light:text-slate-800 font-display">
+          <h2 className="text-2xl sm:text-3xl font-bold dark:text-white light:text-slate-800 font-display">
             {isSwahili ? "Viwango vya Ujuzi na Vipimo vya Dashboard" : "Dashboard Skills & Metrics"}
           </h2>
           <p className="text-sm dark:text-zinc-400 light:text-slate-500 leading-relaxed font-body">
@@ -837,7 +767,7 @@ export const AboutPage: React.FC = () => {
         </div>
 
         {/* Dash Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {skillsData.map((cat, idx) => (
             <SkillsCard key={idx} category={cat.category} skills={cat.skills} />
           ))}
@@ -926,7 +856,11 @@ export const AboutPage: React.FC = () => {
           
           <div className="absolute top-4 left-4 py-1.5 px-3 rounded-lg bg-zinc-950/80 text-[10px] text-white border border-white/10 uppercase tracking-widest font-semibold flex items-center gap-1.5 z-20">
             <Award size={12} className="text-accent-violet" />
-            {isSwahili ? "Mazingira Amilifu ya Sandbox" : "Active Sandbox"}
+            {isSwahili ? "Sandbox ya Terrasafi" : "Terrasafi Product Sandbox"}
+          </div>
+          <div className="absolute inset-x-5 bottom-5 z-20 rounded-xl bg-zinc-950/85 border border-white/10 px-4 py-3 backdrop-blur-sm">
+            <p className="text-[9px] font-bold uppercase tracking-widest text-white">{isSwahili ? "Mwonekano wa bidhaa unaokuja" : "Future product preview"}</p>
+            <p className="mt-1 text-[10px] text-zinc-300">{isSwahili ? "Eneo hili litaonyesha screenshot halisi ya POS, CRM, fedha na miradi baada ya kuzinduliwa." : "This area will show a real product screenshot for POS, CRM, finance and projects as they launch."}</p>
           </div>
         </MotionCard>
 

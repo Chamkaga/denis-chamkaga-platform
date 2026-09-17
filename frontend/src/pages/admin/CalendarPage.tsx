@@ -105,7 +105,7 @@ export const CalendarPage: React.FC = () => {
   if (Array.isArray(dbEventsData)) {
     dbEventsData.forEach((ev: any) => {
       combinedEvents.push({
-        id: ev.id || `ev-${Math.random()}`,
+        id: ev.id || `event-${ev.title || 'untitled'}-${ev.start || ev.deadline || 'undated'}`,
         title: ev.title || ev.name || 'Scheduled Event',
         category: ev.category || 'meeting',
         date: ev.date ? new Date(ev.date).toISOString().split('T')[0] : '2026-08-01',
@@ -145,18 +145,6 @@ export const CalendarPage: React.FC = () => {
       });
     }
   });
-
-  // Fallback defaults if empty
-  if (combinedEvents.length === 0) {
-    combinedEvents.push(
-      { id: 'ev-1', title: 'Consultation with Azam Media Tech Team', category: 'meeting', date: '2026-08-03', time: '10:00 AM', status: 'upcoming', clientOrProject: 'Azam Media Ltd' },
-      { id: 'ev-2', title: 'Payment Due: Invoice #INV-2026-016 (CRDB Bank)', category: 'invoice', date: '2026-08-05', time: '05:00 PM', status: 'urgent', clientOrProject: 'TZS 3,500,000' },
-      { id: 'ev-3', title: 'Deliverable Milestone: Enterprise BOS Phase 7', category: 'project', date: '2026-08-07', time: '12:00 PM', status: 'upcoming', clientOrProject: 'Denis Chamkaga OS' },
-      { id: 'ev-4', title: 'Payment Link Expiry: PL-9921 (Vodacom)', category: 'invoice', date: '2026-08-05', time: '11:59 PM', status: 'upcoming', clientOrProject: 'TZS 1,200,000' },
-      { id: 'ev-5', title: 'Marketing Campaign Launch: Brand OS 2026', category: 'campaign', date: '2026-08-10', time: '09:00 AM', status: 'upcoming', clientOrProject: 'Growth Marketing' },
-      { id: 'ev-6', title: 'Scheduled Database Maintenance & Security Backup', category: 'maintenance', date: '2026-08-15', time: '02:00 AM', status: 'upcoming', clientOrProject: 'Platform Operations' }
-    );
-  }
 
   const filteredEvents = combinedEvents.filter((ev) => selectedCategory === 'all' || ev.category === selectedCategory);
 
@@ -245,9 +233,7 @@ export const CalendarPage: React.FC = () => {
             Scheduled Events ({filteredEvents.length})
           </h3>
 
-          {eventsLoading ? (
-            <div className="p-8 text-center text-xs text-zinc-500">Loading business schedule...</div>
-          ) : (
+          {eventsLoading ? null : (
             <div className="space-y-3">
               {filteredEvents.map((ev) => {
                 const meta = categoryBadges[ev.category] || categoryBadges.meeting;
@@ -298,14 +284,6 @@ export const CalendarPage: React.FC = () => {
             </h3>
 
             <div className="space-y-3 text-xs">
-              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 font-medium">
-                <div className="font-bold">CRDB Bank Invoice Due</div>
-                <div className="text-[10px] font-mono mt-0.5">TZS 3,500,000 • Due in 5 Days</div>
-              </div>
-              <div className="p-3 rounded-xl bg-accent-violet/10 border border-accent-violet/20 text-accent-violet font-medium">
-                <div className="font-bold">Vodacom Payment Link Expiry</div>
-                <div className="text-[10px] font-mono mt-0.5">Link #PL-9921 • Expires Aug 5</div>
-              </div>
               {deadlinesData && Array.isArray(deadlinesData) && deadlinesData.map((d: any) => (
                 <div key={d.id} className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 font-medium">
                   <div className="font-bold">{d.title}</div>

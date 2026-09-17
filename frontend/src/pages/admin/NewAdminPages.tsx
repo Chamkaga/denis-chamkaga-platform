@@ -2478,122 +2478,11 @@ export const CommunicationCenterPage: React.FC = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-leads-comm'] })
   });
 
-  const defaultMessages = [
-    {
-      id: 'msg-1',
-      name: 'Dr. Joseph Kimaro',
-      email: 'j.kimaro@techcorp.co.tz',
-      phone: '+255 754 123 456',
-      subject: 'Fintech Cloud & RAG Architecture Consultation',
-      content: 'We are seeking a senior solutions architect to design a multi-tenant banking API gateway with vector search capabilities.',
-      isRead: false,
-      createdAt: new Date(Date.now() - 3600000 * 2).toISOString()
-    },
-    {
-      id: 'msg-2',
-      name: 'Sarah Mallya',
-      email: 'sarah.mallya@innovate.org',
-      phone: '+255 784 987 654',
-      subject: 'Terrasafi Climate Tech Grant Partnership',
-      content: 'Requesting a joint technical proposal for environmental AI data pipeline integration across East Africa.',
-      isRead: true,
-      createdAt: new Date(Date.now() - 3600000 * 24).toISOString()
-    }
-  ];
-
-  const defaultChats = [
-    {
-      id: 'chat-101',
-      visitorId: 'vis-88429',
-      messageCount: 14,
-      status: 'active',
-      createdAt: new Date(Date.now() - 1800000).toISOString(),
-      updatedAt: new Date(Date.now() - 300000).toISOString()
-    },
-    {
-      id: 'chat-102',
-      visitorId: 'vis-99231',
-      messageCount: 8,
-      status: 'completed',
-      createdAt: new Date(Date.now() - 7200000).toISOString(),
-      updatedAt: new Date(Date.now() - 3600000).toISOString()
-    }
-  ];
-
-  const defaultCalls = [
-    {
-      id: 'call-1',
-      callerName: 'Alex Mercer (CTO)',
-      status: 'completed',
-      durationSec: 1420,
-      startedAt: new Date(Date.now() - 3600000 * 5).toISOString()
-    },
-    {
-      id: 'call-2',
-      callerName: 'Evelyn Vance',
-      status: 'scheduled',
-      durationSec: 0,
-      startedAt: new Date(Date.now() + 3600000 * 12).toISOString()
-    }
-  ];
-
-  const defaultLeads = [
-    {
-      id: 'lead-1',
-      name: 'Standard Chartered Tech Hub',
-      email: 'innovation@sc.com',
-      phone: '+255 713 000 111',
-      temperature: 'hot',
-      source: 'WEBSITE_CONTACT',
-      score: 95,
-      notes: 'High-value enterprise lead requesting custom Mary AI assistant integration.',
-      stage: 'new'
-    },
-    {
-      id: 'lead-2',
-      name: 'Kilimanjaro Solutions',
-      email: 'info@kilisolutions.co.tz',
-      phone: '+255 765 222 333',
-      temperature: 'warm',
-      source: 'AI_CHATBOT',
-      score: 78,
-      notes: 'Interested in web application development and cloud server setup.',
-      stage: 'contacted'
-    }
-  ];
-
-  const defaultAppointments = [
-    {
-      id: 'appt-1',
-      name: 'Dr. Joseph Kimaro',
-      email: 'j.kimaro@techcorp.co.tz',
-      phone: '+255 754 123 456',
-      topic: 'Fintech Cloud & RAG Architecture Session',
-      status: 'Scheduled',
-      date: new Date(Date.now() + 86400000 * 2).toISOString()
-    },
-    {
-      id: 'appt-2',
-      name: 'Sarah Mallya',
-      email: 'sarah.mallya@innovate.org',
-      phone: '+255 784 987 654',
-      topic: 'Terrasafi Climate Tech Grant Review',
-      status: 'Confirmed',
-      date: new Date(Date.now() + 86400000 * 4).toISOString()
-    }
-  ];
-
-  const rawMessages = messagesData?.items || [];
-  const rawChats = chatsData?.items || (Array.isArray(chatsData) ? chatsData : []);
-  const rawCalls = callsData || [];
-  const rawLeads = leadsData?.items || [];
-  const rawAppointments = appointmentsData?.items || [];
-
-  const messages = rawMessages.length > 0 ? rawMessages : defaultMessages;
-  const chats = rawChats.length > 0 ? rawChats : defaultChats;
-  const calls = rawCalls.length > 0 ? rawCalls : defaultCalls;
-  const leads = rawLeads.length > 0 ? rawLeads : defaultLeads;
-  const appointments = rawAppointments.length > 0 ? rawAppointments : defaultAppointments;
+  const messages = messagesData?.items || [];
+  const chats = chatsData?.items || (Array.isArray(chatsData) ? chatsData : []);
+  const calls = callsData || [];
+  const leads = leadsData?.items || [];
+  const appointments = appointmentsData?.items || [];
 
   return (
     <div className="space-y-6 text-left font-body">
@@ -2870,4 +2759,3 @@ export const CommunicationCenterPage: React.FC = () => {
     </div>
   );
 };
-

@@ -126,15 +126,55 @@ const RelatedPosts: React.FC<{ currentSlug: string; categoryName: string; allPos
   );
 };
 
+const fallbackCustomerServicePost = {
+  slug: 'what-customer-service-has-taught-me-about-building-better-systems',
+  title: 'What Customer Service Has Taught Me About Building Better Systems',
+  excerpt: "After years of working in customer service, I've learned that great software is not just about technology—it should also make it easier for people to communicate, solve problems and receive better service.",
+  content: `<p>Customer service teaches you to look beyond the ticket and understand the person behind it. Every question, delay, repeat contact and successful resolution reveals where a process is helping people and where it is creating friction.</p><h2>Listen before you automate</h2><p>The best systems start with the real workflow. Before adding a feature, understand what the customer is trying to achieve, what information the team needs, and where handoffs are being missed.</p><h2>Make the next step clear</h2><p>A good interface should make status, ownership and next actions easy to understand. Clear records and timely updates reduce repeated calls and give both customers and teams confidence.</p><h2>Build for recovery</h2><p>Errors are part of every service. Systems should preserve useful history, explain what happened, and give the right person a practical way to resolve the issue without starting again.</p><p>These lessons guide the way I design business websites and operational platforms for SMEs: simple journeys, reliable records and technology that respects the people using it.</p>`,
+  publishedAt: '2026-05-12T00:00:00.000Z',
+  readingTime: 6,
+  category: { name: 'Customer Strategy' },
+  coverImageUrl: IMAGES.services.customerSupport,
+  tags: [],
+  author: { firstName: 'Denis', lastName: 'Chamkaga' },
+};
+
+const fallbackBlogPosts = [
+  fallbackCustomerServicePost,
+  {
+    slug: 'why-social-media-alone-is-not-enough-for-business-growth',
+    title: 'Why Social Media Alone Is Not Enough for Business Growth',
+    excerpt: 'Many small businesses rely entirely on Facebook, Instagram or WhatsApp to serve customers. A professional website or business system adds trust, structure and a dependable customer journey.',
+    content: '<p>Social media is useful for discovery and conversation, but a growing business also needs a place it controls. A clear website gives customers stable information about services, contact options, proof of work and the next step.</p><h2>Discovery is only the beginning</h2><p>Customers need to move from seeing a post to understanding an offer, asking a question and making a decision. A focused digital journey keeps those steps connected.</p><h2>Keep your records together</h2><p>Leads, enquiries, quotations and follow-ups should not disappear in a chat history. Structured records make it easier to serve people consistently and learn what is working.</p><p>Social media and a business platform work best together: one creates reach, the other creates continuity and trust.</p>',
+    publishedAt: '2026-06-24T00:00:00.000Z', readingTime: 5, category: { name: 'IT Strategy' }, coverImageUrl: IMAGES.about.consulting, tags: [], author: { firstName: 'Denis', lastName: 'Chamkaga' },
+  },
+  {
+    slug: 'why-every-business-needs-a-well-organized-database',
+    title: 'Why Every Business Needs a Well-Organized Database',
+    excerpt: 'A good database keeps business records organized, reduces duplication and makes information easier to find. It is the foundation for reliable reporting and better decisions.',
+    content: '<p>A database is more than a place to store names. It is the structure that connects customers, orders, payments, projects and service history so a business can work from one reliable record.</p><h2>Start with clean relationships</h2><p>Well-designed tables reduce repeated data and make ownership clear. This improves accuracy when a team searches, updates or reports on a customer record.</p><h2>Design for decisions</h2><p>When records are consistent, owners can see what is selling, which enquiries need attention and where time or money is being lost.</p><p>Good database design does not need to be complicated. It needs to reflect the real workflow and protect the history that the business depends on.</p>',
+    publishedAt: '2026-03-18T00:00:00.000Z', readingTime: 7, category: { name: 'Database Design' }, coverImageUrl: IMAGES.services.databaseDesign, tags: [], author: { firstName: 'Denis', lastName: 'Chamkaga' },
+  },
+];
+
 // ── Main BlogDetailPage ───────────────────────────────────────────────────────
 export const BlogDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const pageUrl = typeof window !== 'undefined' ? window.location.href : '';
 
   const { data: post, isLoading, error } = useQuery({
     queryKey: ['public-blog-post', slug],
-    queryFn: () => publicApi.getBlogPostBySlug(slug || ''),
+    queryFn: async () => {
+      try {
+        const result = await publicApi.getBlogPostBySlug(slug || '');
+        return result || fallbackBlogPosts.find((fallback) => fallback.slug === slug) || null;
+      } catch (requestError) {
+        const fallback = fallbackBlogPosts.find((candidate) => candidate.slug === slug);
+        if (fallback) return fallback;
+        throw requestError;
+      }
+    },
     enabled: !!slug,
   });
 
@@ -230,89 +270,9 @@ export const BlogDetailPage: React.FC = () => {
     };
   }, [post]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4">
-        <div className="w-10 h-10 border-4 border-accent-violet border-t-transparent rounded-full animate-spin" />
-        <p className="text-xs text-zinc-500 font-body">{t('common.loading')}</p>
-      </div>
-    );
-  }
+  if (isLoading) return null;
 
   if (error || !post) {
-    const isSwahili = i18n.language === 'sw';
-    // Fallback for static/mock posts
-    const isMock = slug?.includes('social-media') || slug?.includes('customer-service') || slug?.includes('huduma') || slug?.includes('database') || slug?.includes('kanzidata') || slug?.includes('sla') || slug?.includes('mitandao') || slug?.includes('organized-database');
-
-    if (isMock) {
-      const mockPost = {
-        title: slug?.includes('social-media') || slug?.includes('mitandao')
-          ? (isSwahili ? 'Kwa Nini Mitandao ya Kijamii Pekee Haitoshi kwa Ukuaji wa Biashara' : 'Why Social Media Alone Is Not Enough for Business Growth')
-          : slug?.includes('customer-service') || slug?.includes('huduma') || slug?.includes('sla')
-          ? (isSwahili ? 'Yale Ambayo Huduma kwa Wateja Imenifundisha Kuhusu Kujenga Mifumo Bora' : 'What Customer Service Has Taught Me About Building Better Systems')
-          : (isSwahili ? 'Kwa Nini Kila Biashara Inahitaji Kanzidata (Database) Iliyopangwa Vizuri' : 'Why Every Business Needs a Well-Organized Database'),
-        category: slug?.includes('social-media') || slug?.includes('mitandao')
-          ? (isSwahili ? 'Mkakati wa IT' : 'IT Strategy')
-          : slug?.includes('customer-service') || slug?.includes('huduma') || slug?.includes('sla')
-          ? (isSwahili ? 'Mkakati wa Wateja' : 'Customer Strategy')
-          : (isSwahili ? 'Muundo wa Database' : 'Database Design'),
-        date: isSwahili ? 'Juni 24, 2026' : 'June 24, 2026',
-        readTime: isSwahili ? 'Dakika 6 kusoma' : '6 min read',
-        image: slug?.includes('social-media') || slug?.includes('mitandao')
-          ? IMAGES.about.consulting
-          : slug?.includes('customer-service') || slug?.includes('huduma') || slug?.includes('sla')
-          ? IMAGES.services.customerSupport
-          : IMAGES.services.databaseDesign,
-        content: slug?.includes('social-media') || slug?.includes('mitandao')
-          ? (isSwahili 
-              ? `Biashara nyingi ndogo zinategemea kabisa Facebook, Instagram au WhatsApp kuwahudumia wateja. Ingawa programu hizi ni nzuri kwa masoko, hazitoshi kama mifumo mikuu ya kusimamia shughuli za biashara. Ili kukua, biashara yoyote inahitaji ufuatiliaji mzuri wa wateja na kumbukumbu zilizopangwa.\n\nKuwa na tovuti ya kitaalamu au mfumo maalum wa biashara kunaongeza uaminifu kwa wateja na kuweka mpangilio mzuri wa muda mrefu. Inakuruhusu kufuatilia maagizo kwa utaratibu, kuhifadhi mapendeleo ya wateja, na kutengeneza ankara kiotomatiki. Kuhama kutoka kwenye picha za skrini za mazungumzo kwenda kwenye mfumo safi kunatayarisha biashara yako kwa ukuaji.`
-              : `Many small businesses rely entirely on Facebook, Instagram or WhatsApp to serve customers. While these apps are great for marketing, they fail as core business software systems. To scale, any enterprise needs structured customer tracking and organized records.\n\nHaving a professional website or custom business system improves customer trust and long-term organization. It allows you to track orders systematically, save customer preferences, and automate invoices. Moving from scattered screenshots of chat histories to a clean system makes your business ready for growth.`)
-          : slug?.includes('customer-service') || slug?.includes('huduma') || slug?.includes('sla')
-          ? (isSwahili
-              ? `Baada ya miaka mingi ya kufanya kazi katika huduma kwa wateja, nimejifunza kwamba programu nzuri sio tu kuhusu teknolojia—inapaswa pia kurahisisha watu kuwasiliana, kutatua changamoto na kupokea huduma bora.\n\nKila kitufe na fomu inapaswa kuundwa kwa kumfikiria mtumiaji wa mwisho. Ikiwa mteja analazimika kusubiri kwa saa nyingi kwa sababu habari zimetawanyika kwenye mifumo tofauti, teknolojia inakuwa imewafeli. Katika makala hii, ninashiriki maoni juu ya jinsi kurahisisha michakato ya kazi na kuweka kipaumbele mawasiliano ya mtumiaji kunatusaidia kujenga zana za kidijitali ambazo zinawahudumia watu kikamilifu.`
-              : `After years of working in customer service, I've learned that great software is not just about technology—it should also make it easier for people to communicate, solve problems and receive better service.\n\nEvery button and form should be designed with the end-user in mind. If a customer has to wait hours because information is scattered across different systems, the technology is failing them. In this article, I share insights on how simplifying workflow processes and prioritizing user communication helps us build digital tools that actually serve people.`)
-          : (isSwahili
-              ? `Kanzidata (database) nzuri husaidia biashara kuweka kumbukumbu zikiwa zimepangwa, kupunguza urudufishaji wa taarifa na kufanya habari kupatikana kwa urahisi. Makala hii inaeleza umuhimu wa usimamizi sahihi wa data kwa lugha rahisi.\n\nBiashara nyingi zinazokua huanza kwa kufuatilia kila kitu kwenye Excel au laha za kazi. Baada ya muda, faili huathirika, rekodi zinajirudia, na kupata historia rahisi ya mteja inakuwa changamoto. Kanzidata iliyoundwa vizuri inahakikisha usalama wa taarifa, inaleta nidhamu ya kumbukumbu, na inakuwa msingi wa ripoti sahihi za biashara.`
-              : `A good database helps businesses keep records organized, reduce duplication and make information easier to find. This article explains the importance of proper data management in simple language.\n\nMany growing businesses start by tracking everything in Excel or spreadsheets. Over time, files become corrupted, duplicate entries appear, and finding a simple client history becomes a headache. A structured database ensures data integrity, enforces organization, and acts as the foundation for clean reports and dashboard insights.`)
-      };
-
-      return (
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-left font-body">
-          {/* Breadcrumb */}
-          <nav className="flex items-center gap-1.5 text-xs text-zinc-500 mb-8 flex-wrap">
-            <Link to="/" className="hover:text-accent-violet transition-colors">{t('blog.breadcrumbHome')}</Link>
-            <ChevronRight size={12} />
-            <Link to="/blog" className="hover:text-accent-violet transition-colors">{t('blog.breadcrumbBlog')}</Link>
-            <ChevronRight size={12} />
-            <span className="dark:text-zinc-300 light:text-slate-600 truncate max-w-xs">{mockPost.title}</span>
-          </nav>
-
-          <div className="space-y-6">
-            <div className="space-y-3">
-              <span className="inline-block text-[10px] font-bold text-white bg-accent-violet px-2.5 py-1 rounded-lg uppercase tracking-wider">{mockPost.category}</span>
-              <h1 className="text-3xl sm:text-4xl font-extrabold dark:text-white light:text-slate-800 tracking-tight font-display">{mockPost.title}</h1>
-              <div className="flex gap-4 text-xs text-zinc-500 pt-2 border-b dark:border-zinc-800 pb-4">
-                <span className="flex items-center gap-1"><Calendar size={13} /> {mockPost.date}</span>
-                <span className="flex items-center gap-1"><Clock size={13} /> {mockPost.readTime}</span>
-              </div>
-            </div>
-            <div className="h-64 sm:h-96 rounded-2xl overflow-hidden border dark:border-zinc-800">
-              <img src={mockPost.image} alt={mockPost.title} className="w-full h-full object-cover" />
-            </div>
-            <article className="prose dark:prose-invert max-w-none pt-4 whitespace-pre-line leading-relaxed text-sm sm:text-base text-zinc-600 dark:text-zinc-300">
-              {mockPost.content}
-            </article>
-            <div className="pt-6 border-t dark:border-zinc-800">
-              <ShareButtons title={mockPost.title} url={pageUrl} />
-            </div>
-            <Link to="/blog" className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent-violet hover:underline">
-              <ArrowLeft size={14} /> {t('common.backToBlog')}
-            </Link>
-          </div>
-        </div>
-      );
-    }
-
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4">
         <p className="text-red-500 font-bold">{t('common.error')}</p>
@@ -442,6 +402,15 @@ export const BlogDetailPage: React.FC = () => {
             ) : <div />}
           </div>
         )}
+
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t dark:border-zinc-800/60 light:border-slate-200 pt-6">
+          <Link to="/blog" className="inline-flex items-center gap-2 rounded-xl border dark:border-zinc-800 light:border-slate-200 dark:bg-zinc-900/30 light:bg-white px-4 py-2 text-xs font-bold dark:text-zinc-300 light:text-slate-700 hover:border-accent-violet hover:text-accent-violet transition-colors">
+            <ArrowLeft size={14} /> {t('blog.backToBlog')}
+          </Link>
+          <Link to="/" className="inline-flex items-center gap-2 rounded-xl bg-accent-violet px-4 py-2 text-xs font-bold text-white hover:bg-accent-violet/90 transition-colors">
+            {t('blog.breadcrumbHome')} <ArrowRight size={14} />
+          </Link>
+        </div>
       </motion.div>
     </div>
   );

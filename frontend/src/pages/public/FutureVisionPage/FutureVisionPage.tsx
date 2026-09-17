@@ -387,8 +387,8 @@ export const FutureVisionPage: React.FC = () => {
         >
           <div className="p-8 rounded-2xl border dark:border-zinc-800 light:border-slate-200 dark:bg-zinc-950/60 light:bg-slate-50 text-center space-y-6 glass-panel shadow-xl">
             <div className="relative mx-auto">
-              <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-accent-violet to-purple-500 mx-auto flex items-center justify-center text-white font-bold text-5xl shadow-2xl ring-4 ring-accent-violet/20">
-                T
+              <div className="w-24 h-24 rounded-2xl bg-white mx-auto flex items-center justify-center shadow-2xl ring-4 ring-accent-violet/20 overflow-hidden">
+                <img src="/terrasafi-logo.png" alt="Terrasafi T Ltd logo" className="w-full h-full object-cover" />
               </div>
               <span className="absolute -top-2 -right-2 bg-green-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow">
                 {isSwahili ? "hai" : "LIVE"}

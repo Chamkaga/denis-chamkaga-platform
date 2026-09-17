@@ -896,7 +896,8 @@ export const financeService = {
       address: 'Victoria, Dar es Salaam, Tanzania',
       email: 'finance@terrasafi.co.tz',
       phone: '+255 700 000 000',
-      vatNumber: '100-200-300'
+      vatNumber: '100-200-300',
+      logoUrl: undefined
     };
 
     const tenantData = {
@@ -904,7 +905,8 @@ export const financeService = {
       address: tenant.address || '',
       email: tenant.email || '',
       phone: tenant.phone || '',
-      vatNumber: tenant.vatNumber || undefined
+      vatNumber: tenant.vatNumber || undefined,
+      logoUrl: tenant.logoUrl || undefined
     };
 
     const contactName = (await prisma.client.findFirst({ where: { organizationId: inv.organizationId } }))
@@ -1022,9 +1024,9 @@ export const financeService = {
       vatNumber: tenant.vatNumber || undefined
     };
 
-    let contactName = 'Representative';
-    let customerCompanyName = 'Individual Sponsor';
-    let customerEmail = rec.payment.customerEmail || 'billing@client.com';
+    let contactName = rec.payment.notes || 'Customer';
+    let customerCompanyName = 'Individual customer';
+    let customerEmail = rec.payment.customerEmail || 'Not provided';
     let customerAddress: string | undefined = undefined;
     let itemDescription = `Direct donation support payment. Method: ${rec.payment.gatewayName.toUpperCase()}. Ref: ${rec.payment.gatewayTransactionId || 'N/A'}`;
 
@@ -1034,7 +1036,7 @@ export const financeService = {
         contactName = `${dbContact.firstName} ${dbContact.lastName}`;
       }
       customerCompanyName = rec.payment.invoice.organization.name;
-      customerEmail = rec.payment.invoice.organization.email || 'billing@client.com';
+      customerEmail = rec.payment.invoice.organization.email || rec.payment.customerEmail || 'Not provided';
       customerAddress = rec.payment.invoice.organization.address || undefined;
       itemDescription = `Payment settled against Invoice ${rec.payment.invoice.invoiceNumber}. Method: ${rec.payment.gatewayName.toUpperCase()}. Ref: ${rec.payment.gatewayTransactionId || 'N/A'}`;
     } else {
@@ -1070,7 +1072,7 @@ export const financeService = {
       discountAmount: 0,
       total: rec.payment.amount.toNumber(),
       notes: rec.payment.notes || undefined,
-      terms: 'Thank you for your business. This document serves as confirmation of payment receipt.'
+      terms: `Thank you for your payment. This receipt confirms a verified ${rec.payment.gatewayName.toUpperCase()} transaction. Keep receipt ${rec.receiptNumber} and payment ${rec.payment.paymentNumber} for your records.`
     });
   },
 
@@ -1182,6 +1184,10 @@ export const financeService = {
     
     // Find the invoice based on transaction reference
     const isSupport = txn.reference.startsWith('TXN_SUP_');
+    const supportIntent = isSupport ? await prisma.supportContribution.findUnique({ where: { reference: txn.reference } }) : null;
+    if (isSupport && (!supportIntent || !supportIntent.amount || !Number.isFinite(txn.amount) || txn.amount <= 0 || !supportIntent.amount.equals(new Decimal(txn.amount)) || supportIntent.currency !== txn.currency.toUpperCase())) {
+      throw new AppError(400, 'SUPPORT_PAYMENT_MISMATCH', 'Payment does not match a recorded support contribution.');
+    }
     let invoiceId: string | null = null;
     let inv: any = null;
 
@@ -1221,6 +1227,17 @@ export const financeService = {
     const receiptNumber = await this.getNextSequence('receipt'); // REC-XXXXXX
 
     const payment = await prisma.$transaction(async (tx) => {
+      if (supportIntent) {
+        const claimed = await tx.supportContribution.updateMany({
+          where: { id: supportIntent.id, status: { in: ['Pending', 'Redirected'] } },
+          data: { status: 'Paid' },
+        });
+        if (claimed.count !== 1) {
+          const recorded = await tx.payment.findUnique({ where: { gatewayTransactionId: transactionId } });
+          if (recorded) return recorded;
+          throw new AppError(409, 'SUPPORT_ALREADY_SETTLED', 'Contribution is already settled or cannot be verified.');
+        }
+      }
       // 1. Create Payment record in ledger
       const p = await tx.payment.create({
         data: {
@@ -1325,6 +1342,57 @@ export const financeService = {
           actionUrl: `/admin/business`
         });
       } else {
+        // Support contribution record, profile and receipt stay in sync with the finance ledger.
+        const tierCode = supportIntent!.tier;
+        const supporterEmail = supportIntent!.supporterEmail;
+        const supporterName = supportIntent!.supporterName || 'Supporter';
+        const supporter = await tx.supporterProfile.upsert({
+          where: { email: supporterEmail },
+          update: {
+            tier: tierCode as any,
+            // Lifetime totals are recomputed only from contributions in the profile currency below.
+            paymentProvider: 'DPO',
+            paymentMethod: p.paymentChannel || 'DPO Checkout',
+            status: 'active',
+          },
+          create: {
+            fullName: supporterName,
+            email: supporterEmail,
+            tier: tierCode as any,
+            totalLifetimeAmount: p.amount,
+            currency: p.currency,
+            paymentProvider: 'DPO',
+            paymentMethod: p.paymentChannel || 'DPO Checkout',
+            status: 'active',
+          },
+        });
+        await tx.supportContribution.update({
+          where: { id: supportIntent!.id },
+          data: {
+            receiptNo: receiptNumber,
+            type: 'Financial',
+            tier: tierCode as any,
+            status: 'Paid',
+            supporterName,
+            supporterEmail,
+            amount: p.amount,
+            currency: p.currency,
+            paymentProvider: 'DPO',
+            paymentMethod: p.paymentChannel || 'DPO Checkout',
+            reference: txn.reference,
+            supporterProfileId: supporter.id,
+            completedAt: new Date(),
+          },
+        });
+        await tx.receipt.create({
+          data: { receiptNumber, paymentId: p.id, status: 'generated' },
+        });
+        const lifetime = await tx.supportContribution.aggregate({
+          where: { supporterProfileId: supporter.id, status: 'Paid', currency: supporter.currency },
+          _sum: { amount: true },
+        });
+        await tx.supporterProfile.update({ where: { id: supporter.id }, data: { totalLifetimeAmount: lifetime._sum.amount || 0 } });
+
         // Support donation audit & alerts
         await tx.financialAuditLog.create({
           data: {

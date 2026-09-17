@@ -61,8 +61,13 @@ const pq = (q: Record<string, string>) => ({
 });
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
-router.get('/dashboard', wrap(async (_req, res) => {
-  const data = await adminService.getDashboardStats();
+router.get('/dashboard', wrap(async (req, res) => {
+  const from = typeof req.query.from === 'string' ? new Date(req.query.from) : undefined;
+  const to = typeof req.query.to === 'string' ? new Date(req.query.to) : undefined;
+  const data = await adminService.getDashboardStats({
+    ...(from && !Number.isNaN(from.getTime()) ? { from } : {}),
+    ...(to && !Number.isNaN(to.getTime()) ? { to } : {}),
+  });
   res.json({ success: true, data } satisfies ApiResponse);
 }));
 

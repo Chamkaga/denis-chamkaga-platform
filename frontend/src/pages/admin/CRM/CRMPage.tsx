@@ -259,7 +259,7 @@ export const CRMPage: React.FC = () => {
         />
       )}
 
-      {activeTab === 'pipeline' && <SalesPipelineTab />}
+      {activeTab === 'pipeline' && <SalesPipelineTab leads={leads} />}
 
       {/* Customer 360 Slide-out Drawer */}
       <Customer360Drawer

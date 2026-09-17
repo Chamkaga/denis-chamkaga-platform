@@ -281,7 +281,7 @@ export const SupportersAdminPage: React.FC = () => {
           subtitle="Directory of backers supporting Denis Chamkaga ecosystem projects"
           data={supporterData}
           columns={supporterColumns}
-          keyExtractor={(item) => item.id || Math.random().toString()}
+          keyExtractor={(item: any) => item.id || item.email || item.name}
           totalItems={supporterData.length}
           currentPage={page}
           pageSize={pageSize}
@@ -304,7 +304,7 @@ export const SupportersAdminPage: React.FC = () => {
           subtitle="Registered co-developers, designers, and strategic partners"
           data={collaboratorData}
           columns={collaboratorColumns}
-          keyExtractor={(item) => item.id || Math.random().toString()}
+          keyExtractor={(item: any) => item.id || item.email || item.fullName}
           totalItems={collaboratorData.length}
           currentPage={page}
           pageSize={pageSize}

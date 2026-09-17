@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Heart, Mail, Send, MessageSquare, ShieldCheck } from 'lucide-react';
+import { X, Heart, Mail, Send, MessageSquare } from 'lucide-react';
 import { Button } from '../atoms/Button';
 import { useToast } from '../atoms/Toast';
 
@@ -19,12 +19,17 @@ export const Supporter360Drawer: React.FC<Supporter360DrawerProps> = ({ supporte
 
   const handleSendEmail = (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success(`Appreciation email dispatched to ${supporter.supporterEmail || supporter.email}`, 'Email Dispatched');
-    setEmailBody('');
+    const recipient = supporter.supporterEmail || supporter.email;
+    window.open(`mailto:${recipient}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`);
+    toast.info('Your email application has been opened with this message.', 'Email draft');
   };
 
   const handleSendWhatsApp = () => {
-    const phone = supporter.supporterPhone || supporter.phone || '+255700000000';
+    const phone = supporter.supporterPhone || supporter.phone || '';
+    if (!phone) {
+      toast.error('This supporter has no verified phone number.', 'WhatsApp');
+      return;
+    }
     const text = encodeURIComponent(`Habari ${supporter.supporterName || supporter.fullName}, ahsante sana kwa mchango wako wa ${supporter.tier || 'Vision Supporter'} katika kusaidia Denis Chamkaga OS!`);
     window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${text}`, '_blank');
   };
@@ -104,21 +109,6 @@ export const Supporter360Drawer: React.FC<Supporter360DrawerProps> = ({ supporte
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {activeTab === 'profile' && (
               <div className="space-y-6">
-                {/* AI Engagement Score & Recommendations */}
-                <div className="p-4 rounded-2xl bg-accent-violet/10 border border-accent-violet/20 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wider text-accent-violet flex items-center gap-1.5">
-                      <ShieldCheck size={14} /> AI Engagement Score: 94% (Highly Active)
-                    </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400">
-                      High Retention Likelihood
-                    </span>
-                  </div>
-                  <p className="text-xs text-zinc-300">
-                    Supporter has contributed consistently over the past 3 months. Recommended action: Send a personal video appreciation note or invite to the Annual Developer Keynote.
-                  </p>
-                </div>
-
                 {/* Profile Key Details */}
                 <div className="space-y-3">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-400">Supporter Details</h4>
@@ -137,7 +127,7 @@ export const Supporter360Drawer: React.FC<Supporter360DrawerProps> = ({ supporte
                     </div>
                     <div className="p-3 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800">
                       <span className="text-[10px] text-zinc-500">Join Date</span>
-                      <div className="font-mono font-bold text-slate-800 dark:text-white mt-0.5">{supporter.createdAt ? new Date(supporter.createdAt).toLocaleDateString() : '2026-07-01'}</div>
+                      <div className="font-mono font-bold text-slate-800 dark:text-white mt-0.5">{supporter.createdAt ? new Date(supporter.createdAt).toLocaleDateString() : '—'}</div>
                     </div>
                   </div>
                 </div>
@@ -164,9 +154,9 @@ export const Supporter360Drawer: React.FC<Supporter360DrawerProps> = ({ supporte
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
                     <div>
                       <div className="font-bold text-slate-800 dark:text-white">Support Contribution ({supporter.tier || 'VISION_BUILDER'})</div>
-                      <div className="text-[10px] font-mono text-zinc-500 mt-0.5">Receipt #REC-2026-0091 • Settled via Mobile Money</div>
+                      <div className="text-[10px] font-mono text-zinc-500 mt-0.5">{supporter.receiptNumber || 'Receipt pending'} • {supporter.paymentMethod || 'Payment method not recorded'}</div>
                     </div>
-                    <span className="font-bold font-mono text-emerald-400 text-sm">{(supporter.amount || 50000).toLocaleString()} TZS</span>
+                    <span className="font-bold font-mono text-emerald-400 text-sm">{Number(supporter.amount || 0).toLocaleString()} TZS</span>
                   </div>
                 </div>
               </div>
@@ -177,17 +167,7 @@ export const Supporter360Drawer: React.FC<Supporter360DrawerProps> = ({ supporte
                   Unified Customer Lifecycle Timeline (Driven by business_activities)
                 </h4>
                 <div className="relative pl-6 space-y-4 text-xs border-l border-zinc-800">
-                  {[
-                    { title: 'Website Visit', source: 'PUBLIC_PORTAL', date: '2026-07-31 09:12', desc: 'Visitor landed on Denis Chamkaga Portfolio homepage.' },
-                    { title: 'Mary AI Live Chat', source: 'CHATBOT', date: '2026-07-31 09:15', desc: 'Inquired about Retail POS & Custom Enterprise ERP solutions.' },
-                    { title: 'Lead Created', source: 'CRM_360', date: '2026-07-31 09:18', desc: 'Qualified as HOT lead (Score: 96/100).' },
-                    { title: 'Phone Call Intake', source: 'VOICE_STT', date: '2026-07-31 10:30', desc: 'Call logged via AI Call Notebook by Denis Chamkaga.' },
-                    { title: 'Consultation Scheduled', source: 'CALENDAR', date: '2026-07-31 10:35', desc: 'Architecture session confirmed for 14:00.' },
-                    { title: 'Quotation Generated', source: 'FINANCE_ERP', date: '2026-07-31 11:00', desc: 'ERP Quotation #QT-2026-0099 issued (TZS 12,000,000).' },
-                    { title: 'Invoice Sent & Link Shared', source: 'PAYMENT_GATEWAY', date: '2026-07-31 11:15', desc: 'Invoice #INV-2026-0039 sent via SHA-256 access link.' },
-                    { title: 'Payment Settled', source: 'M_PESA', date: '2026-07-31 11:45', desc: 'Payment confirmed. Receipt #REC-2026-0008 issued.' },
-                    { title: 'Project Active', source: 'BOS_PROJECTS', date: '2026-07-31 12:00', desc: 'Project milestone initialization completed.' }
-                  ].map((evt, idx) => (
+                  {(supporter.activities || []).map((evt: any, idx: number) => (
                     <div key={idx} className="relative">
                       <div className="absolute -left-[31px] top-1 w-3.5 h-3.5 rounded-full bg-accent-violet border-2 border-zinc-900" />
                       <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 space-y-1">

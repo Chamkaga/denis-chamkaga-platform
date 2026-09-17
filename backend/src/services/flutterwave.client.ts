@@ -35,20 +35,13 @@ export class FlutterwaveClient {
     };
   }
 
-  private isMockMode(): boolean {
-    return !this.secretKey || this.secretKey === 'mock' || env.NODE_ENV === 'development' && !env.FLW_SECRET_KEY;
+  private hasCredentials(): boolean {
+    return Boolean(this.secretKey && this.secretKey !== 'mock');
   }
 
   async initializeCheckout(params: FlwInitializeParams): Promise<{ success: boolean; link?: string; message?: string }> {
-    if (this.isMockMode()) {
-      console.warn('⚠️ Flutterwave Client running in MOCK mode. Generating local sandbox link.');
-      // Generate a mock payment gateway link that encodes txRef and amount in transaction_id
-      const mockCheckoutUrl = `${env.FRONTEND_URL}/public/invoice/payment-redirect?status=successful&transaction_id=FLW_MOCK__${params.txRef}__${params.amount}&tx_ref=${params.txRef}`;
-      return {
-        success: true,
-        link: mockCheckoutUrl,
-        message: 'Mock payment initialized successfully.'
-      };
+    if (!this.hasCredentials()) {
+      return { success: false, message: 'Flutterwave payment processing is not configured.' };
     }
 
     try {
@@ -93,30 +86,7 @@ export class FlutterwaveClient {
   }
 
   async verifyTransaction(transactionId: string): Promise<{ success: boolean; data?: any; message?: string }> {
-    if (this.isMockMode() && transactionId.startsWith('FLW_MOCK__')) {
-      console.warn('⚠️ Flutterwave Client verifying MOCK transaction ID:', transactionId);
-      const parts = transactionId.split('__');
-      const tx_ref = parts[1] || 'TX_MOCK_UNKNOWN';
-      const amount = parts[2] ? parseFloat(parts[2]) : 500;
-      return {
-        success: true,
-        data: {
-          id: transactionId,
-          tx_ref,
-          amount,
-          currency: 'USD',
-          status: 'successful',
-          payment_type: 'card',
-          fees: amount * 0.015,
-          customer: {
-            email: 'billing@client.com',
-            phone_number: '255755123456',
-            name: 'Mock Customer'
-          },
-          created_at: new Date().toISOString()
-        }
-      };
-    }
+    if (!this.hasCredentials()) return { success: false, message: 'Flutterwave verification is not configured.' };
 
     try {
       const response = await axios.get(

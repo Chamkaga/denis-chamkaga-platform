@@ -16,14 +16,19 @@ interface TransactionItem {
   date: string;
 }
 
-const mockTransactions: TransactionItem[] = [
-  { id: 'tx-1', txId: 'TXN-998231', reference: 'INV-2026-015 Payment', type: 'inflow', category: 'Client Invoice', amount: 850000, currency: 'TZS', method: 'M-Pesa Gateway', status: 'completed', date: '2026-07-28 14:22' },
-  { id: 'tx-2', txId: 'TXN-998230', reference: 'AWS Cloud Hosting', type: 'outflow', category: 'Infrastructure', amount: 320000, currency: 'TZS', method: 'Visa Card', status: 'completed', date: '2026-07-27 09:10' },
-  { id: 'tx-3', txId: 'TXN-998229', reference: 'INV-2026-014 Payment', type: 'inflow', category: 'Consultation Fee', amount: 500000, currency: 'TZS', method: 'CRDB Direct', status: 'completed', date: '2026-07-25 11:45' },
-  { id: 'tx-4', txId: 'TXN-998228', reference: 'Software Subscriptions', type: 'outflow', category: 'SaaS Software', amount: 150000, currency: 'TZS', method: 'MasterCard', status: 'completed', date: '2026-07-24 16:30' },
-];
-
-export const TransactionsTab: React.FC = () => {
+export const TransactionsTab: React.FC<{ payments?: any[] }> = ({ payments = [] }) => {
+  const transactions: TransactionItem[] = payments.map((payment) => ({
+    id: payment.id,
+    txId: payment.gatewayReference || payment.paymentNumber,
+    reference: payment.invoice?.invoiceNumber ? `${payment.invoice.invoiceNumber} Payment` : payment.paymentNumber,
+    type: 'inflow',
+    category: payment.paymentType === 'support' ? 'Support Contribution' : 'Client Invoice',
+    amount: Number(payment.amount),
+    currency: payment.currency || 'TZS',
+    method: payment.paymentMethod || payment.gatewayName || 'DPO',
+    status: payment.status === 'successful' ? 'completed' : payment.status === 'failed' ? 'failed' : 'pending',
+    date: new Date(payment.paymentDate || payment.createdAt).toLocaleString(),
+  }));
   const columns: ColumnDef<TransactionItem>[] = [
     {
       key: 'txId',
@@ -70,7 +75,7 @@ export const TransactionsTab: React.FC = () => {
         title="Financial Transactions Ledger"
         subtitle="Complete immutable log of all incoming and outgoing financial transactions"
         columns={columns}
-        data={mockTransactions}
+        data={transactions}
         exportFilename="transactions_ledger"
       />
     </div>

@@ -15,19 +15,24 @@ interface ReceiptItem {
   paymentMethod: string;
 }
 
-const mockReceipts: ReceiptItem[] = [
-  { id: 'rcpt-1', receiptNumber: 'RCPT-2026-004', invoiceNumber: 'INV-2026-015', clientName: 'Azam Media Ltd', amount: 850000, currency: 'TZS', paidAt: '2026-07-28 14:22', paymentMethod: 'M-Pesa Gateway' },
-  { id: 'rcpt-2', receiptNumber: 'RCPT-2026-003', invoiceNumber: 'INV-2026-014', clientName: 'CRDB Bank Plc', amount: 500000, currency: 'TZS', paidAt: '2026-07-25 11:45', paymentMethod: 'CRDB Direct' },
-  { id: 'rcpt-3', receiptNumber: 'RCPT-2026-002', invoiceNumber: 'INV-2026-011', clientName: 'Vodacom Tanzania', amount: 1200000, currency: 'TZS', paidAt: '2026-07-15 10:12', paymentMethod: 'Airtel Money' },
-];
-
-export const ReceiptsTab: React.FC = () => {
+export const ReceiptsTab: React.FC<{ payments?: any[] }> = ({ payments = [] }) => {
   const { toast } = useToast();
+  const receipts: ReceiptItem[] = payments
+    .filter((payment) => payment.status === 'successful')
+    .map((payment) => ({
+      id: payment.id,
+      receiptNumber: payment.receipt?.receiptNumber || payment.paymentNumber,
+      invoiceNumber: payment.invoice?.invoiceNumber || '—',
+      clientName: payment.invoice?.organization?.name || payment.payerName || 'Customer',
+      amount: Number(payment.amount),
+      currency: payment.currency || 'TZS',
+      paidAt: new Date(payment.paymentDate || payment.createdAt).toLocaleString(),
+      paymentMethod: payment.paymentMethod || payment.gatewayName || 'DPO',
+    }));
 
   const handleDownloadPDF = (receipt: ReceiptItem) => {
-    toast.info(`Generating official PDF receipt ${receipt.receiptNumber}...`, 'PDF Download');
-    // Triggers download window print or PDF download
-    window.print();
+    toast.info(`Downloading official PDF receipt ${receipt.receiptNumber}...`, 'PDF Download');
+    window.open(`/api/admin/finance/receipts/${encodeURIComponent(receipt.receiptNumber)}/pdf`, '_blank', 'noopener,noreferrer');
   };
 
   const columns: ColumnDef<ReceiptItem>[] = [
@@ -79,7 +84,7 @@ export const ReceiptsTab: React.FC = () => {
         title="Official Payment Receipts"
         subtitle="Automated PDF receipt vault issued for settled client invoices"
         columns={columns}
-        data={mockReceipts}
+        data={receipts}
         exportFilename="payment_receipts"
       />
     </div>

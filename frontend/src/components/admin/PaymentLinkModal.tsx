@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../atoms/Button';
 import { useToast } from '../atoms/Toast';
+import { adminApi } from '../../services/api';
 
 interface PaymentLinkModalProps {
   isOpen: boolean;
@@ -25,28 +26,34 @@ export const PaymentLinkModal: React.FC<PaymentLinkModalProps> = ({
   invoiceOrQuote,
 }) => {
   const { toast } = useToast();
-  const [paymentType, setPaymentType] = useState<'full' | 'deposit' | 'installment'>('full');
-  const [depositAmount, setDepositAmount] = useState<number>(
-    invoiceOrQuote ? Math.round(invoiceOrQuote.amount * 0.5) : 0
-  );
-  const [installments, setInstallments] = useState<number>(3);
   const [expiryDays, setExpiryDays] = useState<number>(7);
   const [copied, setCopied] = useState(false);
   const [generatedUrl, setGeneratedUrl] = useState<string | null>(null);
   const [qrUrl, setQrUrl] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   if (!isOpen || !invoiceOrQuote) return null;
 
   const currency = invoiceOrQuote.currency || 'TZS';
 
-  const handleGenerate = () => {
-    const code = Math.random().toString(36).substring(2, 9).toUpperCase();
-    const link = `${window.location.origin}/pay/${invoiceOrQuote.number || code}`;
-    const qr = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(link)}`;
-
-    setGeneratedUrl(link);
-    setQrUrl(qr);
-    toast.success('Payment Link Generated Successfully!', 'Payment Link');
+  const handleGenerate = async () => {
+    setIsGenerating(true);
+    try {
+      const result = await adminApi.generateAccessToken({
+        docId: invoiceOrQuote.id,
+        docType: 'INVOICE',
+        expiresDays: expiryDays,
+      });
+      const link = `${window.location.origin}/pay/${result.token}`;
+      const qr = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(link)}`;
+      setGeneratedUrl(link);
+      setQrUrl(qr);
+      toast.success('Secure payment link generated successfully.', 'Payment Link');
+    } catch {
+      toast.error('The secure payment link could not be generated.', 'Payment Link');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleCopy = () => {
@@ -96,55 +103,10 @@ export const PaymentLinkModal: React.FC<PaymentLinkModalProps> = ({
             {/* Payment Type Selection */}
             <div>
               <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block mb-2">Payment Terms</label>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { id: 'full', label: 'Full Amount' },
-                  { id: 'deposit', label: 'Deposit / Partial' },
-                  { id: 'installment', label: 'Installments' },
-                ].map((type) => (
-                  <button
-                    key={type.id}
-                    onClick={() => setPaymentType(type.id as any)}
-                    className={`py-2 px-3 text-xs font-semibold rounded-xl border text-center transition-all ${
-                      paymentType === type.id
-                        ? 'border-accent-violet text-accent-violet bg-accent-violet/10 shadow-sm'
-                        : 'border-zinc-200 dark:border-zinc-800 text-zinc-400 hover:border-zinc-400'
-                    }`}
-                  >
-                    {type.label}
-                  </button>
-                ))}
+              <div className="rounded-xl border border-accent-violet/30 bg-accent-violet/10 px-3 py-2 text-xs font-semibold text-accent-violet">
+                Full outstanding invoice amount
               </div>
             </div>
-
-            {/* Custom Inputs based on type */}
-            {paymentType === 'deposit' && (
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-zinc-400">Deposit Required ({currency})</label>
-                <input
-                  type="number"
-                  value={depositAmount}
-                  onChange={(e) => setDepositAmount(Number(e.target.value))}
-                  className="w-full text-xs p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-slate-800 dark:text-white"
-                />
-              </div>
-            )}
-
-            {paymentType === 'installment' && (
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-zinc-400">Number of Installments</label>
-                <select
-                  value={installments}
-                  onChange={(e) => setInstallments(Number(e.target.value))}
-                  className="w-full text-xs p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-slate-800 dark:text-white"
-                >
-                  <option value={2}>2 Monthly Installments</option>
-                  <option value={3}>3 Monthly Installments</option>
-                  <option value={4}>4 Monthly Installments</option>
-                  <option value={6}>6 Monthly Installments</option>
-                </select>
-              </div>
-            )}
 
             {/* Expiry Selection */}
             <div className="space-y-1">
@@ -161,7 +123,7 @@ export const PaymentLinkModal: React.FC<PaymentLinkModalProps> = ({
               </select>
             </div>
 
-            <Button variant="primary" fullWidth onClick={handleGenerate} className="mt-4">
+            <Button variant="primary" fullWidth onClick={handleGenerate} isLoading={isGenerating} className="mt-4">
               Generate Link & QR Code
             </Button>
           </div>

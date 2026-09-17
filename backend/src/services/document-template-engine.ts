@@ -65,19 +65,23 @@ export const documentTemplateEngine = {
          .rect(0, 0, 600, 15)
          .fill();
 
+      // Vector brand mark stays crisp in print and does not depend on a remote image.
+      doc.circle(54, 51, 14).fill(accentColor);
+      doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(8).text('DC', 43, 47, { width: 22, align: 'center' });
+
       doc.fillColor(primaryColor)
          .font('Helvetica-Bold')
          .fontSize(20)
-         .text(data.tenant.name.toUpperCase(), 40, 35);
+         .text(data.tenant.name.toUpperCase(), 76, 35);
 
       doc.fillColor(textColor)
          .font('Helvetica')
          .fontSize(8)
-         .text(data.tenant.address, 40, 58)
-         .text(`Email: ${data.tenant.email} | Tel: ${data.tenant.phone}`, 40, 70);
+         .text(data.tenant.address, 76, 58)
+         .text(`Email: ${data.tenant.email} | Tel: ${data.tenant.phone}`, 76, 70);
 
       if (data.tenant.vatNumber) {
-        doc.text(`VAT No: ${data.tenant.vatNumber}`, 40, 82);
+        doc.text(`VAT No: ${data.tenant.vatNumber}`, 76, 82);
       }
 
       // Title & Document Info
@@ -97,6 +101,11 @@ export const documentTemplateEngine = {
 
       if (data.dueDate) {
         doc.text(`Due Date: ${new Date(data.dueDate).toLocaleDateString()}`, 400, 88, { align: 'right', width: 150 });
+      }
+
+      if (data.title === 'RECEIPT') {
+        doc.roundedRect(430, 92, 120, 22, 5).fill('#dcfce7');
+        doc.fillColor('#047857').font('Helvetica-Bold').fontSize(9).text('PAYMENT VERIFIED', 436, 99, { width: 108, align: 'center' });
       }
 
       // Divider Line
@@ -246,7 +255,7 @@ export const documentTemplateEngine = {
   generateEmailLayout(params: {
     title: string;
     bodyContent: string;
-    tenant: { name: string; address?: string; email?: string; phone?: string };
+    tenant: { name: string; address?: string; email?: string; phone?: string; logoUrl?: string };
   }): string {
     const primaryColor = '#7c3aed'; // violet accent
     
@@ -259,6 +268,7 @@ export const documentTemplateEngine = {
           body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #09090b; color: #e4e4e7; margin: 0; padding: 20px; }
           .wrapper { max-width: 600px; margin: 20px auto; background: #18181b; border-radius: 16px; border: 1px solid #27272a; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
           .header { background: #0f172a; border-bottom: 1px solid #1e293b; padding: 30px; text-align: center; }
+          .brand-logo { display: block; width: 56px; height: 56px; margin: 0 auto 14px; border-radius: 14px; }
           .header h1 { margin: 0; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px; }
           .content { padding: 35px; line-height: 1.6; font-size: 14.5px; color: #d4d4d8; }
           .footer { background: #09090b; padding: 25px; text-align: center; font-size: 11px; color: #71717a; border-top: 1px solid #27272a; }
@@ -272,6 +282,7 @@ export const documentTemplateEngine = {
       <body>
         <div class="wrapper">
           <div class="header">
+            ${params.tenant.logoUrl ? `<img class="brand-logo" src="${params.tenant.logoUrl}" alt="${params.tenant.name} logo">` : ''}
             <h1>${params.title}</h1>
           </div>
           <div class="content">

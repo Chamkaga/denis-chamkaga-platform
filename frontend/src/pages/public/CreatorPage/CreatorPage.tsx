@@ -48,29 +48,7 @@ export const CreatorPage: React.FC = () => {
         { title: "Technology Consulting", desc: "Expert tips on selecting the right business software.", icon: <Play size={20} /> }
       ];
 
-  // Map database tutorials fallback to mock values if empty
-  const defaultTutorials = [
-    {
-      id: '1',
-      title: isSwahili ? "Misingi ya Schema na Normalization" : "Database Normalization Principles Explained",
-      videoUrl: 'xS-mG8V3Z8',
-      provider: 'youtube',
-      durationMin: 12,
-      description: 'IT Systems and Relational Database Schema Normalization',
-      resources: null
-    },
-    {
-      id: '2',
-      title: isSwahili ? "Miongozo ya Kubadilisha Biashara kuwa ya Kidijitali" : "Step-by-Step Business Digitalization Guide",
-      videoUrl: 'yK-pM9Z3A1',
-      provider: 'youtube',
-      durationMin: 18,
-      description: 'Actionable steps to automate offline operations',
-      resources: null
-    }
-  ];
-
-  const tutorials = dbTutorials && dbTutorials.length > 0 ? dbTutorials : defaultTutorials;
+  const tutorials = dbTutorials || [];
 
   // Extract YouTube ID helper
   const getEmbedUrl = (video: any) => {
@@ -146,9 +124,7 @@ export const CreatorPage: React.FC = () => {
         <h2 className="text-xl sm:text-2xl font-extrabold dark:text-white light:text-slate-800 font-display">
           {isSwahili ? "Video za Hivi Karibuni za Mafunzo" : "Recent Tutorials & Masterclasses"}
         </h2>
-        {isLoading ? (
-          <div className="py-20 text-center text-xs text-zinc-500 font-mono">Loading tutorials...</div>
-        ) : (
+        {isLoading ? null : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {tutorials.map((vid: any) => (
               <MotionCard key={vid.id} className="p-5 flex flex-col justify-between border dark:border-zinc-800/80 bg-zinc-950/20 shadow-md">

@@ -79,7 +79,7 @@ export const KnowledgeCmsPage: React.FC = () => {
         ...item,
         status: item.status || 'published',
         vectorStatus: item.vectorStatus || 'Indexed',
-        aiUsageCount: item.aiUsageCount || Math.floor(Math.random() * 45) + 5,
+        aiUsageCount: item.aiUsageCount ?? 0,
         confidenceScore: item.confidenceScore || 0.96
       }));
       setItems(mapped);

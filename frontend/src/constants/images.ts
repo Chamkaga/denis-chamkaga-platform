@@ -14,7 +14,8 @@ export const IMAGES = {
 
   // 2. About Section
   about: {
-    portrait: '/images/about/denis_bio.webp',
+    // Reuse the owner's real portrait in a wider About crop; the Hero controls its own crop.
+    portrait: '/images/hero/denis_portrait.webp',
     workspace: '/images/about/workspace.webp',
     programming: '/images/about/programming.png',
     consulting: '/images/about/consulting.png',
@@ -52,12 +53,13 @@ export const IMAGES = {
 
   // 5. Projects Section
   projects: {
+    fods: '/images/projects/fods-marketplace.webp',
     schoolManagement: '/images/projects/school_management.webp',
     libraryManagement: '/images/projects/library_management.png',
     hostelManagement: '/images/projects/hostel_management.webp',
     inventoryManagement: '/images/projects/inventory_management.png',
-    portfolio: '/images/projects/personal_portfolio.png',
-    terrasafi: '/images/projects/terrasafi_platform.webp',
+    portfolio: '/images/projects/personal_portfolio.webp',
+    terrasafi: '/images/projects/terrasafi_platform.webp?v=2',
   },
 
   // 6. Gallery Section

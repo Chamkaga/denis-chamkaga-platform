@@ -32,9 +32,15 @@ async function paginate<T>(
 
 export const adminService = {
   // ── Dashboard Stats ────────────────────────────────────────────────────────
-  async getDashboardStats() {
+  async getDashboardStats(range?: { from?: Date; to?: Date }) {
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
+    const createdAt = range?.from || range?.to ? {
+      ...(range.from ? { gte: range.from } : {}),
+      ...(range.to ? { lt: range.to } : {}),
+    } : undefined;
+    const periodWhere = createdAt ? { createdAt } : {};
+    const chatPeriodWhere = createdAt ? { startedAt: createdAt } : {};
 
     const [
       totalProjects, completedProjects, inProgressProjects, plannedProjects,
@@ -52,19 +58,19 @@ export const adminService = {
       prisma.service.count({ where: { isActive: true } }),
       prisma.blogPost.count({ where: { status: 'published', deletedAt: null } }),
       prisma.blogPost.count({ where: { status: 'draft', deletedAt: null } }),
-      prisma.lead.count(),
-      prisma.lead.count({ where: { status: 'new' } }),
-      prisma.lead.count({ where: { temperature: 'hot' } }),
-      prisma.message.count(),
-      prisma.message.count({ where: { isRead: false } }),
-      prisma.appointment.count(),
-      prisma.appointment.count({ where: { status: 'pending' } }),
-      prisma.appointment.count({ where: { status: 'completed' } }),
-      prisma.chatSession.count({ where: { status: 'active' } }),
+      prisma.lead.count({ where: periodWhere }),
+      prisma.lead.count({ where: { status: 'new', ...periodWhere } }),
+      prisma.lead.count({ where: { temperature: 'hot', ...periodWhere } }),
+      prisma.message.count({ where: periodWhere }),
+      prisma.message.count({ where: { isRead: false, ...periodWhere } }),
+      prisma.appointment.count({ where: periodWhere }),
+      prisma.appointment.count({ where: { status: 'pending', ...periodWhere } }),
+      prisma.appointment.count({ where: { status: 'completed', ...periodWhere } }),
+      prisma.chatSession.count({ where: { status: 'active', ...chatPeriodWhere } }),
       prisma.visitor.count(),
       prisma.visitor.count({ where: { firstVisit: { gte: startOfToday } } }),
       prisma.testimonial.count({ where: { isVisible: true } }),
-      prisma.chatSession.count(),
+      prisma.chatSession.count({ where: chatPeriodWhere }),
       prisma.newsletter.count({ where: { status: 'active' } }),
       prisma.partnershipRequest.count(),
       prisma.partnershipRequest.count({ where: { status: 'new' } }),
@@ -75,12 +81,14 @@ export const adminService = {
 
     const recentLeads = await prisma.lead.findMany({
       take: 5,
+      where: periodWhere,
       orderBy: { createdAt: 'desc' },
       select: { id: true, name: true, email: true, source: true, temperature: true, createdAt: true },
     });
 
     const recentMessages = await prisma.message.findMany({
       take: 5,
+      where: periodWhere,
       orderBy: { createdAt: 'desc' },
       select: { id: true, name: true, email: true, subject: true, isRead: true, createdAt: true },
     });
@@ -111,7 +119,13 @@ export const adminService = {
 
     const supportersCount = await prisma.supporterProfile.count();
     const activeSupportersCount = await prisma.supporterProfile.count({ where: { status: 'active' } });
-    const paidInvoices = await prisma.invoice.aggregate({ where: { status: 'paid' }, _sum: { total: true } });
+    const paidPayments = await prisma.payment.aggregate({
+      where: {
+        status: 'successful', currency: 'TZS',
+        ...(range?.from || range?.to ? { paymentDate: { ...(range.from ? { gte: range.from } : {}), ...(range.to ? { lt: range.to } : {}) } } : {}),
+      },
+      _sum: { amount: true }, _count: { id: true },
+    });
 
     return {
       projects: {
@@ -132,10 +146,11 @@ export const adminService = {
       partnerships: { total: totalPartnershipRequests, pending: pendingPartnerships },
       prompts: { activeCount: activePromptsCount },
       campaigns: { total: totalCampaigns, active: activeCampaigns },
-      finance: { totalInvoiced: paidInvoices._sum.total?.toNumber() || 0 },
+      finance: { totalInvoiced: paidPayments._sum.amount?.toNumber() || 0, paidTransactions: paidPayments._count.id, currency: 'TZS' },
       supporters: { total: supportersCount, active: activeSupportersCount },
       recent: { leads: recentLeads, messages: recentMessages },
       pendingRequests,
+      period: { from: range?.from?.toISOString() || null, to: range?.to?.toISOString() || null },
       health: {
         api: 'healthy',
         database: dbStatus,
@@ -144,11 +159,7 @@ export const adminService = {
         aiProvider: 'openai',
         aiModel: env.OPENAI_MODEL,
       },
-      storage: {
-        used: '124MB',
-        total: '10GB',
-        percent: 1.24
-      }
+      storage: null
     };
   },
 

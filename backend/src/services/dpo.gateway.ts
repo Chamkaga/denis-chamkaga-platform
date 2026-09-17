@@ -6,6 +6,10 @@ import { env } from '../config/env';
 import { logger } from '../utils/logger';
 import https from 'https';
 
+function xmlValue(value: unknown): string {
+  return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+}
+
 // Helper to make SOAP XML POST calls bypassing SNI/SSL issues
 function postXml(url: string, xml: string): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -25,10 +29,14 @@ function postXml(url: string, xml: string): Promise<string> {
     const req = https.request(options, (res) => {
       let data = '';
       res.on('data', chunk => { data += chunk; });
-      res.on('end', () => resolve(data));
+      res.on('end', () => {
+        if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 300) return reject(new Error('DPO returned an unsuccessful HTTP response.'));
+        resolve(data);
+      });
     });
 
     req.on('error', err => reject(err));
+    req.setTimeout(15000, () => req.destroy(new Error('DPO request timed out. Please check payment status before retrying.')));
     req.write(xml);
     req.end();
   });
@@ -50,37 +58,34 @@ export class DPOGateway implements PaymentGateway {
   }
 
   async initializePayment(params: PaymentGatewayInitializeParams): Promise<{ success: boolean; checkoutUrl?: string; message?: string }> {
-    const companyToken = env.DPO_COMPANY_TOKEN || 'DPO_SANDBOX_TOKEN';
+    const companyToken = env.DPO_COMPANY_TOKEN;
     const serviceType = env.DPO_SERVICE_TYPE || '3854';
 
-    // 1. Sandbox simulation developer mode fallback
-    if (companyToken === 'DPO_SANDBOX_TOKEN' || env.PAYMENT_DPO_SANDBOX === true) {
-      logger.info(`[DPO Gateway] Utilizing Sandbox simulation developer mode fallback for ref: ${params.txRef}`);
-      const mockToken = `MOCK_SANDBOX_TOKEN_${Date.now()}`;
+    if (!companyToken) {
+      logger.warn(`[DPO Gateway] Checkout unavailable because credentials are not configured for ref: ${params.txRef}`);
       return {
-        success: true,
-        checkoutUrl: `${this.getCheckoutBaseUrl()}?ID=${mockToken}`,
-        message: 'DPO mock checkout token generated successfully.'
+        success: false,
+        message: 'DPO checkout is not configured. Please contact support to complete payment.'
       };
     }
 
     try {
       const xmlPayload = `<?xml version="1.0" encoding="utf-8"?>
 <API3G>
-  <CompanyToken>${companyToken}</CompanyToken>
+  <CompanyToken>${xmlValue(companyToken)}</CompanyToken>
   <Request>createToken</Request>
   <Transaction>
     <PaymentAmount>${params.amount.toFixed(2)}</PaymentAmount>
     <PaymentCurrency>${params.currency.toUpperCase()}</PaymentCurrency>
-    <CompanyRef>${params.txRef}</CompanyRef>
-    <RedirectURL>${params.redirectUrl}</RedirectURL>
-    <BackURL>${params.redirectUrl}</BackURL>
+    <CompanyRef>${xmlValue(params.txRef)}</CompanyRef>
+    <RedirectURL>${xmlValue(params.redirectUrl)}</RedirectURL>
+    <BackURL>${xmlValue(params.redirectUrl)}</BackURL>
     <CompanyRefUnique>1</CompanyRefUnique>
   </Transaction>
   <Services>
     <Service>
       <ServiceType>${serviceType}</ServiceType>
-      <ServiceDescription>${params.customizations.description}</ServiceDescription>
+      <ServiceDescription>${xmlValue(params.customizations.description)}</ServiceDescription>
       <ServiceDate>${new Date().toISOString().slice(0, 10).replace(/-/g, '/')}</ServiceDate>
     </Service>
   </Services>
@@ -91,6 +96,7 @@ export class DPOGateway implements PaymentGateway {
       const responseXml = await postXml(this.getEndpoint(), xmlPayload);
       const result = extractXmlTag(responseXml, 'Result');
       const explanation = extractXmlTag(responseXml, 'ResultExplanation');
+      if (!result) return { success: false, message: 'DPO returned an unrecognized response. Checkout could not be confirmed.' };
 
       if (result === '000') {
         const transToken = extractXmlTag(responseXml, 'TransToken');
@@ -113,35 +119,15 @@ export class DPOGateway implements PaymentGateway {
   }
 
   async verifyPayment(transactionToken: string): Promise<PaymentGatewayVerificationResult> {
-    // 1. Sandbox simulation developer mode verify fallback
-    if (transactionToken.startsWith('MOCK_SANDBOX_TOKEN')) {
-      logger.info(`[DPO Gateway] Verifying mock token: ${transactionToken}`);
-      return {
-        success: true,
-        message: 'Transaction successfully verified via Sandbox simulation.',
-        data: {
-          transactionId: transactionToken,
-          amount: 150000,
-          currency: 'TZS',
-          provider: 'dpo',
-          reference: `TXN_SIM_${Date.now()}`,
-          paymentChannel: 'Visa (Sandbox Simulation)',
-          customerEmail: 'developer@denischamkaga.com',
-          verifiedAt: new Date(),
-          fees: 0,
-          payload: { simulated: true }
-        }
-      };
-    }
-
     try {
-      const companyToken = env.DPO_COMPANY_TOKEN || 'DPO_SANDBOX_TOKEN';
+      const companyToken = env.DPO_COMPANY_TOKEN;
+      if (!companyToken) return { success: false, message: 'DPO verification is not configured.' };
       
       const xmlPayload = `<?xml version="1.0" encoding="utf-8"?>
 <API3G>
-  <CompanyToken>${companyToken}</CompanyToken>
+  <CompanyToken>${xmlValue(companyToken)}</CompanyToken>
   <Request>verifyToken</Request>
-  <TransactionToken>${transactionToken}</TransactionToken>
+  <TransactionToken>${xmlValue(transactionToken)}</TransactionToken>
 </API3G>`;
 
       const responseXml = await postXml(this.getEndpoint(), xmlPayload);

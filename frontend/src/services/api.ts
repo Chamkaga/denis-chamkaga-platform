@@ -164,7 +164,7 @@ export const publicApi = {
     const res = await api.get('/tutorials');
     return res.data.data;
   },
-  initiateSupportCheckout: async (data: { amount: number; currency: string; email: string; name?: string }) => {
+  initiateSupportCheckout: async (data: { amount: number; currency: string; email: string; name?: string; tier: string }) => {
     const res = await api.post('/payments/support', data);
     return res.data.data;
   },
@@ -245,8 +245,8 @@ export const adminApi = {
     const res = await api.get('/presence');
     return res.data.data;
   },
-  getDashboardStats: async () => {
-    const res = await api.get('/admin/dashboard');
+  getDashboardStats: async (params?: { from?: string; to?: string }) => {
+    const res = await api.get('/admin/dashboard', { params });
     return res.data.data;
   },
   getAnalytics: async (days?: number) => {

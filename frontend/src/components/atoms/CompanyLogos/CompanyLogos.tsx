@@ -47,13 +47,7 @@ export const UDCCLogo: React.FC = () => (
   </svg>
 );
 
-// Terrasafi Vector Logo
+// Terrasafi brand logo supplied by the owner.
 export const TerrasafiLogo: React.FC = () => (
-  <svg viewBox="0 0 100 100" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="50" cy="50" r="45" fill="#10b981" />
-    <path d="M50 20 C65 20 75 35 75 55 C75 75 50 80 50 80 C50 80 25 75 25 55 C25 35 35 20 50 20 Z" fill="#047857" />
-    <path d="M50 25 V75" stroke="#10b981" strokeWidth="4" />
-    <path d="M35 45 C40 45 45 40 50 35" stroke="#10b981" strokeWidth="4" strokeLinecap="round" />
-    <path d="M65 55 C60 55 55 50 50 45" stroke="#10b981" strokeWidth="4" strokeLinecap="round" />
-  </svg>
+  <img src="/terrasafi-logo.png" alt="Terrasafi" className="w-full h-full object-contain" />
 );

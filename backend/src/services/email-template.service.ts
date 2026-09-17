@@ -42,15 +42,8 @@ export class EmailTemplateService {
         return false;
       }
     } else {
-      console.log('================ MOCK EMAIL TRANSMISSION ================');
-      console.log(`FROM:    ${from}`);
-      console.log(`TO:      ${to}`);
-      console.log(`SUBJECT: ${subject}`);
-      console.log(`ATTACHMENTS: ${attachments?.map(a => a.filename).join(', ') || 'None'}`);
-      console.log('------------------- BODY PREVIEW -------------------');
-      console.log(html.replace(/<[^>]*>/g, ' ').substring(0, 500).trim() + '...');
-      console.log('========================================================');
-      return true;
+      console.warn(`Email not sent: SMTP credentials are unavailable for recipient ${to}.`);
+      return false;
     }
   }
 
@@ -60,7 +53,8 @@ export class EmailTemplateService {
       name: tenant?.name || 'Terrasafi T Ltd',
       address: tenant?.address || 'Victoria, Dar es Salaam, Tanzania',
       email: tenant?.email || 'finance@terrasafi.co.tz',
-      phone: tenant?.phone || '+255 700 000 000'
+      phone: tenant?.phone || '+255 700 000 000',
+      logoUrl: tenant?.logoUrl || `${env.FRONTEND_URL || ''}/favicon.svg`
     };
   }
 

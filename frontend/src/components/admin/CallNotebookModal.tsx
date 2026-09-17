@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  PhoneCall, Mic, Sparkles, FileText, X, ArrowRight, Calendar, Clock, Copy, MessageSquare, Building2, DollarSign, UserCheck, Flame, Mail, Link as LinkIcon, RefreshCw
+  PhoneCall, Sparkles, FileText, X, ArrowRight, Calendar, Clock, Copy, MessageSquare, Building2, DollarSign, UserCheck, Flame, Mail, Link as LinkIcon, RefreshCw
 } from 'lucide-react';
 import { Button } from '../atoms/Button';
 import { useToast } from '../atoms/Toast';
@@ -19,7 +19,6 @@ export const CallNotebookModal: React.FC<CallNotebookModalProps> = ({ isOpen, on
   const [callerPhone, setCallerPhone] = useState('');
   const [callerEmail, setCallerEmail] = useState('');
   const [notes, setNotes] = useState('');
-  const [isRecording, setIsRecording] = useState(false);
   const [isAiProcessing, setIsAiProcessing] = useState(false);
   const [aiResult, setAiResult] = useState<any | null>(null);
   const [notebookMode, setNotebookMode] = useState<'voice' | 'website_chat'>(initialMode);
@@ -39,8 +38,8 @@ export const CallNotebookModal: React.FC<CallNotebookModalProps> = ({ isOpen, on
   const [leadCompany, setLeadCompany] = useState('');
   const [leadTemperature, setLeadTemperature] = useState<'HOT' | 'WARM' | 'COLD'>('HOT');
 
-  const [quoteTitle, setQuoteTitle] = useState('Enterprise POS & Cloud ERP Implementation');
-  const [quoteAmount, setQuoteAmount] = useState<number>(12000000);
+  const [quoteTitle, setQuoteTitle] = useState('');
+  const [quoteAmount, setQuoteAmount] = useState<number>(0);
 
   const [whatsappCustomText, setWhatsappCustomText] = useState('');
 
@@ -59,101 +58,36 @@ export const CallNotebookModal: React.FC<CallNotebookModalProps> = ({ isOpen, on
     setSelectedActions(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const [selectedChatId, setSelectedChatId] = useState('');
-
-  const sampleWebsiteChats = [
-    {
-      id: 'chat-901',
-      name: 'Dr. Joseph Kimaro (TechCorp Tanzania)',
-      phone: '+255 754 123 456',
-      notes: '[Website Chat Transcript via Mary AI]: Mteja anahitaji Mfumo wa Fintech Cloud API Gateway na Vector RAG Search kwa ajili ya taasisi ya fedha. Bajeti ni TZS 25,000,000. Anaomba kikao cha Consultation na Quotation rasmi.'
-    },
-    {
-      id: 'chat-902',
-      name: 'Sarah Mallya (Innovate Africa)',
-      phone: '+255 784 987 654',
-      notes: '[Website Chat Transcript via Mary AI]: Mteja anataka uchanganuzi wa mfumo wa Terrasafi Climate Tech Grant Pipeline kwa ajili ya serikali za mitaa. Bajeti TZS 15,000,000.'
-    }
-  ];
-
   if (!isOpen) return null;
 
-  const handleSelectWebsiteChat = (chatId: string) => {
-    setSelectedChatId(chatId);
-    const found = sampleWebsiteChats.find(c => c.id === chatId);
-    if (found) {
-      setCallerName(found.name);
-      setCallerPhone(found.phone);
-      setNotes(found.notes);
-      toast.info(`Mazungumzo ya Chat ya '${found.name}' yameingizwa kwenye Notebook!`, 'Chat Loaded');
-    }
-  };
-
-  const handleToggleRecording = () => {
-    if (!isRecording) {
-      setIsRecording(true);
-      toast.info('Listening to live call audio (Swahili/English STT active)...', 'Speech Recognition');
-      // Simulate live STT append
-      setTimeout(() => {
-        setNotes((prev) => (prev ? prev + '\n' : '') + '[Live Call Transcribed]: Mteja anataka kuanzisha mfumo wa POS na ERP kwa ajili ya maduka 4 ya reja reja, bajeti ni TZS 12,000,000. Anataka consultation kesho saa 8 mchana.');
-        setIsRecording(false);
-      }, 3000);
-    } else {
-      setIsRecording(false);
-    }
-  };
-
   const handleAiProcess = async () => {
-    const finalNotes = notes.trim() || `Mteja ${callerName || 'Said Salim (Azam Group)'} anahitaji Retail POS na ERP integration kwa maduka 4, bajeti TZS 12,000,000. Anataka consultation kesho saa 8:00 mchana.`;
-    const finalName = callerName.trim() || 'Said Salim (Azam Group Audit)';
-    const finalPhone = callerPhone.trim() || '+255 713 999 000';
+    const finalNotes = notes.trim();
+    const finalName = callerName.trim();
+    const finalPhone = callerPhone.trim();
+
+    if (!finalName || !finalPhone || !callerEmail.trim() || !finalNotes) {
+      toast.error('Enter the verified customer name, phone, email and call notes first.', 'Missing call details');
+      return;
+    }
 
     setIsAiProcessing(true);
-
-    try {
-      // Persist created lead in database
-      await adminApi.createLead({
-        name: finalName,
-        email: `client_${Date.now()}@azamgroup.co.tz`,
-        phone: finalPhone,
-        company: 'Azam Group Ltd',
-        source: 'AI_CALL_NOTEBOOK',
-        score: 95,
-        temperature: 'hot',
-        notes: finalNotes,
-        stage: 'new'
-      });
-    } catch (e) {
-      // Fallback gracefully
-    }
-
-    setTimeout(() => {
-      setIsAiProcessing(false);
-      setLeadTitle(finalName);
-      setLeadCompany('Azam Group Ltd');
-      setQuoteAmount(12000000);
-      const payUrl = `${window.location.origin}/pay/quotation/QT-2026-0099?token=d7196f3602`;
-      const defaultWa = `Habari ${finalName}, Ahsante kwa mazungumzo ya simu. Nimekusaidia kutayarisha Quotation ya TZS 12,000,000 na kukuwekea miadi ya Consultation tarehe ${consultationDate} saa ${consultationTime}.\n\nUnaweza kuipitia na kuilipia kwa kiungo hiki salama:\n${payUrl}`;
-      setWhatsappCustomText(defaultWa);
-
-      const mockProcessed = {
-        leadName: finalName,
-        company: 'Azam Group Ltd',
-        phone: finalPhone,
-        score: 95,
-        temperature: 'HOT',
-        requiredService: 'Retail POS & Enterprise ERP Integration',
-        budget: '12,000,000 TZS',
-        scheduledConsultation: `${consultationDate} at ${consultationTime}`,
-        createdLeadId: 'LEAD-2026-8821',
-        createdAppointmentId: 'APPT-2026-0042',
-        createdQuotationNumber: 'QT-2026-0099',
-        quotationAmount: 12000000,
-        summaryWhatsapp: defaultWa
-      };
-      setAiResult(mockProcessed);
-      toast.success('Mary AI inakamilisha kazi: Lead, Consultation, & ERP Quote zimeundwa kwenye DB!', 'AI Complete');
-    }, 1200);
+    const summary = `Habari ${finalName}, asante kwa mazungumzo yetu. Muhtasari wa mahitaji yako: ${finalNotes}`;
+    setLeadTitle(finalName);
+    setWhatsappCustomText(summary);
+    setAiResult({
+      leadName: finalName,
+      company: leadCompany.trim(),
+      email: callerEmail.trim(),
+      phone: finalPhone,
+      score: 50,
+      temperature: 'WARM',
+      requiredService: finalNotes,
+      budget: quoteAmount > 0 ? `${quoteAmount.toLocaleString()} TZS` : 'Not confirmed',
+      scheduledConsultation: `${consultationDate} at ${consultationTime}`,
+      summaryWhatsapp: summary
+    });
+    setIsAiProcessing(false);
+    toast.success('Call details are ready for your review. No records have been created yet.', 'Review ready');
   };
 
   return (
@@ -211,18 +145,8 @@ export const CallNotebookModal: React.FC<CallNotebookModalProps> = ({ isOpen, on
           {!aiResult ? (
             <div className="space-y-4">
               {notebookMode === 'website_chat' && (
-                <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 space-y-2">
-                  <label className="text-xs font-bold text-amber-400 block">Select Website Mary AI Chat Session</label>
-                  <select
-                    value={selectedChatId}
-                    onChange={(e) => handleSelectWebsiteChat(e.target.value)}
-                    className="w-full text-xs p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-slate-800 dark:text-white font-semibold"
-                  >
-                    <option value="">-- Choose Live Website Chat Session --</option>
-                    {sampleWebsiteChats.map(c => (
-                      <option key={c.id} value={c.id}>{c.name} ({c.phone})</option>
-                    ))}
-                  </select>
+                <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300">
+                  Open this notebook from an actual Mary conversation or call record to retain its verified customer context.
                 </div>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -247,7 +171,7 @@ export const CallNotebookModal: React.FC<CallNotebookModalProps> = ({ isOpen, on
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-zinc-400">Client Email (Optional)</label>
+                  <label className="text-xs font-semibold text-zinc-400">Client Email</label>
                   <input
                     type="email"
                     placeholder="client@azamgroup.co.tz"
@@ -264,18 +188,6 @@ export const CallNotebookModal: React.FC<CallNotebookModalProps> = ({ isOpen, on
                   <label className="text-xs font-semibold text-zinc-400 flex items-center gap-1.5">
                     <FileText size={14} className="text-accent-violet" /> Call Notes / Transcription Summary
                   </label>
-                  <button
-                    type="button"
-                    onClick={handleToggleRecording}
-                    className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold transition-all cursor-pointer ${
-                      isRecording
-                        ? 'bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse'
-                        : 'bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700'
-                    }`}
-                  >
-                    <Mic size={13} />
-                    <span>{isRecording ? 'Listening (STT Active)...' : 'Record Live Speech (STT)'}</span>
-                  </button>
                 </div>
 
                 <textarea
@@ -490,27 +402,11 @@ export const CallNotebookModal: React.FC<CallNotebookModalProps> = ({ isOpen, on
                           </span>
                         </div>
 
-                        {/* Generated Secure SHA-256 Payment Access Link */}
-                        <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <LinkIcon size={14} className="text-emerald-400 flex-shrink-0" />
-                            <span className="text-[11px] font-mono text-emerald-300 font-bold truncate">
-                              {window.location.origin}/pay/quotation/{aiResult.createdQuotationNumber}?token=d7196f3602
-                            </span>
-                          </div>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="xs"
-                            onClick={() => {
-                              const link = `${window.location.origin}/pay/quotation/${aiResult.createdQuotationNumber}?token=d7196f3602`;
-                              navigator.clipboard.writeText(link);
-                              toast.success('Payment Link umenakiliwa (Copied to Clipboard)!', 'Payment Link');
-                            }}
-                            leftIcon={<Copy size={12} />}
-                          >
-                            Copy Payment Link
-                          </Button>
+                        <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-2">
+                          <LinkIcon size={14} className="text-emerald-400 flex-shrink-0" />
+                          <span className="text-[11px] text-emerald-300 font-semibold">
+                            A signed payment link becomes available after an approved quotation is converted to an invoice.
+                          </span>
                         </div>
                       </div>
                     )}
@@ -563,7 +459,7 @@ export const CallNotebookModal: React.FC<CallNotebookModalProps> = ({ isOpen, on
                             Copy Text
                           </Button>
                           <a
-                            href={`https://wa.me/${callerPhone.replace(/\D/g, '') || '255713000999'}?text=${encodeURIComponent(whatsappCustomText || aiResult.summaryWhatsapp)}`}
+                            href={`https://wa.me/${callerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(whatsappCustomText || aiResult.summaryWhatsapp)}`}
                             target="_blank"
                             rel="noreferrer"
                           >
@@ -572,7 +468,7 @@ export const CallNotebookModal: React.FC<CallNotebookModalProps> = ({ isOpen, on
                             </Button>
                           </a>
                           <a
-                            href={`mailto:${callerEmail || 'client@azamgroup.co.tz'}?subject=${encodeURIComponent(`Consultation & ERP Quotation Summary — Denis Chamkaga BOS`)}&body=${encodeURIComponent(whatsappCustomText || aiResult.summaryWhatsapp)}`}
+                            href={`mailto:${callerEmail}?subject=${encodeURIComponent(`Consultation & ERP Quotation Summary — Denis Chamkaga BOS`)}&body=${encodeURIComponent(whatsappCustomText || aiResult.summaryWhatsapp)}`}
                             target="_blank"
                             rel="noreferrer"
                           >
@@ -660,7 +556,7 @@ export const CallNotebookModal: React.FC<CallNotebookModalProps> = ({ isOpen, on
                       try {
                         await adminApi.createLead({
                           name: aiResult.leadName,
-                          email: `client_${Date.now()}@azamgroup.co.tz`,
+                          email: aiResult.email,
                           phone: aiResult.phone,
                           company: aiResult.company,
                           source: 'AI_CALL_NOTEBOOK',
@@ -679,8 +575,8 @@ export const CallNotebookModal: React.FC<CallNotebookModalProps> = ({ isOpen, on
                         await adminApi.createCalendarEvent({
                           title: `Consultation: ${aiResult.leadName}`,
                           category: 'meeting',
-                          date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-                          time: '14:00',
+                          date: consultationDate,
+                          time: consultationTime,
                           clientOrProject: aiResult.leadName,
                           status: 'upcoming'
                         });

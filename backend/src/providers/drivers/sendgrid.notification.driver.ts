@@ -33,8 +33,8 @@ export class SendGridNotificationDriver implements INotificationProvider {
 
   async sendEmail(to: string, subject: string, body: string): Promise<{ success: boolean; messageId?: string }> {
     if (!this.apiKey) {
-      console.log(`[SendGrid Mock Email Log] To: ${to} | Subject: ${subject} | Body: ${body.substring(0, 100)}...`);
-      return { success: true, messageId: `sendgrid-mock-${Date.now()}` };
+      console.warn(`[SendGrid] Email not sent because credentials are unavailable. Recipient: ${to}; subject: ${subject}`);
+      return { success: false };
     }
     try {
       const response = await fetch('https://api.sendgrid.com/v3/mail/send', {

@@ -250,7 +250,7 @@ export const FinancePage: React.FC = () => {
         />
       )}
 
-      {activeTab === 'payment-links' && <PaymentLinksTab />}
+      {activeTab === 'payment-links' && <PaymentLinksTab invoices={invoices} />}
       {activeTab === 'payments' && (
         <EnterpriseDataGrid
           title="Payments History"
@@ -262,9 +262,9 @@ export const FinancePage: React.FC = () => {
         />
       )}
 
-      {activeTab === 'transactions' && <TransactionsTab />}
+      {activeTab === 'transactions' && <TransactionsTab payments={payments} />}
       {activeTab === 'expenses' && <ExpensesTab />}
-      {activeTab === 'receipts' && <ReceiptsTab />}
+      {activeTab === 'receipts' && <ReceiptsTab payments={payments} />}
       {activeTab === 'reports' && <ReportsTab />}
       {activeTab === 'settings' && <TenantConfigTab tenant={tenant} />}
 

@@ -4,6 +4,8 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { publicService } from '../services/public.service';
 import { ApiResponse } from '../types/api';
+import { randomUUID } from 'crypto';
+import { SupportTier } from '@prisma/client';
 
 const router = Router();
 
@@ -181,9 +183,10 @@ router.post('/payments/dpo/callback', wrap(async (req, res) => {
 
 router.get('/payments/dpo/verify', wrap(async (req, res) => {
   const token = (req.query.TransactionToken || req.query.TransToken) as string;
+  const flow = String(req.query.flow || 'invoice');
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
   if (!token) {
-    res.redirect(`${frontendUrl}/billing?error=missing_token`);
+    res.redirect(`${frontendUrl}/${flow === 'support' ? 'support/callback' : 'public/invoice/payment-redirect'}?error=missing_token`);
     return;
   }
 
@@ -196,7 +199,7 @@ router.get('/payments/dpo/verify', wrap(async (req, res) => {
       res.redirect(`${frontendUrl}/public/invoice/payment-redirect?success=true&token=${token}`);
     }
   } catch (err: any) {
-    if (token.startsWith('TXN_SUP_') || err.message?.includes('TXN_SUP_')) {
+    if (flow === 'support' || token.startsWith('TXN_SUP_') || err.message?.includes('TXN_SUP_')) {
       res.redirect(`${frontendUrl}/support/callback?error=${encodeURIComponent(err.message || 'Verification failed')}`);
     } else {
       res.redirect(`${frontendUrl}/billing?error=${encodeURIComponent(err.message || 'Verification failed')}`);
@@ -228,31 +231,49 @@ router.get('/payments/verify', wrap(async (req, res) => {
 }));
 
 router.post('/payments/support', wrap(async (req, res) => {
-  const { amount, currency, email, name } = req.body;
-  if (!amount || !email) {
-    res.status(422).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'amount and email are required.' } });
+  const { amount, currency, email, name, tier } = req.body;
+  const allowedTiers = new Set(['seed', 'growth', 'vision', 'champion', 'custom']);
+  const normalizedCurrency = String(currency || 'TZS').toUpperCase();
+  const parsedAmount = Number(amount);
+  if (!Number.isFinite(parsedAmount) || parsedAmount <= 0 || parsedAmount > 1000000000 || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email)) || !allowedTiers.has(String(tier || ''))) {
+    res.status(422).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'A valid amount, currency, email and support tier are required.' } });
+    return;
+  }
+  if (!['TZS', 'USD'].includes(normalizedCurrency)) {
+    res.status(422).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Only TZS and USD support currencies are accepted.' } });
     return;
   }
 
   const { dpoGateway } = await import('../services/dpo.gateway');
-  const txRef = `TXN_SUP_${Date.now()}`;
+  const tierCode = ({ seed: 'SEED', growth: 'GROWTH', vision: 'VISION_BUILDER', champion: 'MISSION_CHAMPION', custom: 'CUSTOM' } as Record<string, string>)[String(tier || '')];
+  const txRef = `TXN_SUP_${randomUUID()}`;
+  const db = (await import('../config/database')).default;
+  await db.supportContribution.create({ data: {
+    ctrId: `CTR-${randomUUID()}`, reference: txRef, tier: tierCode as SupportTier,
+    status: 'Pending', amount: parsedAmount, currency: normalizedCurrency,
+    supporterEmail: String(email).trim().toLowerCase(),
+    supporterName: typeof name === 'string' ? name.trim().slice(0, 160) : null,
+    paymentProvider: 'DPO',
+  } });
   const response = await dpoGateway.initializePayment({
-    amount: +amount,
-    currency: currency || 'TZS',
+    amount: parsedAmount,
+    currency: normalizedCurrency,
     txRef,
     customer: { email, name: name || 'Supporter' },
     customizations: {
       title: 'Support My Work - Denis Chamkaga',
-      description: 'Donation payment for systems development research.'
+      description: `Optional support contribution (${tierCode}) for Denis Chamkaga work.`
     },
-    redirectUrl: `${process.env.BACKEND_URL || 'http://localhost:5000/api'}/public/payments/dpo/verify`
+    redirectUrl: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/support/callback`
   });
 
   if (!response.success || !response.checkoutUrl) {
+    await db.supportContribution.update({ where: { reference: txRef }, data: { status: 'Failed' } });
     res.status(502).json({ success: false, error: { code: 'GATEWAY_ERROR', message: response.message || 'Gateway checkout session initialization failed.' } });
     return;
   }
 
+  await db.supportContribution.updateMany({ where: { reference: txRef, status: 'Pending' }, data: { status: 'Redirected' } });
   res.json({
     success: true,
     data: {

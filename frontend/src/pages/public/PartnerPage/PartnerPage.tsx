@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../../../components/atoms/Button';
 import { PageTitle } from '../../../components/atoms/PageTitle/PageTitle';
+import { publicApi } from '../../../services/api';
 
 export const PartnerPage: React.FC = () => {
   const { language } = useLanguageStore();
@@ -19,21 +20,37 @@ export const PartnerPage: React.FC = () => {
     message: ''
   });
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim() || !formData.email.trim() || !formData.message.trim()) return;
-    // Simulate submission
-    setSubmitted(true);
-    setFormData({
-      name: '',
-      organization: '',
-      role: '',
-      email: '',
-      phone: '',
-      area: 'Technology',
-      message: ''
-    });
+    setSubmitting(true);
+    setSubmitError('');
+    try {
+      await publicApi.submitContact({
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim() || undefined,
+        subject: `Partnership request: ${formData.area}`,
+        content: [
+          `Organization: ${formData.organization.trim() || 'Not provided'}`,
+          `Role: ${formData.role.trim() || 'Not provided'}`,
+          `Collaboration area: ${formData.area}`,
+          '',
+          formData.message.trim(),
+        ].join('\n'),
+      });
+      setSubmitted(true);
+      setFormData({ name: '', organization: '', role: '', email: '', phone: '', area: 'Technology', message: '' });
+    } catch {
+      setSubmitError(isSwahili
+        ? 'Ombi halikutumwa. Tafadhali hakikisha umeunganishwa na ujaribu tena.'
+        : 'The request could not be sent. Check your connection and try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const areas = isSwahili
@@ -61,10 +78,10 @@ export const PartnerPage: React.FC = () => {
         {/* Left: Why Partner & Areas of Collaboration */}
         <div className="lg:col-span-5 space-y-8">
           <div className="space-y-4">
-            <h2 className="text-2xl font-extrabold dark:text-white font-display">
+            <h2 className="text-2xl font-extrabold dark:text-white light:text-slate-900 font-display">
               {isSwahili ? "Kwa Nini Ushirikiane Nami?" : "Why Collaborate?"}
             </h2>
-            <p className="text-sm text-zinc-500 leading-relaxed font-body">
+            <p className="text-sm dark:text-zinc-500 light:text-slate-600 leading-relaxed font-body">
               {isSwahili
                 ? "Naleta uzoefu wa miaka mingi katika kuunganisha mifumo, uundaji wa database thabiti, na kuelewa mahitaji ya kipekee ya biashara ndogo na za kati nchini Tanzania. Ushirikiano huu unalenga kutengeneza mifumo inayoweza kubadilisha jamii kiuchumi na kulinda mazingira."
                 : "Collaborating with me bridges the gap between academic theory, corporate processes, and localized social enterprise engines. I bring database expertise, technical operations focus, and Tanzanian logistics pipeline execution."}
@@ -72,16 +89,16 @@ export const PartnerPage: React.FC = () => {
           </div>
 
           <div className="space-y-4">
-            <h3 className="font-bold dark:text-white text-sm uppercase tracking-wider dark:text-zinc-400">
+            <h3 className="font-bold dark:text-zinc-300 light:text-slate-700 text-sm uppercase tracking-wider">
               {isSwahili ? "Maeneo ya Ushirikiano" : "Alliances & Collaboration Areas"}
             </h3>
             <div className="grid grid-cols-1 gap-4">
               {areas.map((a, idx) => (
-                <div key={idx} className="p-4 rounded-xl border dark:border-zinc-800 bg-zinc-950/20 flex gap-3.5 items-start">
-                  <div className="p-2.5 rounded-lg bg-accent-violet/10 text-accent-violet shrink-0">{a.icon}</div>
+                <div key={idx} className="p-4 rounded-xl border dark:border-zinc-800 light:border-slate-200 dark:bg-zinc-950/20 light:bg-white light:shadow-sm flex gap-3.5 items-start hover:border-accent-violet/40 transition-colors">
+                  <div className="p-2.5 rounded-lg bg-accent-violet/10 text-accent-violet ring-1 ring-accent-violet/10 shrink-0">{a.icon}</div>
                   <div className="space-y-1">
-                    <h4 className="font-bold text-xs sm:text-sm dark:text-white">{a.title}</h4>
-                    <p className="text-[11px] sm:text-xs text-zinc-500">{a.desc}</p>
+                    <h4 className="font-bold text-xs sm:text-sm dark:text-white light:text-slate-900">{a.title}</h4>
+                    <p className="text-[11px] sm:text-xs dark:text-zinc-500 light:text-slate-600">{a.desc}</p>
                   </div>
                 </div>
               ))}
@@ -93,10 +110,10 @@ export const PartnerPage: React.FC = () => {
         <div className="lg:col-span-7">
           <div className="p-6 sm:p-8 rounded-3xl border dark:border-zinc-800/80 light:border-slate-200 dark:bg-zinc-950/40 light:bg-white shadow-xl space-y-6">
             <div className="space-y-2">
-              <h2 className="text-xl font-extrabold dark:text-white font-display">
+              <h2 className="text-xl font-extrabold dark:text-white light:text-slate-900 font-display">
                 {isSwahili ? "Tuma Ombi la Ushirikiano" : "Collaboration Request Form"}
               </h2>
-              <p className="text-xs text-zinc-500 font-body">
+              <p className="text-xs dark:text-zinc-500 light:text-slate-600 font-body">
                 {isSwahili ? "Weka taarifa zako hapa chini na Denis atawasiliana nawe kufanya mazungumzo." : "Complete the fields below to initiate alliance scope discussions."}
               </p>
             </div>
@@ -104,8 +121,8 @@ export const PartnerPage: React.FC = () => {
             {submitted ? (
               <div className="p-6 rounded-2xl border border-green-500/30 bg-green-500/5 text-center space-y-3">
                 <CheckCircle size={32} className="text-green-500 mx-auto" />
-                <h3 className="font-bold dark:text-white text-base">{isSwahili ? "Ombi Limepokelewa!" : "Alliance Scope Received!"}</h3>
-                <p className="text-xs text-zinc-500 max-w-sm mx-auto">
+                <h3 className="font-bold dark:text-white light:text-slate-900 text-base">{isSwahili ? "Ombi Limepokelewa!" : "Alliance Scope Received!"}</h3>
+                <p className="text-xs dark:text-zinc-500 light:text-slate-600 max-w-sm mx-auto">
                   {isSwahili
                     ? "Asante kwa kuonyesha nia ya kushirikiana nami. Denis atapitia maombi yako na kuwasiliana nawe hivi karibuni."
                     : "Thank you for reaching out. Denis will review your organization's proposal details and get back to you shortly."}
@@ -200,8 +217,9 @@ export const PartnerPage: React.FC = () => {
                   />
                 </div>
 
-                <Button type="submit" variant="primary" size="md" className="w-full">
-                  <span>{isSwahili ? "Tuma Ombi" : "Submit Request"}</span>
+                {submitError && <p role="alert" className="text-xs text-red-500">{submitError}</p>}
+                <Button type="submit" variant="primary" size="md" className="w-full" disabled={submitting}>
+                  <span>{submitting ? (isSwahili ? "Inatuma..." : "Sending...") : (isSwahili ? "Tuma Ombi" : "Submit Request")}</span>
                   <ArrowRight size={14} />
                 </Button>
               </form>

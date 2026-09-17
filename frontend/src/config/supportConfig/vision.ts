@@ -5,27 +5,27 @@ export interface VisionPillar {
 
 export const visionPillars: VisionPillar[] = [
   {
-    title: 'Education & Learning',
-    desc: 'Creating free, high-quality systems engineering tutorials and digitalization masterclasses for developers and builders.'
+    title: 'Practical Business Technology',
+    desc: 'Building websites and operational systems that solve real customer, sales, records, finance, and service-delivery problems.'
   },
   {
-    title: 'AI & Automation',
-    desc: 'Developing open R&D automation tools and intelligent systems that simplify local business operations.'
+    title: 'SME Digital Transformation',
+    desc: 'Helping small and growing businesses move from paper, spreadsheets, and disconnected tools into reliable digital workflows.'
   },
   {
-    title: 'Technology',
-    desc: 'Building practical, clean, and highly secure software frameworks tailored for business growth.'
+    title: 'Skills & Knowledge',
+    desc: 'Sharing practical training and guidance that helps people use technology confidently and improve daily operations.'
   },
   {
-    title: 'Digital Transformation',
-    desc: 'Helping small enterprises transition from paper logbooks into cloud-based multi-tenant databases.'
+    title: 'Trusted Service Delivery',
+    desc: 'Connecting consultation, quotation, payment, project delivery, training, and support through a clear customer journey.'
   },
   {
-    title: 'Open Source',
-    desc: 'Publishing reusable database schemas, server integrations, and billing components for developers.'
+    title: 'Terrasafi Growth',
+    desc: 'Growing technology, printing, design, networking, stationery, and electronics services through sustainable partnerships.'
   },
   {
-    title: 'Community',
-    desc: 'Connecting entrepreneurs, developers, designers, and students to learn and build digital ecosystems together.'
+    title: 'Collaboration & Community',
+    desc: 'Bringing clients, professionals, suppliers, mentors, and collaborators together to create useful local solutions.'
   }
 ];

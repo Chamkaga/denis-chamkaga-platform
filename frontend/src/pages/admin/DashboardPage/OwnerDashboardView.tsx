@@ -1,579 +1,127 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import {
-  TrendingUp,
-  Users,
-  DollarSign,
-  Bot,
-  ShieldCheck,
-  Activity,
-  ArrowUpRight,
-  Zap,
-  Server,
-  Database,
-  Lock,
-  RefreshCw,
-  ChevronRight,
-  ChevronLeft,
-  Globe,
-  Briefcase,
-  FileText,
-  BookOpen,
-  LayoutDashboard,
-  Download,
-  Calendar,
-  BarChart3,
-  Filter,
-  Phone,
-  PhoneIncoming,
-  PhoneOff
-} from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Activity, BarChart3, Bot, Briefcase, BookOpen, Database, FileText, Globe, LayoutDashboard, LineChart, MessageSquare, Phone, PhoneIncoming, PhoneOff, PieChart, Printer, RefreshCw, ShieldCheck, Users } from 'lucide-react';
 import { adminApi } from '../../../services/api';
 import { cn } from '../../../lib/cn';
 import { useCall } from '../../../context/CallContext';
 
-// ── Period types ──────────────────────────────────────────────────────────────
-type Period = '1M' | '3M' | '6M' | '1Y';
-type ViewMode = 'daily' | 'monthly';
+const number = (value: unknown) => typeof value === 'number' ? value.toLocaleString() : '—';
+const money = (value: unknown) => typeof value === 'number' ? `TZS ${value.toLocaleString()}` : '—';
+const formatDate = (value: unknown) => typeof value === 'string' || value instanceof Date
+  ? new Date(value).toLocaleString()
+  : '—';
 
-// ── Generate realistic demo data ──────────────────────────────────────────────
-function generateData(period: Period, viewMode: ViewMode, anchorDate: Date) {
-  const points: { label: string; revenue: number; leads: number; date: Date }[] = [];
-
-  if (viewMode === 'daily') {
-    // Show days in selected month
-    const year = anchorDate.getFullYear();
-    const month = anchorDate.getMonth();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const base = 3200;
-    for (let d = 1; d <= daysInMonth; d++) {
-      const noise = Math.sin(d * 1.3) * 800 + Math.random() * 600;
-      points.push({
-        label: d.toString(),
-        revenue: Math.max(800, Math.round(base + noise)),
-        leads: Math.max(1, Math.round(4 + Math.sin(d * 0.8) * 3 + Math.random() * 2)),
-        date: new Date(year, month, d)
-      });
-    }
-  } else {
-    // Monthly view — how many months back
-    const count = period === '1M' ? 1 : period === '3M' ? 3 : period === '6M' ? 6 : 12;
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    for (let i = count - 1; i >= 0; i--) {
-      const d = new Date(anchorDate.getFullYear(), anchorDate.getMonth() - i, 1);
-      const trend = ((count - i) / count);
-      const base = 28000 + trend * 120000;
-      const noise = Math.sin(i * 1.7) * 12000 + Math.random() * 8000;
-      points.push({
-        label: `${monthNames[d.getMonth()]} '${String(d.getFullYear()).slice(2)}`,
-        revenue: Math.max(12000, Math.round(base + noise)),
-        leads: Math.max(8, Math.round(18 + trend * 60 + Math.random() * 20)),
-        date: d
-      });
-    }
-  }
-  return points;
+interface DashboardStats {
+  finance?: { totalInvoiced?: number };
+  leads?: { total?: number; hot?: number };
+  projects?: { total?: number; inProgress?: number };
+  appointments?: { total?: number };
+  messages?: { total?: number };
+  chat?: { total?: number };
+  pendingRequests?: number;
+  recent?: { leads?: any[]; messages?: any[] };
+  health?: { api?: string; database?: string; ai?: string; dbResponseTimeMs?: number };
 }
 
-// ── Export CSV ────────────────────────────────────────────────────────────────
-function downloadCSV(data: { label: string; revenue: number; leads: number }[], periodLabel: string) {
-  const rows = ['Period,Revenue (USD),Leads', ...data.map(r => `${r.label},${r.revenue},${r.leads}`)];
-  const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `business-report-${periodLabel.replace(/\s/g, '-')}-${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+type ReportPeriod = 'today' | 'yesterday' | 'this_week' | 'last_7_days' | 'this_month' | 'quarter' | 'half_year' | 'year' | 'custom';
+type ChartType = 'bar' | 'line' | 'pie';
+
+function reportRange(period: ReportPeriod, customFrom: string, customTo: string) {
+  const now = new Date();
+  const start = new Date(now); start.setHours(0, 0, 0, 0);
+  let from = new Date(start); let to = new Date(now.getTime() + 1);
+  if (period === 'yesterday') { from.setDate(from.getDate() - 1); to = new Date(start); }
+  if (period === 'this_week') from.setDate(from.getDate() - ((from.getDay() + 6) % 7));
+  if (period === 'last_7_days') from.setDate(from.getDate() - 6);
+  if (period === 'this_month') from.setDate(1);
+  if (period === 'quarter') { from.setMonth(Math.floor(from.getMonth() / 3) * 3, 1); }
+  if (period === 'half_year') { from.setMonth(from.getMonth() < 6 ? 0 : 6, 1); }
+  if (period === 'year') { from.setMonth(0, 1); }
+  if (period === 'custom' && customFrom && customTo) { from = new Date(`${customFrom}T00:00:00`); to = new Date(`${customTo}T23:59:59.999`); }
+  return { from: from.toISOString(), to: to.toISOString() };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 export const OwnerDashboardView: React.FC = () => {
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [error, setError] = useState(false);
+  const [period, setPeriod] = useState<ReportPeriod>('this_month');
+  const [chartType, setChartType] = useState<ChartType>('bar');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
   const { activeCall, callState, duration, acceptCall, declineCall, hangupCall } = useCall();
-
-  // Chart state
-  const [period, setPeriod] = useState<Period>('1M');
-  const [viewMode, setViewMode] = useState<ViewMode>('daily');
-  const [anchorDate, setAnchorDate] = useState<Date>(new Date());
-
-  useEffect(() => {
-    adminApi.getDashboardStats()
-      .then((data: any) => setStats(data))
-      .catch(() => {});
-  }, []);
-
-  const chartData = useMemo(
-    () => generateData(period, viewMode, anchorDate),
-    [period, viewMode, anchorDate]
-  );
-
-  const maxRevenue = Math.max(...chartData.map(d => d.revenue));
-  const maxLeads   = Math.max(...chartData.map(d => d.leads));
-
-  const totalRevenue = chartData.reduce((s, d) => s + d.revenue, 0);
-  const totalLeads   = chartData.reduce((s, d) => s + d.leads, 0);
-  const avgRevenue   = Math.round(totalRevenue / chartData.length);
-
-  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-
-  const periodLabel = viewMode === 'daily'
-    ? `${monthNames[anchorDate.getMonth()]} ${anchorDate.getFullYear()}`
-    : period === '1M' ? 'Last Month' : period === '3M' ? 'Last Quarter'
-    : period === '6M' ? 'Last 6 Months' : 'Last 12 Months';
-
-  const navigateMonth = (dir: number) => {
-    const d = new Date(anchorDate);
-    d.setMonth(d.getMonth() + dir);
-    setAnchorDate(d);
+  const loadStats = () => {
+    setError(false);
+    const range = reportRange(period, customFrom, customTo);
+    adminApi.getDashboardStats(range).then((data: DashboardStats) => setStats(data)).catch(() => setError(true));
   };
+  useEffect(loadStats, [period, customFrom, customTo]);
 
-  return (
-    <div className="space-y-5 animate-fade-in pb-12">
+  const chart = useMemo(() => [
+    { label: 'Leads', value: stats?.leads?.total ?? 0, color: 'bg-blue-500' },
+    { label: 'Projects', value: stats?.projects?.total ?? 0, color: 'bg-violet-500' },
+    { label: 'Appointments', value: stats?.appointments?.total ?? 0, color: 'bg-amber-500' },
+    { label: 'Messages', value: stats?.messages?.total ?? 0, color: 'bg-emerald-500' },
+    { label: 'Mary chats', value: stats?.chat?.total ?? 0, color: 'bg-fuchsia-500' },
+  ], [stats]);
+  const chartMax = Math.max(1, ...chart.map(item => item.value));
+  const recent = useMemo(() => [
+    ...(stats?.recent?.leads ?? []).map((item: any) => ({ id: `lead-${item.id}`, title: `Lead: ${item.name}`, detail: item.email || item.source || 'No contact detail', date: item.createdAt })),
+    ...(stats?.recent?.messages ?? []).map((item: any) => ({ id: `message-${item.id}`, title: `Message: ${item.subject || 'No subject'}`, detail: item.name || item.email || 'Unknown sender', date: item.createdAt })),
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 8), [stats]);
+  const modules = [
+    { label: 'Website CMS', icon: Globe, href: '/admin/content' }, { label: 'Portfolio', icon: Briefcase, href: '/admin/content' },
+    { label: 'Knowledge', icon: BookOpen, href: '/admin/knowledge' }, { label: 'Blog CMS', icon: FileText, href: '/admin/content' },
+    { label: 'CRM & Leads', icon: Users, href: '/admin/business' }, { label: 'Mary', icon: Bot, href: '/admin/assistant' },
+  ];
 
-      {/* ── Welcome Banner — softer, compact ─────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-2xl px-5 py-4 border
-        dark:bg-gradient-to-r dark:from-violet-900/70 dark:via-purple-900/60 dark:to-indigo-900/70
-        dark:border-violet-700/25 dark:text-white
-        bg-gradient-to-r from-violet-600/90 via-purple-600/90 to-indigo-700/90
-        border-violet-500/30 text-white shadow-lg">
-
-        {/* Subtle glow blobs */}
-        <div className="absolute right-0 top-0 w-48 h-48 rounded-full bg-white/5 blur-3xl pointer-events-none -mr-10 -mt-10" />
-
-        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-2 py-0.5 rounded-full bg-white/15 text-white text-[9px] uppercase font-bold tracking-wider backdrop-blur-md flex items-center gap-1">
-                <LayoutDashboard size={9} />
-                Owner Clearance
-              </span>
-              <span className="flex items-center gap-1 text-[10px] text-emerald-200 font-semibold">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Enterprise OS Online
-              </span>
-            </div>
-            <h1 className="text-lg sm:text-xl font-extrabold tracking-tight font-heading text-white leading-tight">
-              Welcome back, Denis Chamkaga
-            </h1>
-            <p className="text-[11px] text-purple-200/80 max-w-lg leading-relaxed hidden sm:block">
-              All business, CRM, AI, infrastructure telemetry, and security protocols are active.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => window.location.reload()}
-              className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold backdrop-blur-md transition-all flex items-center gap-1.5 border border-white/15 cursor-pointer"
-            >
-              <RefreshCw size={12} />
-              <span className="hidden sm:inline">Refresh</span>
-            </button>
-            <a
-              href="/admin/operations"
-              className="px-3 py-2 rounded-xl bg-white text-violet-900 hover:bg-purple-50 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-md"
-            >
-              <Activity size={12} className="text-accent-violet" />
-              <span>Platform OS</span>
-            </a>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Live Customer Call Desk ───────────────────────────────────── */}
-      <section className="p-4 rounded-2xl bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 shadow-sm" aria-live="polite">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className={cn(
-              'p-2.5 rounded-xl border',
-              callState === 'ringing'
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500 animate-pulse'
-                : 'bg-zinc-500/10 border-zinc-500/20 text-zinc-400'
-            )}>
-              <PhoneIncoming size={18} />
-            </div>
-            <div>
-              <h2 className="text-sm font-bold dark:text-white text-zinc-900">Customer Call Desk</h2>
-              <p className="text-[11px] text-zinc-500 mt-0.5">
-                {activeCall
-                  ? `${activeCall.callerName} • ${callState === 'ringing' ? 'Incoming call' : callState}${callState === 'connected' ? ` • ${Math.floor(duration / 60).toString().padStart(2, '0')}:${(duration % 60).toString().padStart(2, '0')}` : ''}`
-                  : 'No Mary-authorized customer call is waiting.'}
-              </p>
-            </div>
-          </div>
-          {activeCall && callState === 'ringing' && (
-            <div className="flex gap-2">
-              <button onClick={acceptCall} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold">
-                <Phone size={13} /> Accept Call
-              </button>
-              <button onClick={declineCall} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold">
-                <PhoneOff size={13} /> Decline
-              </button>
-            </div>
-          )}
-          {activeCall && callState === 'connected' && (
-            <button onClick={hangupCall} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold">
-              <PhoneOff size={13} /> End Call
-            </button>
-          )}
-        </div>
-      </section>
-
-      {/* ── Owner CMS Quick-Access ──────────────────────────────────────── */}
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
-        {[
-          { label: 'Website CMS',   icon: Globe,     href: '/admin/content',   color: 'text-blue-500',   bg: 'bg-blue-500/8 hover:bg-blue-500/15 border-blue-500/20' },
-          { label: 'Portfolio',     icon: Briefcase, href: '/admin/content',   color: 'text-purple-500', bg: 'bg-purple-500/8 hover:bg-purple-500/15 border-purple-500/20' },
-          { label: 'Knowledge',     icon: BookOpen,  href: '/admin/knowledge', color: 'text-emerald-500',bg: 'bg-emerald-500/8 hover:bg-emerald-500/15 border-emerald-500/20' },
-          { label: 'Blog CMS',      icon: FileText,  href: '/admin/content',   color: 'text-amber-500',  bg: 'bg-amber-500/8 hover:bg-amber-500/15 border-amber-500/20' },
-          { label: 'CRM & Leads',   icon: Users,     href: '/admin/business',  color: 'text-cyan-500',   bg: 'bg-cyan-500/8 hover:bg-cyan-500/15 border-cyan-500/20' },
-          { label: 'AI Platform',   icon: Bot,       href: '/admin/assistant', color: 'text-violet-500', bg: 'bg-violet-500/8 hover:bg-violet-500/15 border-violet-500/20' },
-        ].map((mod) => (
-          <a
-            key={mod.href + mod.label}
-            href={mod.href}
-            className={cn(
-              'flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-xl border transition-all cursor-pointer',
-              mod.bg
-            )}
-          >
-            <mod.icon size={18} className={mod.color} />
-            <span className={cn('text-[9px] font-bold uppercase tracking-wide text-center leading-tight', mod.color)}>{mod.label}</span>
-          </a>
-        ))}
-      </div>
-
-      {/* ── Executive Revenue & Health Score Strip ────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-left">
-        {[
-          { label: "Today's Revenue", val: 'TZS 1,250,000', change: '+12%', sub: '5 Transactions' },
-          { label: 'This Week', val: 'TZS 8,400,000', change: '+18%', sub: '24 Transactions' },
-          { label: 'This Month', val: 'TZS 32,500,000', change: '+24%', sub: '81 Transactions' },
-          { label: 'This Quarter (Q3)', val: 'TZS 85,000,000', change: '+30%', sub: '210 Transactions' },
-          { label: 'This Year (2026)', val: 'TZS 210,000,000', change: '+45%', sub: 'Target TZS 300M' },
-          { label: 'Business Health', val: '96 / 100', change: 'EXCELLENT', sub: '99.9% Uptime' },
-        ].map((item, idx) => (
-          <div key={idx} className="p-3.5 rounded-2xl bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 shadow-xs space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">{item.label}</span>
-            <div className="text-sm font-extrabold text-slate-800 dark:text-white font-mono">{item.val}</div>
-            <div className="flex items-center justify-between text-[10px] pt-1 border-t dark:border-zinc-800/60">
-              <span className="font-semibold text-emerald-500">{item.change}</span>
-              <span className="text-zinc-400">{item.sub}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* ── KPI Cards ──────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-
-        <div className="p-5 rounded-2xl bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-between space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Total Pipeline</span>
-            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500"><DollarSign size={16} /></div>
-          </div>
-          <div>
-            <h3 className="text-xl font-extrabold dark:text-white text-zinc-900 font-heading">
-              ${stats?.revenue?.total ?? '128,450'}
-            </h3>
-            <div className="flex items-center gap-1 mt-1 text-[10px] font-semibold text-emerald-500">
-              <TrendingUp size={11} /><span>+18.4% this month</span>
-            </div>
-          </div>
-          <p className="text-[9px] text-zinc-500 border-t border-zinc-100 dark:border-zinc-800 pt-2 font-mono">Conversion rate: 84%</p>
-        </div>
-
-        <div className="p-5 rounded-2xl bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-between space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Hot Leads</span>
-            <div className="p-2 rounded-xl bg-blue-500/10 text-blue-500"><Users size={16} /></div>
-          </div>
-          <div>
-            <h3 className="text-xl font-extrabold dark:text-white text-zinc-900 font-heading">
-              {stats?.leads?.hot ?? '42'}
-            </h3>
-            <div className="flex items-center gap-1 mt-1 text-[10px] font-semibold text-blue-500">
-              <ArrowUpRight size={11} /><span>{stats?.leads?.total ?? '184'} Total Leads</span>
-            </div>
-          </div>
-          <p className="text-[9px] text-zinc-500 border-t border-zinc-100 dark:border-zinc-800 pt-2 font-mono">Avg Lead Score: 92/100</p>
-        </div>
-
-        <div className="p-5 rounded-2xl bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-between space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">AI Health</span>
-            <div className="p-2 rounded-xl bg-purple-500/10 text-purple-500"><Bot size={16} /></div>
-          </div>
-          <div>
-            <h3 className="text-xl font-extrabold dark:text-white text-zinc-900 font-heading">99.9% SLA</h3>
-            <div className="flex items-center gap-1 mt-1 text-[10px] font-semibold text-purple-500">
-              <Zap size={11} /><span>1,420 Requests / 24h</span>
-            </div>
-          </div>
-          <p className="text-[9px] text-zinc-500 border-t border-zinc-100 dark:border-zinc-800 pt-2 font-mono">Avg Latency: 340ms • $14.20</p>
-        </div>
-
-        <div className="p-5 rounded-2xl bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-between space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">SOC Security</span>
-            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500"><ShieldCheck size={16} /></div>
-          </div>
-          <div>
-            <h3 className="text-xl font-extrabold dark:text-white text-zinc-900 font-heading">Secure</h3>
-            <div className="flex items-center gap-1 mt-1 text-[10px] font-semibold text-emerald-500">
-              <Lock size={11} /><span>0 Critical Threats</span>
-            </div>
-          </div>
-          <p className="text-[9px] text-zinc-500 border-t border-zinc-100 dark:border-zinc-800 pt-2 font-mono">SIEM: 100% Index Coverage</p>
-        </div>
-      </div>
-
-      {/* ── Main Chart + Status Grid ──────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-
-        {/* ── Advanced Revenue & Leads Chart ──────────────────────────── */}
-        <div className="lg:col-span-2 p-5 rounded-2xl bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-4">
-
-          {/* Chart Header Row */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h3 className="text-sm font-bold dark:text-white text-zinc-900 flex items-center gap-2">
-                <BarChart3 size={15} className="text-accent-violet" />
-                Revenue & Lead Conversion
-              </h3>
-              <p className="text-[10px] text-zinc-500 mt-0.5">{periodLabel} · {viewMode === 'daily' ? 'Daily' : 'Monthly'} breakdown</p>
-            </div>
-
-            {/* Controls */}
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* View Mode */}
-              <div className="flex bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-0.5 gap-0.5">
-                {(['daily', 'monthly'] as ViewMode[]).map(v => (
-                  <button
-                    key={v}
-                    onClick={() => setViewMode(v)}
-                    className={cn(
-                      'px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide transition-all cursor-pointer',
-                      viewMode === v
-                        ? 'bg-accent-violet text-white shadow-sm'
-                        : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
-                    )}
-                  >
-                    {v === 'daily' ? 'Daily' : 'Monthly'}
-                  </button>
-                ))}
-              </div>
-
-              {/* Period selector (only for monthly) */}
-              {viewMode === 'monthly' && (
-                <div className="flex bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-0.5 gap-0.5">
-                  {(['1M','3M','6M','1Y'] as Period[]).map(p => (
-                    <button
-                      key={p}
-                      onClick={() => setPeriod(p)}
-                      className={cn(
-                        'px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide transition-all cursor-pointer',
-                        period === p
-                          ? 'bg-accent-violet text-white shadow-sm'
-                          : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
-                      )}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Month navigator (daily view) */}
-              {viewMode === 'daily' && (
-                <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg px-1 py-0.5">
-                  <button
-                    onClick={() => navigateMonth(-1)}
-                    className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 cursor-pointer transition-all"
-                  >
-                    <ChevronLeft size={12} className="text-zinc-500 dark:text-zinc-400" />
-                  </button>
-                  <span className="text-[10px] font-bold text-zinc-700 dark:text-zinc-300 px-1 whitespace-nowrap">
-                    <Calendar size={10} className="inline mr-1 text-accent-violet" />
-                    {monthNames[anchorDate.getMonth()].slice(0,3)} {anchorDate.getFullYear()}
-                  </span>
-                  <button
-                    onClick={() => navigateMonth(1)}
-                    disabled={anchorDate >= new Date()}
-                    className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 cursor-pointer transition-all disabled:opacity-30"
-                  >
-                    <ChevronRight size={12} className="text-zinc-500 dark:text-zinc-400" />
-                  </button>
-                </div>
-              )}
-
-              {/* Export CSV */}
-              <button
-                onClick={() => downloadCSV(chartData, periodLabel)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-[10px] font-bold text-zinc-600 dark:text-zinc-400 hover:border-accent-violet hover:text-accent-violet transition-all cursor-pointer"
-              >
-                <Download size={11} />
-                <span>Export</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Summary KPIs */}
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { label: 'Total Revenue', value: `$${(totalRevenue / 1000).toFixed(1)}k`, color: 'text-emerald-500' },
-              { label: 'Total Leads',   value: totalLeads.toString(),                   color: 'text-blue-500' },
-              { label: 'Daily Avg',     value: `$${(avgRevenue / 1000).toFixed(1)}k`,   color: 'text-violet-500' },
-            ].map(kpi => (
-              <div key={kpi.label} className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800">
-                <p className="text-[9px] text-zinc-500 uppercase font-bold tracking-wide">{kpi.label}</p>
-                <p className={cn('text-base font-extrabold font-heading mt-0.5', kpi.color)}>{kpi.value}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Chart Canvas */}
-          <div className="relative">
-            {/* Y-axis labels */}
-            <div className="absolute left-0 top-0 h-full flex flex-col justify-between pointer-events-none pr-1 py-1">
-              {[100, 75, 50, 25, 0].map(pct => (
-                <span key={pct} className="text-[8px] text-zinc-400 font-mono leading-none">
-                  ${Math.round((maxRevenue * pct) / 100 / 1000)}k
-                </span>
-              ))}
-            </div>
-
-            <div className="ml-7 h-52 w-full flex items-end gap-px overflow-x-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-zinc-300 dark:scrollbar-thumb-zinc-700 pb-6 relative border-b border-zinc-100 dark:border-zinc-800">
-              {chartData.map((d, idx) => (
-                <div key={idx} className="flex-shrink-0 flex flex-col items-center gap-0.5 group h-full justify-end"
-                  style={{ minWidth: viewMode === 'daily' ? '20px' : '36px' }}>
-
-                  {/* Dual bar: Revenue (violet) + Leads (blue accent) */}
-                  <div className="w-full flex items-end gap-px justify-center h-full">
-                    {/* Revenue bar */}
-                    <div
-                      style={{ height: `${(d.revenue / maxRevenue) * 100}%` }}
-                      className="flex-1 max-w-[10px] rounded-t-sm bg-gradient-to-t from-accent-violet to-violet-400 group-hover:brightness-125 transition-all relative"
-                    >
-                      <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-[8px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
-                        Rev: ${(d.revenue / 1000).toFixed(1)}k
-                      </div>
-                    </div>
-                    {/* Leads bar */}
-                    <div
-                      style={{ height: `${(d.leads / maxLeads) * 100}%` }}
-                      className="flex-1 max-w-[10px] rounded-t-sm bg-gradient-to-t from-blue-500 to-blue-300 opacity-60 group-hover:opacity-100 transition-all"
-                    />
-                  </div>
-
-                  {/* X label */}
-                  <span className="text-[8px] text-zinc-400 font-mono absolute bottom-0 truncate"
-                    style={{ fontSize: '7px' }}>
-                    {viewMode === 'daily' ? (idx % 5 === 0 || idx === chartData.length - 1 ? d.label : '') : d.label}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Legend + Link */}
-          <div className="flex items-center justify-between text-[10px] text-zinc-500 pt-1">
-            <div className="flex items-center gap-4">
-              <span className="flex items-center gap-1.5 font-semibold">
-                <span className="w-2.5 h-2 rounded-sm bg-accent-violet" /> Revenue
-              </span>
-              <span className="flex items-center gap-1.5 font-semibold">
-                <span className="w-2.5 h-2 rounded-sm bg-blue-400 opacity-70" /> Leads
-              </span>
-            </div>
-            <a href="/admin/analytics" className="text-accent-violet font-bold hover:underline flex items-center gap-1">
-              <Filter size={10} /> Full Analytics
-            </a>
-          </div>
-        </div>
-
-        {/* ── Platform OS Status ───────────────────────────────────────── */}
-        <div className="p-5 rounded-2xl bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-between space-y-4">
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-bold dark:text-white text-zinc-900">Platform OS Status</h3>
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            </div>
-
-            <div className="space-y-2 text-xs">
-              {[
-                { icon: Server,   label: 'Backend Node.js API',    status: 'Healthy',    color: 'text-accent-violet' },
-                { icon: Database, label: 'PostgreSQL Database',     status: 'Synced',     color: 'text-blue-500' },
-                { icon: Bot,      label: 'AI Vector Store & RAG',   status: 'Active',     color: 'text-purple-500' },
-              ].map(({ icon: Icon, label, status, color }) => (
-                <div key={label} className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Icon size={13} className={color} />
-                    <span className="font-semibold dark:text-zinc-200 text-zinc-700">{label}</span>
-                  </div>
-                  <span className="text-[9px] font-bold text-emerald-500 uppercase">{status}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 space-y-2">
-            <span className="text-[9px] uppercase font-bold tracking-wider text-zinc-400">Quick Commands</span>
-            <div className="grid grid-cols-2 gap-2">
-              <a href="/admin/operations"
-                className="p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-accent-violet hover:bg-accent-violet/5 text-center text-[10px] font-semibold dark:text-zinc-300 text-zinc-600 transition-all">
-                Trigger Backup
-              </a>
-              <a href="/admin/assistant"
-                className="p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-accent-violet hover:bg-accent-violet/5 text-center text-[10px] font-semibold dark:text-zinc-300 text-zinc-600 transition-all">
-                AI Command
-              </a>
-              <a href="/admin/business?tab=finance&sub=invoices"
-                className="p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-accent-violet hover:bg-accent-violet/5 text-center text-[10px] font-semibold dark:text-zinc-300 text-zinc-600 transition-all col-span-2">
-                View Invoices
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Recent Activity Feed ─────────────────────────────────────── */}
-      <div className="p-5 rounded-2xl bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Activity size={14} className="text-accent-violet" />
-            <h3 className="text-sm font-bold dark:text-white text-zinc-900">Recent Platform Activity</h3>
-          </div>
-          <a href="/admin/operations" className="text-[10px] font-bold text-accent-violet hover:underline">
-            View SIEM Logs →
-          </a>
-        </div>
-
-        <div className="divide-y divide-zinc-100 dark:divide-zinc-800 text-xs">
-          {[
-            { action: 'Owner Login Successful',               user: 'denis@denischamkaga.com',    time: '5m ago',  type: 'Security' },
-            { action: 'Knowledge Base Vector Re-indexed',     user: 'System Automated Pipeline',  time: '42m ago', type: 'AI' },
-            { action: 'New Quotation Generated (#QT-2026-092)',user: 'Sales Assistant Engine',     time: '2h ago',  type: 'Business' },
-            { action: 'PostgreSQL Nightly Backup Verified',   user: 'Backup Scheduler',           time: '6h ago',  type: 'System' },
-          ].map((act, i) => (
-            <div key={i} className="py-2.5 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className={cn(
-                  'w-1.5 h-1.5 rounded-full flex-shrink-0',
-                  act.type === 'Security' ? 'bg-emerald-500' :
-                  act.type === 'AI'       ? 'bg-purple-500'  :
-                  act.type === 'Business' ? 'bg-blue-500'    : 'bg-amber-500'
-                )} />
-                <div>
-                  <p className="font-semibold dark:text-zinc-200 text-zinc-800">{act.action}</p>
-                  <span className="text-[9px] text-zinc-500 font-mono">{act.user}</span>
-                </div>
-              </div>
-              <span className="text-[9px] text-zinc-400 font-mono whitespace-nowrap ml-2">{act.time}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
+  return <div className="space-y-5 animate-fade-in pb-12" data-testid="owner-dashboard">
+    <style>{`@media print { body { background:#fff !important; color:#0f172a !important; } [data-testid="owner-dashboard"] { padding:0 !important; } [data-print-hide="true"] { display:none !important; } [data-print-only="true"] { display:block !important; } section, article { break-inside:avoid; box-shadow:none !important; } }`}</style>
+    <div data-print-only="true" className="hidden border-b-4 border-violet-600 pb-4 mb-5">
+      <div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className="w-11 h-11 rounded-full bg-violet-600 text-white flex items-center justify-center font-bold">DC</div><div><h1 className="text-xl font-bold text-slate-900">Denis Chamkaga Business Platform</h1><p className="text-xs text-slate-500">Owner Business Performance Report</p></div></div><div className="text-right text-xs text-slate-500"><p>Generated {new Date().toLocaleString()}</p><p>Period: {period.replaceAll('_', ' ')}</p></div></div>
     </div>
-  );
+    <header data-print-hide="true" className="rounded-2xl px-5 py-4 border bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-700 border-violet-500/30 text-white shadow-lg">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div>
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/15 text-[9px] uppercase font-bold tracking-wider"><LayoutDashboard size={9}/> Owner Dashboard</span>
+        <h1 className="mt-1 text-lg sm:text-xl font-extrabold">Welcome back, Denis Chamkaga</h1><p className="text-[11px] text-purple-100">Live business information from the platform database.</p>
+      </div><div className="flex gap-2"><button onClick={() => window.print()} className="self-start sm:self-auto px-3 py-2 rounded-xl bg-white text-violet-800 text-xs font-semibold flex items-center gap-1.5"><Printer size={12}/> Print report</button><button onClick={loadStats} className="self-start sm:self-auto px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold flex items-center gap-1.5 border border-white/15"><RefreshCw size={12}/> Refresh</button></div></div>
+    </header>
+    {error && <div role="alert" className="rounded-xl border border-rose-300 bg-rose-50 p-3 text-xs text-rose-700">Dashboard data could not be loaded. Retry to check the current platform state.</div>}
+
+    <section data-print-hide="true" className="print:hidden flex flex-wrap items-end gap-3 rounded-2xl bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 p-4">
+      <label className="text-[10px] font-bold uppercase text-zinc-500">Report period<select value={period} onChange={e => setPeriod(e.target.value as ReportPeriod)} className="mt-1 block rounded-lg border border-zinc-200 dark:border-zinc-700 bg-transparent px-3 py-2 text-xs normal-case dark:text-white"><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="this_week">This week</option><option value="last_7_days">Last 7 days</option><option value="this_month">This month</option><option value="quarter">Current quarter (Q1–Q4)</option><option value="half_year">Current half year (H1/H2)</option><option value="year">Financial year</option><option value="custom">Custom dates</option></select></label>
+      {period === 'custom' && <><label className="text-[10px] font-bold uppercase text-zinc-500">From<input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)} className="mt-1 block rounded-lg border border-zinc-200 dark:border-zinc-700 bg-transparent px-3 py-2 text-xs dark:text-white"/></label><label className="text-[10px] font-bold uppercase text-zinc-500">To<input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)} className="mt-1 block rounded-lg border border-zinc-200 dark:border-zinc-700 bg-transparent px-3 py-2 text-xs dark:text-white"/></label></>}
+      <p className="ml-auto text-[10px] text-zinc-500">Period filters use recorded database timestamps.</p>
+    </section>
+
+    <section data-print-hide="true" className="p-4 rounded-2xl bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 shadow-sm" aria-live="polite"><div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex items-center gap-3"><div className={cn('p-2.5 rounded-xl border', callState === 'ringing' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500 animate-pulse' : 'bg-zinc-500/10 border-zinc-500/20 text-zinc-400')}><PhoneIncoming size={18}/></div><div><h2 className="text-sm font-bold dark:text-white">Customer Call Desk</h2><p className="text-[11px] text-zinc-500 mt-0.5">{activeCall ? `${activeCall.callerName} • ${callState}${callState === 'connected' ? ` • ${Math.floor(duration / 60).toString().padStart(2, '0')}:${(duration % 60).toString().padStart(2, '0')}` : ''}` : 'No Mary-authorized customer call is waiting.'}</p></div></div>
+      {activeCall && callState === 'ringing' && <div className="flex gap-2"><button onClick={acceptCall} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold"><Phone size={13}/> Accept</button><button onClick={declineCall} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-600 text-white text-xs font-semibold"><PhoneOff size={13}/> Decline</button></div>}
+      {activeCall && callState === 'connected' && <button onClick={hangupCall} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-600 text-white text-xs font-semibold"><PhoneOff size={13}/> End Call</button>}
+    </div></section>
+
+    <nav data-print-hide="true" className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">{modules.map(mod => <a key={mod.label} href={mod.href} className="flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-violet-400 transition-colors"><mod.icon size={18} className="text-violet-500"/><span className="text-[9px] font-bold uppercase text-center">{mod.label}</span></a>)}</nav>
+
+    <section aria-labelledby="owner-kpi-heading">
+      <div className="mb-3"><h2 id="owner-kpi-heading" className="text-sm font-bold dark:text-white">Business snapshot</h2><p className="text-[10px] text-zinc-500">Verified totals from CRM, Finance and Projects. A dash means the source has not returned a value.</p></div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">{[
+      ['Paid invoice revenue', money(stats?.finance?.totalInvoiced), 'Verified paid invoices'], ['Hot leads', number(stats?.leads?.hot), `${number(stats?.leads?.total)} total leads`],
+      ['Open requests', number(stats?.pendingRequests), 'Unread, pending and new'], ['Active projects', number(stats?.projects?.inProgress), `${number(stats?.projects?.total)} total projects`],
+    ].map(([label, value, detail]) => <article key={label} className="p-5 rounded-2xl bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 shadow-sm"><p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">{label}</p><p className="mt-3 text-xl font-extrabold dark:text-white">{value}</p><p className="mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800 text-[10px] text-zinc-500">{detail}</p></article>)}</div>
+    </section>
+
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5"><section className="lg:col-span-2 p-5 rounded-2xl bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 shadow-sm">
+      <div className="flex items-start justify-between gap-3"><div><h3 className="text-sm font-bold dark:text-white flex items-center gap-2"><Activity size={15} className="text-violet-500"/> Business volumes for selected period</h3><p className="text-[10px] text-zinc-500 mt-1">One verified dataset, displayed as bar, line or share chart.</p></div><div className="print:hidden flex rounded-lg border border-zinc-200 dark:border-zinc-700 p-1">{([['bar',BarChart3],['line',LineChart],['pie',PieChart]] as const).map(([type,Icon]) => <button key={type} onClick={() => setChartType(type)} aria-label={`${type} chart`} className={cn('p-1.5 rounded', chartType === type ? 'bg-violet-600 text-white' : 'text-zinc-500')}><Icon size={13}/></button>)}</div></div>
+      {chartType === 'bar' && <div className="mt-5 space-y-4">{chart.map(item => <div key={item.label}><div className="mb-1 flex justify-between text-xs"><span className="text-zinc-600 dark:text-zinc-300">{item.label}</span><strong className="dark:text-white">{number(item.value)}</strong></div><div className="h-2.5 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden" role="meter" aria-label={item.label} aria-valuenow={item.value} aria-valuemin={0} aria-valuemax={chartMax}><div className={cn('h-full rounded-full', item.color)} style={{width: `${item.value ? Math.max(4, item.value / chartMax * 100) : 0}%`}}/></div></div>)}</div>}
+      {chartType === 'line' && <div className="mt-5"><svg viewBox="0 0 500 180" role="img" aria-label="Selected period business volume line chart" className="w-full h-44"><polyline fill="none" stroke="currentColor" strokeWidth="3" className="text-violet-500" points={chart.map((item, index) => `${20 + index * 115},${160 - item.value / chartMax * 130}`).join(' ')}/>{chart.map((item,index) => <g key={item.label}><circle cx={20 + index * 115} cy={160 - item.value / chartMax * 130} r="5" fill="currentColor" className="text-violet-500"/><text x={20 + index * 115} y="176" textAnchor="middle" fontSize="10" fill="currentColor">{item.label}</text></g>)}</svg></div>}
+      {chartType === 'pie' && <div className="mt-5 flex flex-col sm:flex-row items-center gap-6"><div className="w-40 h-40 rounded-full" style={{background: `conic-gradient(var(--color-accent-violet) 0 ${chart[0].value / Math.max(1, chart.reduce((s,i)=>s+i.value,0))*100}%, #3b82f6 0 55%, #f59e0b 0 72%, #10b981 0 88%, #d946ef 0 100%)`}}/><div className="grid gap-2">{chart.map(item => <div key={item.label} className="text-xs flex gap-3 justify-between"><span>{item.label}</span><strong>{number(item.value)}</strong></div>)}</div></div>}
+    </section><section className="p-5 rounded-2xl bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 shadow-sm">
+      <h3 className="text-sm font-bold dark:text-white flex items-center gap-2"><ShieldCheck size={15} className="text-emerald-500"/> Platform status</h3><div className="mt-4 space-y-3">{[
+        ['API', stats?.health?.api, Activity], ['Database', stats?.health?.database, Database], ['OpenAI', stats?.health?.ai, Bot],
+      ].map(([label, status, Icon]: any) => <div key={label} className="flex items-center justify-between rounded-xl border border-zinc-100 dark:border-zinc-800 p-3"><span className="flex items-center gap-2 text-xs dark:text-zinc-200"><Icon size={14}/>{label}</span><span className={cn('text-[10px] font-bold uppercase', status === 'healthy' ? 'text-emerald-500' : status ? 'text-rose-500' : 'text-zinc-400')}>{status || 'Unavailable'}</span></div>)}</div>
+      {typeof stats?.health?.dbResponseTimeMs === 'number' && <p className="mt-3 text-[10px] text-zinc-500">Database response: {stats.health.dbResponseTimeMs} ms</p>}
+    </section></div>
+
+    <section className="p-5 rounded-2xl bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 shadow-sm"><h3 className="text-sm font-bold dark:text-white flex items-center gap-2"><MessageSquare size={15} className="text-blue-500"/> Recent platform activity</h3><p className="mt-1 text-[10px] text-zinc-500">Newest CRM leads and customer messages, ordered by recorded time.</p><div className="mt-4 divide-y divide-zinc-100 dark:divide-zinc-800">{recent.length ? recent.map((item: any) => <div key={item.id} className="py-3 flex justify-between gap-4"><div><span className="inline-block mb-1 rounded bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 text-[8px] font-bold uppercase text-zinc-500">{item.id.startsWith('lead-') ? 'CRM lead' : 'Message'}</span><p className="text-xs font-semibold dark:text-white">{item.title}</p><p className="text-[10px] text-zinc-500">{item.detail}</p></div><time dateTime={typeof item.date === 'string' ? item.date : undefined} className="text-[10px] text-zinc-400 shrink-0">{formatDate(item.date)}</time></div>) : <p className="py-8 text-center text-xs text-zinc-500">No recorded lead or message activity yet.</p>}</div></section>
+  </div>;
 };
+
+export default OwnerDashboardView;

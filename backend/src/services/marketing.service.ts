@@ -5,42 +5,41 @@ import prisma from '../config/database';
 import { aiEventBus } from '../ai/event-bus';
 import { aiKnowledgeEngine } from '../ai/knowledge-engine';
 import { AppError } from '../middleware/errorHandler';
+import { emailTemplateService } from './email-template.service';
 
 // ─── 1. Omnichannel Channel Adapter Interface & Adapters ──────────────────────
 export interface ChannelAdapter {
   channel: string;
-  dispatch(recipient: string, subject: string | undefined, content: string): Promise<{ success: boolean; messageId: string }>;
+  dispatch(recipient: string, subject: string | undefined, content: string): Promise<{ success: boolean; messageId?: string }>;
 }
 
 export const emailAdapter: ChannelAdapter = {
   channel: 'EMAIL',
   async dispatch(recipient, subject, content) {
-    // Simulated SMTP/SendGrid Dispatcher with tracking pixel injection
-    return { success: true, messageId: `MSG_EMAIL_${Date.now()}_${Math.random().toString(36).substring(7)}` };
+    const success = await emailTemplateService.sendEmail(recipient, subject || 'Denis Chamkaga Business Update', content);
+    return { success, messageId: success ? `EMAIL_${Date.now()}` : undefined };
   }
 };
 
 export const whatsAppAdapter: ChannelAdapter = {
   channel: 'WHATSAPP',
   async dispatch(recipient, _subject, content) {
-    // Simulated Meta Cloud API WhatsApp Dispatcher
-    return { success: true, messageId: `MSG_WA_${Date.now()}_${Math.random().toString(36).substring(7)}` };
+    console.warn(`[WhatsApp] Follow-up queued but not sent: provider credentials are not configured for ${recipient}.`);
+    return { success: false };
   }
 };
 
 export const smsAdapter: ChannelAdapter = {
   channel: 'SMS',
   async dispatch(recipient, _subject, content) {
-    // Simulated Twilio SMS Dispatcher
-    return { success: true, messageId: `MSG_SMS_${Date.now()}_${Math.random().toString(36).substring(7)}` };
+    return { success: false };
   }
 };
 
 export const pushAdapter: ChannelAdapter = {
   channel: 'PUSH',
   async dispatch(recipient, subject, content) {
-    // Simulated Web Push Dispatcher
-    return { success: true, messageId: `MSG_PUSH_${Date.now()}_${Math.random().toString(36).substring(7)}` };
+    return { success: false };
   }
 };
 
@@ -85,8 +84,7 @@ export const marketingService = {
   async getContactConsent(contactEmail: string) {
     const consent = await prisma.contactConsent.findUnique({ where: { contactEmail } });
     if (!consent) {
-      // Default opt-in if no explicit opt-out
-      return { contactEmail, emailOptIn: true, smsOptIn: true, whatsappOptIn: true, newsletterSub: true };
+      return { contactEmail, emailOptIn: false, smsOptIn: false, whatsappOptIn: false, newsletterSub: false };
     }
     return consent;
   },
@@ -172,9 +170,14 @@ export const marketingService = {
       if (!consent.emailOptIn) continue;
 
       for (const ch of campaign.channels) {
-        const adapter = channelAdapters[ch] || emailAdapter;
-        await adapter.dispatch(recipient.email, campaign.subject || undefined, campaign.content);
-        sentCount++;
+        if (ch === 'EMAIL' && !consent.emailOptIn) continue;
+        if (ch === 'WHATSAPP' && (!consent.whatsappOptIn || !recipient.phone)) continue;
+        if (ch === 'SMS' && (!consent.smsOptIn || !recipient.phone)) continue;
+        const adapter = channelAdapters[ch];
+        if (!adapter) continue;
+        const target = ch === 'EMAIL' ? recipient.email : recipient.phone!;
+        const result = await adapter.dispatch(target, campaign.subject || undefined, campaign.content);
+        if (result.success) sentCount++;
       }
 
       // Appends CampaignSent touchpoint to Unified Activity Timeline

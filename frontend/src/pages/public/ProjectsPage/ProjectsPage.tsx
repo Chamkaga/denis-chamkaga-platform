@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ExternalLink, Folder, CheckCircle } from 'lucide-react';
+import { ExternalLink, Folder, CheckCircle, X, ArrowRight } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/cn';
@@ -15,6 +15,7 @@ import { useLanguageStore } from '../../../store/useLanguageStore';
 
 export const ProjectsPage: React.FC = () => {
   const [filter, setFilter] = useState<'all' | 'academic' | 'personal' | 'client' | 'ongoing'>('all');
+  const [selectedProject, setSelectedProject] = useState<any | null>(null);
   const navigate = useNavigate();
   // useTranslation ensures i18n is reactive on client-side navigation
   const { i18n } = useTranslation();
@@ -22,6 +23,26 @@ export const ProjectsPage: React.FC = () => {
   const isSwahili = language === 'sw' || i18n.language === 'sw';
 
   const fallbackProjects = [
+    {
+      title: isSwahili ? 'FODS — Mfumo wa Kuagiza na Kusafirisha Chakula' : 'FODS — Food Ordering and Delivery System',
+      category: 'academic',
+      status: isSwahili ? 'Imekamilika' : 'Completed',
+      image: IMAGES.projects.fods,
+      desc: isSwahili
+        ? 'Soko la kidijitali la watoa huduma wengi linalowaunganisha wateja na migahawa, wauzaji wa vyakula vya haraka na vya asili, bakery, vinywaji, vitafunwa na cafeteria. App moja humsaidia mteja kugundua huduma zinazopatikana kulingana na eneo alipo.'
+        : 'A multi-provider food marketplace connecting customers with restaurants, fast-food outlets, local vendors, bakeries, drinks and snacks providers, and cafeterias. One application helps customers discover available services based on their location.',
+      tech: ['PHP', 'MySQL', 'JavaScript', 'HTML', 'CSS'],
+      problem: isSwahili
+        ? 'Wafanyabiashara wengi wa chakula—wadogo, wa kati na wakubwa—hawana mfumo unaowaunganisha na wateja wa maeneo mbalimbali. Oda hutegemea simu, kutembelea duka, daftari na malipo yasiyounganishwa; wateja hawawezi kuona kwa urahisi watoa huduma wa karibu, menyu, bei, hali ya oda, delivery au historia ya malipo.'
+        : 'Many small, medium and large food businesses lack a system that connects them with customers across different locations. Ordering depends on calls, physical visits, notebooks and disconnected payments, while customers cannot easily discover nearby providers, menus, prices, order status, delivery or payment history.',
+      challenge: isSwahili ? 'Suluhisho Lililobuniwa' : 'Designed Solution',
+      solution: isSwahili
+        ? 'FODS huweka watoa huduma wengi kwenye app moja, hutumia eneo la mteja kusaidia kugundua huduma zinazofaa, na kuunganisha akaunti salama, menyu, oda, malipo, maandalizi, delivery, reviews, administration na reporting katika workflow moja kwa biashara za ukubwa wote.'
+        : 'FODS places multiple providers in one application, uses customer location to support relevant discovery, and connects secure accounts, menus, orders, payments, fulfilment, delivery, reviews, administration and reporting in one workflow for food businesses of every size.',
+      timeline: isSwahili ? 'Mwezi 1' : '1 Month',
+      repoUrl: 'https://github.com/Chamkaga/FODS',
+      demoUrl: import.meta.env.VITE_FODS_DEMO_URL || (import.meta.env.DEV ? 'http://localhost:8000' : '')
+    },
     {
       title: isSwahili ? 'Mfumo wa Usimamizi wa Shule' : 'School Management System',
       category: 'academic',
@@ -103,42 +124,42 @@ export const ProjectsPage: React.FC = () => {
       demoUrl: '/contact'
     },
     {
-      title: isSwahili ? 'Tovuti ya Wasifu na Jukwaa la Biashara' : 'Personal Portfolio & Business Platform',
+      title: isSwahili ? 'Jukwaa la Wasifu na Uendeshaji wa Biashara' : 'Personal Portfolio & Business Operations Platform',
       category: 'personal',
-      status: isSwahili ? 'Inaendelea' : 'Ongoing',
+      status: isSwahili ? 'Imekamilika' : 'Completed',
       image: IMAGES.projects.portfolio,
       desc: isSwahili
-        ? 'Tovuti hii inaonyesha ujuzi wangu, miradi na huduma huku ikifanya iwe rahisi kwa wateja wanaotarajiwa kujifunza kuhusu kazi yangu na kuwasiliana nami.'
-        : 'This portfolio showcases my skills, projects and services while making it easy for potential clients to learn about my work and contact me.',
-      tech: ['React', 'TypeScript', 'Node.js', 'Express', 'MySQL', 'OpenAI'],
+        ? 'Niliijenga kama jukwaa la biashara linalojieleza, si portfolio ya kawaida ya picha na wasifu pekee. Linaonyesha safari yangu, uwezo, huduma na miradi, huku likimsaidia mteja kuelewa ninachoweza kumjengea na kuanza safari ya huduma.'
+        : 'I built this as a self-explanatory business platform rather than a conventional portfolio of images and biography alone. It presents my journey, capabilities, services and projects while helping a potential customer understand what I can build and begin a service journey.',
+      tech: ['React', 'TypeScript', 'Vite', 'Tailwind CSS', 'Node.js', 'Express', 'Prisma', 'PostgreSQL', 'OpenAI'],
       problem: isSwahili
-        ? 'Kuanzisha uwepo wa kitaalamu mtandaoni unaowakilisha elimu yangu ya kweli na uzoefu wa kazi.'
-        : 'Establishing a professional online presence that represents my genuine educational background and operational expertise.',
-      challenge: isSwahili ? 'Vipengele Vilivyopo' : 'Features',
+        ? 'Portfolio nyingi huonyesha taarifa na screenshots pekee, lakini hazimsaidii mteja kuelewa tatizo gani msanidi anaweza kutatua, kupata ushauri, kuwasiliana kwa mpangilio au kuendelea hadi kuwa mteja anayelipa. Hali hiyo hupoteza leads, ushahidi wa uwezo na nafasi ya kukuza biashara.'
+        : 'Many portfolios only display information and screenshots. They do not help a visitor understand which business problems the developer can solve, receive guidance, make a structured enquiry or progress into a paying customer. This loses leads, evidence of capability and opportunities for business growth.',
+      challenge: isSwahili ? 'Suluhisho Lililobuniwa' : 'Designed Solution',
       solution: isSwahili
-        ? 'Muundo unaofaa simu, Msaidizi wa AI, Sehemu ya Miradi, Fomu ya Mawasiliano, na Kurasa za Huduma.'
-        : 'Responsive Design, AI Assistant, Project Showcase, Contact Form, Service Pages.',
-      timeline: isSwahili ? 'Amilifu' : 'Active',
+        ? 'Mfumo unaeleza Denis ni nani, kazi alizofanya, uwezo na huduma zake; Mary huelimisha, huchambua hitaji, hukusanya lead na kufanya handoff. Safari inaendelea kupitia consultation, quotation, invoice, malipo na project delivery, huku Admin Console ikisimamia CRM, fedha, calls, knowledge, content, reports na follow-up—ili kugeuza uaminifu na uwezo kuwa wateja, mapato na ukuaji wa biashara.'
+        : 'The platform explains who Denis is, the work he has completed, his capabilities and services. Mary educates visitors, diagnoses needs, captures leads and coordinates handoff. The journey continues through consultation, quotation, invoice, payment and project delivery, while the Admin Console manages CRM, finance, calls, knowledge, content, reporting and follow-up—turning trust and demonstrated capability into customers, revenue and business growth.',
+      timeline: isSwahili ? 'Miezi 3' : '3 Months',
       repoUrl: 'https://github.com/Chamkaga/denis-chamkaga-platform',
       demoUrl: '/'
     },
     {
-      title: isSwahili ? 'Jukwaa la Terrasafi' : 'Terrasafi Platform',
+      title: isSwahili ? 'Terrasafi T Ltd — Jukwaa la Kampuni' : 'Terrasafi T Ltd — Company Platform',
       category: 'ongoing',
-      status: isSwahili ? 'Mradi wa Baadaye' : 'Future Project',
+      status: isSwahili ? 'Inaendelea' : 'Ongoing',
       image: IMAGES.projects.terrasafi,
       desc: isSwahili
-        ? 'Terrasafi ni maono yangu ya muda mrefu ya kujenga suluhisho za programu za vitendo zinazosaidia biashara ndogo na za kati kurahisisha shughuli zao kupitia teknolojia.'
-        : 'Terrasafi is my long-term vision to build practical software solutions that help small and medium-sized businesses simplify daily operations through modern technology.',
-      tech: ['React', 'Node.js', 'PostgreSQL', 'Docker', 'NGINX'],
+        ? 'Terrasafi ni kampuni ninayoijenga kama mwanzilishi na lead developer, ikiunganisha stationery na printing, technology solutions, network setup, graphic design, pamoja na uuzaji wa electronics na accessories kupitia public website na mfumo salama wa ndani.'
+        : 'Terrasafi is a company I am building as founder and lead developer, bringing together stationery and printing, technology solutions, network setup, graphic design, and electronics and accessories retail through a public website and secure private operations system.',
+      tech: ['PostgreSQL', 'Express', 'React', 'Node.js'],
       problem: isSwahili
-        ? 'Biashara nyingi ndogo nchini Tanzania zinatatizika na mifumo migumu na kukosa ushauri maalum wa kiufundi.'
-        : 'Most local small business owners struggle with complex systems and lack specialized tech consultations.',
-      challenge: isSwahili ? 'Maono ya Baadaye' : 'Future Goal',
+        ? 'Wateja na biashara nyingi hulazimika kutafuta printing, vifaa vya ofisi, graphic design, network setup, electronics na ushauri wa teknolojia kwa watoa huduma tofauti. Hii huongeza muda, gharama na ugumu wa kufuatilia quotations, oda, malipo na huduma baada ya mauzo.'
+        : 'Customers and businesses often source printing, office supplies, graphic design, network setup, electronics and technology support from separate providers. This increases time, cost and the difficulty of tracking quotations, orders, payments and after-sales service.',
+      challenge: isSwahili ? 'Suluhisho Lililopangwa' : 'Planned Solution',
       solution: isSwahili
-        ? 'Kuwapatia wajasiriamali wa ndani zana za kulinda kumbukumbu zao, kuzuia uvujaji wa utendaji, na kuhama kutoka kwenye makaratasi.'
-        : 'Providing local entrepreneurs with tools to secure records, stop operational leaks, and transition from manual paper systems.',
-      timeline: isSwahili ? 'Maono ya Baadaye' : 'Future Vision',
+        ? 'Upande wa public utaonyesha huduma, bidhaa, portfolio, maombi ya quotation, oda na support. Upande wa private utasimamia CRM, inventory, POS, quotations, invoices, payments, projects, printing jobs, suppliers, customer follow-up, reports na ruhusa za wafanyakazi katika mfumo mmoja.'
+        : 'The public side will present services, products, portfolio work, quotation requests, orders and support. The private side will manage CRM, inventory, POS, quotations, invoices, payments, projects, printing jobs, suppliers, customer follow-up, reports and staff permissions in one system.',
+      timeline: isSwahili ? 'Inaendelea' : 'Ongoing',
       repoUrl: 'https://github.com/Chamkaga',
       demoUrl: 'https://terrasafi.com'
     }
@@ -210,7 +231,7 @@ export const ProjectsPage: React.FC = () => {
       {/* Projects Grid with layout transitions */}
       <motion.div 
         layout 
-        className="grid grid-cols-1 lg:grid-cols-2 gap-8"
+        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
       >
         <AnimatePresence mode="popLayout">
           {filteredProjects.map((p: any) => (
@@ -225,11 +246,12 @@ export const ProjectsPage: React.FC = () => {
             >
               
               {/* Visual Image Block */}
-              <div className="h-52 bg-zinc-950 overflow-hidden relative border-b dark:border-zinc-800 light:border-slate-200">
+              <div className="aspect-video bg-zinc-950 overflow-hidden relative border-b dark:border-zinc-800 light:border-slate-200">
                 <AnimatedImage 
                   src={p.image} 
                   alt={p.title} 
                   className="w-full h-full"
+                  objectFit="cover"
                   hoverZoom={true}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/80 to-transparent pointer-events-none z-10" />
@@ -250,30 +272,19 @@ export const ProjectsPage: React.FC = () => {
               </div>
 
               {/* Content area */}
-              <div className="p-6 sm:p-8 space-y-4 flex-1 flex flex-col justify-between">
+              <div className="p-5 sm:p-6 space-y-4 flex-1 flex flex-col justify-between">
                 
                 <div className="space-y-4">
-                  <h3 className="text-2xl font-bold dark:text-white light:text-slate-800">
+                  <h3 className="text-xl font-bold dark:text-white light:text-slate-800">
                     {p.title}
                   </h3>
                   
-                  <p className="text-xs sm:text-sm dark:text-zinc-400 light:text-slate-600 leading-relaxed font-body">
+                  <p className="text-xs sm:text-sm dark:text-zinc-400 light:text-slate-600 leading-relaxed font-body line-clamp-3">
                     {p.desc}
                   </p>
-
-                  {/* Problem/Challenge/Solution Details */}
-                  <div className="space-y-3 pt-2 text-xs font-body leading-relaxed">
-                    <div className="p-3.5 rounded-xl dark:bg-zinc-950/30 light:bg-slate-50 border dark:border-zinc-800/80 light:border-slate-200/80 space-y-2">
-                      <div>
-                        <span className="font-semibold dark:text-zinc-300 light:text-slate-800">Problem:</span>{' '}
-                        <span className="dark:text-zinc-500 light:text-slate-500">{p.problem}</span>
-                      </div>
-                      <div>
-                        <span className="font-semibold dark:text-zinc-300 light:text-slate-800">{p.challenge}:</span>{' '}
-                        <span className="dark:text-zinc-500 light:text-slate-500">{p.solution}</span>
-                      </div>
-                    </div>
-                  </div>
+                  <button onClick={() => setSelectedProject(p)} className="inline-flex items-center gap-2 text-xs font-bold text-accent-violet hover:underline focus:outline-none focus:ring-2 focus:ring-accent-violet rounded w-fit">
+                    {isSwahili ? 'Soma Case Study' : 'View Case Study'} <ArrowRight size={13} />
+                  </button>
                 </div>
 
                 {/* Bottom Metadata */}
@@ -281,7 +292,7 @@ export const ProjectsPage: React.FC = () => {
                   
                   {/* Tech Tags */}
                   <div className="flex flex-wrap gap-1.5">
-                    {p.tech.map((t: string) => (
+                    {p.tech.slice(0, 5).map((t: string) => (
                       <span key={t} className="text-[10px] font-semibold font-body py-0.5 px-2 rounded-lg dark:bg-zinc-800 dark:text-zinc-300 light:bg-slate-100 light:text-slate-600">
                         {t}
                       </span>
@@ -337,6 +348,45 @@ export const ProjectsPage: React.FC = () => {
           ))}
         </AnimatePresence>
       </motion.div>
+
+      <AnimatePresence>
+        {selectedProject && (
+          <motion.div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/75 p-4 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedProject(null)}>
+            <motion.article role="dialog" aria-modal="true" aria-labelledby="project-case-study-title" initial={{ opacity: 0, y: 24, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 16, scale: 0.98 }} transition={{ duration: 0.22 }} onClick={(event) => event.stopPropagation()} className="max-h-[86vh] w-full max-w-2xl overflow-y-auto rounded-2xl border dark:border-zinc-800 light:border-slate-200 dark:bg-zinc-950 light:bg-white shadow-2xl">
+              <div className="relative h-44 overflow-hidden rounded-t-2xl bg-zinc-950 sm:h-52">
+                <AnimatedImage src={selectedProject.image} alt={selectedProject.title} className="h-full w-full" objectFit="cover" hoverZoom={false} />
+                <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/80 via-transparent to-transparent" />
+                <button onClick={() => setSelectedProject(null)} className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-zinc-950/75 text-white hover:bg-zinc-900" aria-label={isSwahili ? 'Funga' : 'Close'}><X size={17} /></button>
+                <div className="absolute bottom-4 left-5 right-5 text-white">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-violet-300">{selectedProject.category} · {selectedProject.status}</p>
+                  <h2 id="project-case-study-title" className="mt-1 text-xl font-extrabold sm:text-2xl">{selectedProject.title}</h2>
+                </div>
+              </div>
+              <div className="space-y-4 p-5 sm:p-6">
+                <p className="text-sm leading-relaxed dark:text-zinc-300 light:text-slate-700">{selectedProject.desc}</p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <section className="rounded-xl border dark:border-zinc-800 light:border-slate-200 dark:bg-zinc-900/40 light:bg-slate-50 p-4">
+                    <h3 className="text-xs font-extrabold uppercase tracking-wider dark:text-white light:text-slate-900">{isSwahili ? 'Tatizo' : 'Problem'}</h3>
+                    <p className="mt-2 text-xs leading-relaxed dark:text-zinc-400 light:text-slate-600">{selectedProject.problem}</p>
+                  </section>
+                  <section className="rounded-xl border border-accent-violet/20 bg-accent-violet/5 p-4">
+                    <h3 className="text-xs font-extrabold uppercase tracking-wider text-accent-violet">{selectedProject.challenge}</h3>
+                    <p className="mt-2 text-xs leading-relaxed dark:text-zinc-300 light:text-slate-700">{selectedProject.solution}</p>
+                  </section>
+                </div>
+                <div className="flex flex-wrap gap-2">{selectedProject.tech.map((tech: string) => <span key={tech} className="rounded-lg dark:bg-zinc-800 light:bg-slate-100 px-2.5 py-1 text-[10px] font-semibold dark:text-zinc-300 light:text-slate-600">{tech}</span>)}</div>
+                <div className="flex flex-wrap items-center justify-between gap-4 border-t dark:border-zinc-800 light:border-slate-200 pt-5">
+                  <span className="text-xs dark:text-zinc-500 light:text-slate-500">{isSwahili ? 'Muda wa kazi' : 'Timeline'}: <strong>{selectedProject.timeline}</strong></span>
+                  <div className="flex gap-3">
+                    {selectedProject.repoUrl && <a href={selectedProject.repoUrl} target="_blank" rel="noopener noreferrer" className="rounded-xl border dark:border-zinc-800 light:border-slate-200 px-4 py-2 text-xs font-bold hover:border-accent-violet hover:text-accent-violet">GitHub</a>}
+                    {selectedProject.demoUrl && <a href={selectedProject.demoUrl} target="_blank" rel="noopener noreferrer" className="rounded-xl bg-accent-violet px-4 py-2 text-xs font-bold text-white">{isSwahili ? 'Onyesho la Mfumo' : 'Live Demo'}</a>}
+                  </div>
+                </div>
+              </div>
+            </motion.article>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* "What I Can Build For You" Section */}
       <section className="p-8 sm:p-12 rounded-3xl border dark:border-zinc-800/80 light:border-slate-200 dark:bg-zinc-950/40 light:bg-slate-50 flex flex-col items-center text-center space-y-6 relative overflow-hidden">

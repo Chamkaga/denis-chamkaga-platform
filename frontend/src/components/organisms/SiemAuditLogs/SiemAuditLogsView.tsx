@@ -40,39 +40,30 @@ export const SiemAuditLogsView: React.FC = () => {
       .then((res: any) => {
         if (res && res.data) {
           const items: AuditLogRecord[] = (res.data.items || res.data || []).map((item: any) => ({
-            id: item.id || String(Math.random()),
-            userEmail: item.userEmail || item.user?.email || 'system@denischamkaga.com',
-            userName: item.userName || `${item.user?.firstName || 'System'} ${item.user?.lastName || ''}`,
-            role: item.role || item.user?.role?.name || 'owner',
-            action: item.action || item.event || 'USER_AUTH_LOGIN',
-            ipAddress: item.ipAddress || item.ip || '197.234.12.90',
-            country: item.country || 'Tanzania 🇹🇿',
-            device: item.device || 'MacBook Pro (macOS)',
-            browser: item.browser || 'Chrome 122.0',
+            id: item.id,
+            userEmail: item.userEmail || item.user?.email || '—',
+            userName: item.userName || `${item.user?.firstName || 'System'} ${item.user?.lastName || ''}`.trim(),
+            role: item.role || item.user?.role?.name || 'system',
+            action: item.action || item.event || 'UNKNOWN',
+            ipAddress: item.ipAddress || item.ip || '—',
+            country: item.country || '—',
+            device: item.device || '—',
+            browser: item.browser || '—',
             severity: item.severity || (item.action?.includes('FAIL') ? 'High' : 'Low'),
             timestamp: new Date(item.createdAt || Date.now()).toLocaleString()
           }));
           setLogs(items);
           setTotalItems(res.data.meta?.total || items.length);
         } else {
-          // Fallback mock enterprise SIEM logs
-          setMockLogs();
+          setLogs([]);
+          setTotalItems(0);
         }
       })
-      .catch(() => setMockLogs())
+      .catch(() => {
+        setLogs([]);
+        setTotalItems(0);
+      })
       .finally(() => setIsLoading(false));
-  };
-
-  const setMockLogs = () => {
-    const mocks: AuditLogRecord[] = [
-      { id: '1', userEmail: 'denis@denischamkaga.com', userName: 'Denis Chamkaga', role: 'owner', action: 'LOGIN_SUCCESS', ipAddress: '197.234.12.90', country: 'Tanzania 🇹🇿', device: 'Desktop Windows 11', browser: 'Chrome 122.0', severity: 'Low', timestamp: new Date().toLocaleString() },
-      { id: '2', userEmail: 'admin@denischamkaga.com', userName: 'System Administrator', role: 'admin', action: 'BACKUP_EXECUTE_SUCCESS', ipAddress: '197.234.12.91', country: 'Tanzania 🇹🇿', device: 'MacBook Pro macOS', browser: 'Safari 17.2', severity: 'Low', timestamp: new Date(Date.now() - 3600000).toLocaleString() },
-      { id: '3', userEmail: 'unknown@attacker.net', userName: 'Unknown User', role: 'guest', action: 'LOGIN_FAILED', ipAddress: '185.220.101.4', country: 'Germany 🇩🇪', device: 'Linux Tor Proxy', browser: 'Firefox 115', severity: 'High', timestamp: new Date(Date.now() - 7200000).toLocaleString() },
-      { id: '4', userEmail: 'denis@denischamkaga.com', userName: 'Denis Chamkaga', role: 'owner', action: 'AI_SETTINGS_UPDATE', ipAddress: '197.234.12.90', country: 'Tanzania 🇹🇿', device: 'Desktop Windows 11', browser: 'Chrome 122.0', severity: 'Medium', timestamp: new Date(Date.now() - 14400000).toLocaleString() },
-      { id: '5', userEmail: 'admin@denischamkaga.com', userName: 'System Administrator', role: 'admin', action: 'USER_PASSWORD_RESET', ipAddress: '197.234.12.91', country: 'Tanzania 🇹🇿', device: 'MacBook Pro macOS', browser: 'Safari 17.2', severity: 'Medium', timestamp: new Date(Date.now() - 28800000).toLocaleString() },
-    ];
-    setLogs(mocks);
-    setTotalItems(mocks.length);
   };
 
   useEffect(() => {
@@ -145,6 +136,10 @@ export const SiemAuditLogsView: React.FC = () => {
       )
     }
   ];
+  const successfulLogins = logs.filter((log) => log.action.includes('LOGIN_SUCCESS')).length;
+  const failedAttempts = logs.filter((log) => log.action.includes('LOGIN_FAILED')).length;
+  const passwordResets = logs.filter((log) => log.action.includes('PASSWORD_RESET')).length;
+  const activeThreats = logs.filter((log) => log.severity === 'Critical' || log.severity === 'High').length;
 
   return (
     <div className="space-y-6">
@@ -157,8 +152,8 @@ export const SiemAuditLogsView: React.FC = () => {
             <span className="text-[10px] uppercase font-bold text-zinc-400">Successful Logins</span>
             <UserCheck size={16} className="text-emerald-500" />
           </div>
-          <h3 className="text-2xl font-extrabold dark:text-white text-zinc-900 font-heading">1,482</h3>
-          <p className="text-[10px] text-emerald-500 font-semibold">100% Owner Verified</p>
+          <h3 className="text-2xl font-extrabold dark:text-white text-zinc-900 font-heading">{successfulLogins}</h3>
+          <p className="text-[10px] text-zinc-500 font-semibold">Current result set</p>
         </div>
 
         <div className="p-4 rounded-2xl bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-2">
@@ -166,8 +161,8 @@ export const SiemAuditLogsView: React.FC = () => {
             <span className="text-[10px] uppercase font-bold text-zinc-400">Failed Attempts</span>
             <UserX size={16} className="text-red-500" />
           </div>
-          <h3 className="text-2xl font-extrabold dark:text-white text-zinc-900 font-heading">3</h3>
-          <p className="text-[10px] text-zinc-500 font-mono">Rate Limited by WAF</p>
+          <h3 className="text-2xl font-extrabold dark:text-white text-zinc-900 font-heading">{failedAttempts}</h3>
+          <p className="text-[10px] text-zinc-500 font-mono">Recorded audit events</p>
         </div>
 
         <div className="p-4 rounded-2xl bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-2">
@@ -175,8 +170,8 @@ export const SiemAuditLogsView: React.FC = () => {
             <span className="text-[10px] uppercase font-bold text-zinc-400">Password Resets</span>
             <KeyRound size={16} className="text-purple-500" />
           </div>
-          <h3 className="text-2xl font-extrabold dark:text-white text-zinc-900 font-heading">1</h3>
-          <p className="text-[10px] text-purple-400 font-mono">Last reset 2 days ago</p>
+          <h3 className="text-2xl font-extrabold dark:text-white text-zinc-900 font-heading">{passwordResets}</h3>
+          <p className="text-[10px] text-zinc-500 font-mono">Current result set</p>
         </div>
 
         <div className="p-4 rounded-2xl bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-2">
@@ -184,8 +179,8 @@ export const SiemAuditLogsView: React.FC = () => {
             <span className="text-[10px] uppercase font-bold text-zinc-400">Security Threats</span>
             <ShieldAlert size={16} className="text-amber-500" />
           </div>
-          <h3 className="text-2xl font-extrabold dark:text-white text-zinc-900 font-heading">0 Active</h3>
-          <p className="text-[10px] text-emerald-500 font-semibold">SOC Guard Nominal</p>
+          <h3 className="text-2xl font-extrabold dark:text-white text-zinc-900 font-heading">{activeThreats}</h3>
+          <p className="text-[10px] text-zinc-500 font-semibold">High or critical events</p>
         </div>
 
         <div className="p-4 rounded-2xl bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-2">
@@ -193,8 +188,8 @@ export const SiemAuditLogsView: React.FC = () => {
             <span className="text-[10px] uppercase font-bold text-zinc-400">Active Sessions</span>
             <Laptop size={16} className="text-blue-500" />
           </div>
-          <h3 className="text-2xl font-extrabold dark:text-white text-zinc-900 font-heading">2 Sessions</h3>
-          <p className="text-[10px] text-blue-400 font-mono">Owner & Administrator</p>
+          <h3 className="text-2xl font-extrabold dark:text-white text-zinc-900 font-heading">—</h3>
+          <p className="text-[10px] text-zinc-500 font-mono">Session telemetry unavailable</p>
         </div>
 
       </div>

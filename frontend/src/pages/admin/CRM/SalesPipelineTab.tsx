@@ -1,43 +1,44 @@
 import React from 'react';
 
-export const SalesPipelineTab: React.FC = () => {
+export const SalesPipelineTab: React.FC<{ leads?: any[] }> = ({ leads = [] }) => {
+  const itemFor = (lead: any) => ({
+    id: lead.id,
+    name: lead.organizationName || lead.organization?.name || lead.company || lead.name || 'Lead',
+    amount: lead.estimatedValue ? `TZS ${Number(lead.estimatedValue).toLocaleString()}` : 'Value not confirmed',
+    contact: lead.firstName ? `${lead.firstName} ${lead.lastName || ''}`.trim() : lead.name || lead.email || 'Contact pending',
+    date: lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : '—',
+  });
+  const inStage = (...stages: string[]) => leads
+    .filter((lead) => stages.includes(String(lead.stage || lead.status || 'new').toLowerCase()))
+    .map(itemFor);
   const columns = [
     {
       id: 'lead',
       title: 'New Leads',
       color: 'border-blue-500',
       badge: 'bg-blue-500/10 text-blue-500',
-      items: [
-        { id: 'p-1', name: 'Kilimanjaro Tech', amount: 'TZS 4,500,000', contact: 'Grace Massawe', date: 'Jul 30' },
-        { id: 'p-2', name: 'Zanzibar Logistics', amount: 'TZS 1,800,000', contact: 'Salim Ally', date: 'Jul 29' },
-      ],
+      items: inStage('new', 'contacted'),
     },
     {
       id: 'consultation',
       title: 'Consultation',
       color: 'border-amber-500',
       badge: 'bg-amber-500/10 text-amber-500',
-      items: [
-        { id: 'p-3', name: 'Serengeti Breweries', amount: 'TZS 8,000,000', contact: 'David Kimaro', date: 'Jul 26' },
-      ],
+      items: inStage('consultation', 'qualified'),
     },
     {
       id: 'quote',
       title: 'Quotation Sent',
       color: 'border-accent-violet',
       badge: 'bg-accent-violet/10 text-accent-violet',
-      items: [
-        { id: 'p-4', name: 'CRDB Bank Plc', amount: 'TZS 12,500,000', contact: 'Flora Shirima', date: 'Jul 24' },
-      ],
+      items: inStage('proposal', 'quotation', 'quote_sent'),
     },
     {
       id: 'won',
       title: 'Won & Project Started',
       color: 'border-emerald-500',
       badge: 'bg-emerald-500/10 text-emerald-500',
-      items: [
-        { id: 'p-5', name: 'Azam Media Ltd', amount: 'TZS 850,000', contact: 'Baraka John', date: 'Jul 20' },
-      ],
+      items: inStage('won', 'converted', 'project_started'),
     },
   ];
 

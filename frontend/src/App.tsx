@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useThemeStore } from './store/useThemeStore';
@@ -70,33 +70,8 @@ const PublicInvoiceView   = React.lazy(() => import('./pages/public/PublicInvoic
 const PaymentCallbackView = React.lazy(() => import('./pages/public/PaymentCallbackView'));
 
 // ─── Shared Suspense fallbacks ────────────────────────────────────────────────
-const PageLoader: React.FC<{ label?: string }> = ({ label }) => (
-  <div className="min-h-[40vh] flex flex-col items-center justify-center gap-2 transition-opacity duration-150">
-    <div className="w-6 h-6 rounded-full border-2 border-accent-violet border-t-transparent animate-spin" />
-    {label && (
-      <p className="text-[11px] text-zinc-400 font-body">{label}</p>
-    )}
-  </div>
-);
-
-// Route chunks normally arrive quickly. Avoid flashing a spinner for those
-// short transitions while still giving feedback when a request is genuinely slow.
-const DelayedPageLoader: React.FC<{ label?: string; delayMs?: number }> = ({
-  label,
-  delayMs = 180,
-}) => {
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setVisible(true), delayMs);
-    return () => window.clearTimeout(timer);
-  }, [delayMs]);
-
-  return visible ? <PageLoader label={label} /> : <div className="min-h-[40vh]" aria-hidden="true" />;
-};
-
-const withSuspense = (element: React.ReactNode, label?: string) => (
-  <React.Suspense fallback={<DelayedPageLoader label={label} />}>
+const withSuspense = (element: React.ReactNode, _label?: string) => (
+  <React.Suspense fallback={null}>
     {element}
   </React.Suspense>
 );
@@ -163,7 +138,7 @@ export const App: React.FC = () => {
 
             {/* ── Admin Auth Layout ─────────────────────────────────────── */}
             <Route path={ROUTES.ADMIN_LOGIN} element={
-              <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center dark:bg-zinc-950 dark:text-white"><PageLoader /></div>}>
+              <React.Suspense fallback={null}>
                 <LoginPage />
               </React.Suspense>
             } />
@@ -175,7 +150,6 @@ export const App: React.FC = () => {
             }>
               {/* index removed — / is handled by PublicLayout above */}
               <Route path={ROUTES.ADMIN_DASHBOARD}  element={withSuspense(<DashboardPage />)} />
-              <Route path="/admin/dashboard"         element={withSuspense(<DashboardPage />)} />
               <Route path="/admin/knowledge"         element={withSuspense(<KnowledgeCmsPage />)} />
               <Route path="/admin/content"           element={withSuspense(<PortfolioCmsPage />)} />
               <Route path={ROUTES.ADMIN_MEDIA}       element={withSuspense(<DamDashboardPage />)} />
@@ -202,25 +176,25 @@ export const App: React.FC = () => {
 
             {/* ── Public Document review & checkout pages ───────────────── */}
             <Route path={ROUTES.PUBLIC_QUOTATION} element={
-              <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center dark:bg-zinc-950 dark:text-white"><PageLoader label="Loading Quotation..." /></div>}>
+              <React.Suspense fallback={null}>
                 <PublicQuotationView />
               </React.Suspense>
             } />
 
             <Route path={ROUTES.PUBLIC_INVOICE} element={
-              <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center dark:bg-zinc-950 dark:text-white"><PageLoader label="Loading Invoice..." /></div>}>
+              <React.Suspense fallback={null}>
                 <PublicInvoiceView />
               </React.Suspense>
             } />
 
             <Route path={ROUTES.PAYMENT_LINK_PUBLIC} element={
-              <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center dark:bg-zinc-950 dark:text-white"><PageLoader label="Loading Payment Link..." /></div>}>
+              <React.Suspense fallback={null}>
                 <PublicInvoiceView />
               </React.Suspense>
             } />
 
             <Route path={ROUTES.PAYMENT_REDIRECT} element={
-              <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center dark:bg-zinc-950 dark:text-white"><PageLoader label="Verifying payment status..." /></div>}>
+              <React.Suspense fallback={null}>
                 <PaymentCallbackView />
               </React.Suspense>
             } />
