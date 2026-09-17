@@ -9,6 +9,7 @@ import { Prisma } from '@prisma/client';
 import { sanitizeBlogHtml } from '../utils/html-sanitizer';
 import { env } from '../config/env';
 import { getAIProvider } from '../ai/providers';
+import { logger } from '../utils/logger';
 
 // Helper: generate slug from title
 function toSlug(title: string): string {
@@ -108,7 +109,10 @@ export const adminService = {
 
     try {
       const provider = getAIProvider();
-      const hc = await provider.healthCheck();
+      const hc = await Promise.race([
+        provider.healthCheck(),
+        new Promise<{ status: string }>((resolve) => setTimeout(() => resolve({ status: 'unhealthy' }), 4000)),
+      ]);
       aiStatus = hc.status === 'healthy' ? 'healthy' : 'unhealthy';
     } catch (e) {
       aiStatus = 'unhealthy';
@@ -117,15 +121,29 @@ export const adminService = {
     // Pending requests = unread messages + pending appointments + new leads + pending partnerships
     const pendingRequests = unreadMessages + pendingAppointments + newLeads + pendingPartnerships;
 
-    const supportersCount = await prisma.supporterProfile.count();
-    const activeSupportersCount = await prisma.supporterProfile.count({ where: { status: 'active' } });
-    const paidPayments = await prisma.payment.aggregate({
-      where: {
-        status: 'successful', currency: 'TZS',
-        ...(range?.from || range?.to ? { paymentDate: { ...(range.from ? { gte: range.from } : {}), ...(range.to ? { lt: range.to } : {}) } } : {}),
-      },
-      _sum: { amount: true }, _count: { id: true },
-    });
+    let supportersCount = 0;
+    let activeSupportersCount = 0;
+    try {
+      [supportersCount, activeSupportersCount] = await Promise.all([
+        prisma.supporterProfile.count(),
+        prisma.supporterProfile.count({ where: { status: 'active' } }),
+      ]);
+    } catch (e) {
+      logger.warn('[getDashboardStats] Failed to load supporter counts', { error: (e as Error).message });
+    }
+
+    let paidPayments: { _sum: { amount: Prisma.Decimal | null }; _count: { id: number } } = { _sum: { amount: null }, _count: { id: 0 } };
+    try {
+      paidPayments = await prisma.payment.aggregate({
+        where: {
+          status: 'successful', currency: 'TZS',
+          ...(range?.from || range?.to ? { paymentDate: { ...(range.from ? { gte: range.from } : {}), ...(range.to ? { lt: range.to } : {}) } } : {}),
+        },
+        _sum: { amount: true }, _count: { id: true },
+      });
+    } catch (e) {
+      logger.warn('[getDashboardStats] Failed to load payment aggregate', { error: (e as Error).message });
+    }
 
     return {
       projects: {
