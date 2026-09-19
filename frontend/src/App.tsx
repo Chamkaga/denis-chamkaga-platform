@@ -132,6 +132,19 @@ export const App: React.FC = () => {
               <Route path={ROUTES.SUPPORT}          element={withSuspense(<SupportPage />, 'Loading...')} />
               <Route path={ROUTES.SUPPORT_CALLBACK} element={withSuspense(<SupportCallbackPage />, 'Verifying transaction...')} />
 
+              {/* ── Authenticated Route Aliases / Direct Navigation Shortcuts ── */}
+              <Route path="/dashboard" element={<Navigate to={ROUTES.ADMIN_DASHBOARD} replace />} />
+              <Route path="/crm" element={<Navigate to="/admin/crm" replace />} />
+              <Route path="/finance" element={<Navigate to="/admin/finance" replace />} />
+              <Route path="/calls" element={<Navigate to="/admin/communication" replace />} />
+              <Route path="/media" element={<Navigate to={ROUTES.ADMIN_MEDIA} replace />} />
+              <Route path="/files" element={<Navigate to={ROUTES.ADMIN_MEDIA} replace />} />
+              <Route path="/settings" element={<Navigate to="/admin/settings" replace />} />
+              <Route path="/operations" element={<Navigate to="/admin/operations" replace />} />
+              <Route path="/knowledge" element={<Navigate to="/admin/knowledge" replace />} />
+              <Route path="/content" element={<Navigate to="/admin/content" replace />} />
+              <Route path="/analytics" element={<Navigate to="/admin/analytics" replace />} />
+
               {/* 404 fallback — still inside PublicLayout so Navbar/Footer shows */}
               <Route path="*" element={withSuspense(<NotFoundPage />, 'Loading...')} />
             </Route>

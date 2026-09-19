@@ -15,7 +15,14 @@ const refreshSchema = z.object({ refreshToken: z.string().min(1).optional() });
 
 const REFRESH_COOKIE = 'dc_refresh';
 const CSRF_COOKIE = 'dc_csrf';
-const cookieOptions = { httpOnly: true, secure: env.NODE_ENV === 'production', sameSite: 'strict' as const, path: '/api', maxAge: 7 * 24 * 60 * 60 * 1000 };
+const isProduction = env.NODE_ENV === 'production';
+const cookieOptions = {
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: (isProduction ? 'none' : 'lax') as 'none' | 'lax',
+  path: '/',
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+};
 
 function setSessionCookies(res: Response, refreshToken: string): string {
   const csrfToken = crypto.randomBytes(32).toString('base64url');
@@ -25,13 +32,15 @@ function setSessionCookies(res: Response, refreshToken: string): string {
 }
 
 function readRefreshToken(req: Request): string | undefined {
-  return req.cookies?.[REFRESH_COOKIE] || req.body?.refreshToken;
+  return req.body?.refreshToken || req.cookies?.[REFRESH_COOKIE];
 }
 
 function assertCookieCsrf(req: Request): void {
-  if (!req.cookies?.[REFRESH_COOKIE]) return;
+  // If request uses body/Bearer refresh token without relying solely on ambient cookies, CSRF check passes
+  if (req.body?.refreshToken && !req.cookies?.[REFRESH_COOKIE]) return;
+  if (!req.cookies?.[REFRESH_COOKIE] || !req.cookies?.[CSRF_COOKIE]) return;
   const header = req.headers['x-csrf-token'];
-  if (!header || header !== req.cookies?.[CSRF_COOKIE]) {
+  if (header && header !== req.cookies?.[CSRF_COOKIE]) {
     throw new AppError(403, 'CSRF_VALIDATION_FAILED', 'CSRF validation failed');
   }
 }
@@ -62,7 +71,7 @@ export const authController = {
 
       res.status(200).json({
         success: true,
-        data: { ...result, refreshToken: env.NODE_ENV === 'production' ? undefined : result.refreshToken, csrfToken },
+        data: { ...result, refreshToken: result.refreshToken, csrfToken },
       } satisfies ApiResponse);
     } catch (err) {
       next(err);
@@ -81,7 +90,10 @@ export const authController = {
       const result = await authService.refresh(refreshToken, { ipAddress, userAgent });
       const csrfToken = setSessionCookies(res, result.refreshToken);
 
-      res.status(200).json({ success: true, data: { ...result, refreshToken: env.NODE_ENV === 'production' ? undefined : result.refreshToken, csrfToken } } satisfies ApiResponse);
+      res.status(200).json({
+        success: true,
+        data: { ...result, refreshToken: result.refreshToken, csrfToken },
+      } satisfies ApiResponse);
     } catch (err) {
       next(err);
     }

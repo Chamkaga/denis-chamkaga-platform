@@ -153,7 +153,7 @@ export const AdminLayout: React.FC = () => {
 
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/admin/ai-copilot/chat`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/admin/ai-copilot/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

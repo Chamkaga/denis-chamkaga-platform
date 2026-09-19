@@ -53,9 +53,12 @@ export const useAuthStore = create<AuthState>((set) => {
 
     setRememberMe: (remember: boolean) => set({ rememberMe: remember }),
 
-    login: (user, accessToken, _refreshToken, rememberMe = true) => {
+    login: (user, accessToken, refreshToken, rememberMe = true) => {
       const storage = rememberMe ? localStorage : sessionStorage;
       storage.setItem('accessToken', accessToken);
+      if (refreshToken) {
+        storage.setItem('refreshToken', refreshToken);
+      }
       storage.setItem('user', JSON.stringify(user));
       set({ isAuthenticated: true, user, rememberMe });
     },

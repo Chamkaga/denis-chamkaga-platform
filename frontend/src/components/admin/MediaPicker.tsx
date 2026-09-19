@@ -9,7 +9,7 @@ import { cn } from '../../lib/cn';
 const getFullUrl = (url?: string) => {
   if (!url) return '';
   if (url.startsWith('http')) return url;
-  const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+  const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/api\/?$/, '') || '';
   return `${API_BASE}${url}`;
 };
 

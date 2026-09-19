@@ -150,8 +150,8 @@ export const ChatWidget: React.FC = () => {
   const checkWebRtcStatus = (sid?: string) => {
     const activeSid = sid || sessionId || localStorage.getItem('assistantSessionId') || '';
     const url = activeSid 
-      ? `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/ai/webrtc/session?sessionId=${activeSid}`
-      : `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/ai/webrtc/session`;
+      ? `${import.meta.env.VITE_API_URL || '/api'}/ai/webrtc/session?sessionId=${activeSid}`
+      : `${import.meta.env.VITE_API_URL || '/api'}/ai/webrtc/session`;
 
     const capability = localStorage.getItem('assistantSessionCapability');
     fetch(url, capability ? { headers: { 'X-Session-Capability': capability } } : undefined)
@@ -489,7 +489,7 @@ export const ChatWidget: React.FC = () => {
 
     const localSessionId = sessionId || localStorage.getItem('assistantSessionId') || '';
     if (localSessionId) {
-      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/ai/webrtc/log`, {
+      fetch(`${import.meta.env.VITE_API_URL || '/api'}/ai/webrtc/log`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -562,7 +562,7 @@ export const ChatWidget: React.FC = () => {
 
       pc.onicecandidate = (event) => {
         if (event.candidate) {
-          fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/ai/webrtc/candidate`, {
+          fetch(`${import.meta.env.VITE_API_URL || '/api'}/ai/webrtc/candidate`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -593,7 +593,7 @@ export const ChatWidget: React.FC = () => {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
       const capability = localStorage.getItem('assistantSessionCapability') || '';
-      const offerResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/ai/webrtc/offer`, {
+      const offerResponse = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/ai/webrtc/offer`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -610,7 +610,7 @@ export const ChatWidget: React.FC = () => {
       pollIntervalRef.current = window.setInterval(async () => {
         try {
           if (!pc.remoteDescription) {
-            const answerResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/ai/webrtc/answer/${localSessionId}`, {
+            const answerResponse = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/ai/webrtc/answer/${localSessionId}`, {
               headers: { 'X-Session-Capability': capability }
             });
             if (answerResponse.ok) {
@@ -624,7 +624,7 @@ export const ChatWidget: React.FC = () => {
             }
           }
 
-          const candidatesResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/ai/webrtc/candidates/${localSessionId}?role=admin`, {
+          const candidatesResponse = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/ai/webrtc/candidates/${localSessionId}?role=admin`, {
             headers: { 'X-Session-Capability': capability }
           });
           if (candidatesResponse.ok) {
@@ -780,7 +780,7 @@ export const ChatWidget: React.FC = () => {
     abortControllerRef.current = controller;
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/ai/chat/stream`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/ai/chat/stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -72,11 +72,19 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
+        const storedRefreshToken = localStorage.getItem('refreshToken') || sessionStorage.getItem('refreshToken');
         const csrfToken = document.cookie.split('; ').find(part => part.startsWith('dc_csrf='))?.split('=')[1];
-        const res = await axios.post(`${API_BASE_URL}/auth/refresh`, {}, { withCredentials: true, headers: csrfToken ? { 'X-CSRF-Token': decodeURIComponent(csrfToken) } : {} });
-        const { accessToken } = res.data.data;
+        const res = await axios.post(
+          `${API_BASE_URL}/auth/refresh`,
+          { refreshToken: storedRefreshToken || undefined },
+          { withCredentials: true, headers: csrfToken ? { 'X-CSRF-Token': decodeURIComponent(csrfToken) } : {} }
+        );
+        const { accessToken, refreshToken: newRefreshToken } = res.data.data;
 
         localStorage.setItem('accessToken', accessToken);
+        if (newRefreshToken) {
+          localStorage.setItem('refreshToken', newRefreshToken);
+        }
         processQueue(null, accessToken);
         isRefreshing = false;
 
@@ -222,7 +230,7 @@ export const aiApi = {
   },
   downloadSession: (sessionId: string) => {
     // Returns a URL to the download endpoint — browser triggers native download
-    return `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/ai/sessions/${sessionId}/download`;
+    return `${import.meta.env.VITE_API_URL || '/api'}/ai/sessions/${sessionId}/download`;
   },
   uploadAttachment: async (file: File, sessionId: string) => {
     const form = new FormData();

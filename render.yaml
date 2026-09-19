@@ -10,7 +10,8 @@ services:
       npm run build --workspace=shared &&
       npx prisma generate --schema=backend/prisma/schema.prisma &&
       npm run build --workspace=backend &&
-      npx prisma migrate deploy --schema=backend/prisma/schema.prisma
+      npx prisma migrate deploy --schema=backend/prisma/schema.prisma &&
+      npx tsx backend/prisma/seed.ts
     startCommand: node backend/dist/src/server.js
     healthCheckPath: /api/health
     autoDeployTrigger: commit

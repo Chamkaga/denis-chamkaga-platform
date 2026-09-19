@@ -766,7 +766,7 @@ export const BusinessAdminPage: React.FC = () => {
                           <td className="p-3 text-zinc-500">{new Date(q.validUntil).toLocaleDateString()}</td>
                           <td className="p-3 capitalize">{q.status}</td>
                           <td className="p-3 text-right flex justify-end gap-1 flex-wrap max-w-[280px]">
-                            <a href={`http://localhost:5000/api/admin/finance/quotations/${q.id}/pdf`} target="_blank" rel="noopener noreferrer">
+                            <a href={`${import.meta.env.VITE_API_URL || '/api'}/admin/finance/quotations/${q.id}/pdf`} target="_blank" rel="noopener noreferrer">
                               <Button size="xs" variant="outline" title="PDF"><Download size={12} /></Button>
                             </a>
                             <Button size="xs" variant="outline" onClick={() => emailQuoteMutation.mutate(q.id)}>Email</Button>
@@ -823,7 +823,7 @@ export const BusinessAdminPage: React.FC = () => {
                           <td className="p-3 font-bold text-red-500">{inv.currency} {inv.balanceDue.toLocaleString()}</td>
                           <td className="p-3 capitalize">{inv.status}</td>
                           <td className="p-3 text-right flex justify-end gap-1 flex-wrap max-w-[340px]">
-                            <a href={`http://localhost:5000/api/admin/finance/invoices/${inv.id}/pdf`} target="_blank" rel="noopener noreferrer">
+                            <a href={`${import.meta.env.VITE_API_URL || '/api'}/admin/finance/invoices/${inv.id}/pdf`} target="_blank" rel="noopener noreferrer">
                               <Button size="xs" variant="outline" title="PDF"><Download size={12} /></Button>
                             </a>
                             <Button size="xs" variant="outline" onClick={() => emailInvoiceMutation.mutate(inv.id)}>Email</Button>

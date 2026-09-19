@@ -60,12 +60,34 @@ app.use(helmet({
 
 app.use(preventPathTraversal);
 
+const parseAllowedOrigins = (): string[] => {
+  const raw = env.FRONTEND_URL || 'http://localhost:5173';
+  return raw
+    .split(',')
+    .map((o) => o.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
+};
+
+const allowedOrigins = parseAllowedOrigins();
+
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:') || origin === env.FRONTEND_URL) {
+    if (!origin) {
+      return callback(null, true);
+    }
+    const normalizedOrigin = origin.replace(/\/+$/, '');
+    
+    // Check exact matches or localhost
+    const isAllowed =
+      allowedOrigins.includes(normalizedOrigin) ||
+      normalizedOrigin.startsWith('http://localhost:') ||
+      normalizedOrigin.startsWith('http://127.0.0.1:') ||
+      /^https:\/\/denis-chamkaga-platform(-[a-z0-9-]+)?\.vercel\.app$/.test(normalizedOrigin);
+
+    if (isAllowed) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      callback(null, false);
     }
   },
   credentials: true,

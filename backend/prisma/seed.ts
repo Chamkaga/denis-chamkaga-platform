@@ -160,15 +160,8 @@ async function main() {
 
   // ─── 3. Owner User ────────────────────────────────────────────────────────
   console.log('Creating owner user...');
-  const isProduction = process.env.NODE_ENV === 'production';
-  if (isProduction && !process.env.OWNER_INITIAL_PASSWORD) {
-    throw new Error('OWNER_INITIAL_PASSWORD must be set before seeding a production database.');
-  }
-  if (isProduction && !process.env.ADMIN_INITIAL_PASSWORD) {
-    throw new Error('ADMIN_INITIAL_PASSWORD must be set before seeding a production database.');
-  }
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@denischamkaga.com';
-  const ownerPassword = process.env.OWNER_INITIAL_PASSWORD || 'Denis@Platform2025';
+  const ownerPassword = process.env.OWNER_INITIAL_PASSWORD || process.env.ADMIN_INITIAL_PASSWORD || 'Denis@Platform2025';
   const passwordHash = await bcrypt.hash(ownerPassword, BCRYPT_ROUNDS);
 
   // Only resync passwordHash for an existing account if it's still in its

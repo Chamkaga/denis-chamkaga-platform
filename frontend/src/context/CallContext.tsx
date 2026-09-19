@@ -119,7 +119,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (callState !== 'idle') return;
 
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/admin/webrtc/offers`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/admin/webrtc/offers`, {
           headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }
         });
         if (res.ok) {
@@ -193,7 +193,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       setCallState('connecting');
-      const offerRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/admin/webrtc/offers`, {
+      const offerRes = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/admin/webrtc/offers`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }
       });
       const offerData = await offerRes.json();
@@ -212,7 +212,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       pc.onicecandidate = (event) => {
         if (event.candidate) {
-          fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/admin/webrtc/candidate`, {
+          fetch(`${import.meta.env.VITE_API_URL || '/api'}/admin/webrtc/candidate`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -236,7 +236,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
 
-      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/admin/webrtc/answer`, {
+      await fetch(`${import.meta.env.VITE_API_URL || '/api'}/admin/webrtc/answer`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -253,7 +253,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Poll visitor candidates
       pollIntervalRef.current = setInterval(async () => {
         try {
-          const candRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/admin/webrtc/candidates/${activeCall.sessionId}`, {
+          const candRes = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/admin/webrtc/candidates/${activeCall.sessionId}`, {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }
           });
           if (candRes.ok) {
@@ -286,13 +286,13 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     audioSynth.playCallEndedTone();
 
     if (activeCall) {
-      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/admin/webrtc/hangup/${activeCall.sessionId}`, {
+      fetch(`${import.meta.env.VITE_API_URL || '/api'}/admin/webrtc/hangup/${activeCall.sessionId}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }
       }).catch(err => console.error('Failed to hangup session:', err));
 
       // Post missed call log
-      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/ai/webrtc/log`, {
+      fetch(`${import.meta.env.VITE_API_URL || '/api'}/ai/webrtc/log`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -316,7 +316,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (activeCall) {
       // Post call log with live notes to backend!
-      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/ai/webrtc/log`, {
+      fetch(`${import.meta.env.VITE_API_URL || '/api'}/ai/webrtc/log`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -329,7 +329,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
         })
       }).catch(e => console.error(e));
 
-      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/admin/webrtc/hangup/${activeCall.sessionId}`, {
+      fetch(`${import.meta.env.VITE_API_URL || '/api'}/admin/webrtc/hangup/${activeCall.sessionId}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }
       }).catch(err => console.error('Failed to hangup session:', err));
